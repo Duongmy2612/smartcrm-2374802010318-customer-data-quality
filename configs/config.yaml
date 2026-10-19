@@ -1,0 +1,17 @@
+# Cấu hình ứng dụng L7 – KHÔNG chứa bí mật (mật khẩu CSDL để trong .env, xem .env.example).
+
+seed: 42                         # NFR-05: mọi bước ngẫu nhiên đặt seed 42
+nguong_fuzzy: 85                 # QL7-02: ngưỡng điểm tạo cặp FUZZY (match.py – Sprint 2)
+don_vi_nguon_mac_dinh: TONG_HOP  # customers_raw.csv hợp nhất từ nhiều cửa hàng/kênh nên đơn vị nguồn là "tổng hợp"
+thu_muc_xuat: data/processed     # tệp CSV hồ sơ lỗi (có dữ liệu cá nhân → không commit)
+thu_muc_bao_cao: reports         # báo cáo số đếm sau mỗi lần chạy pipeline
+
+# Người dùng và vai trò của prototype (SRS mục 2.4). Tên đăng nhập được ghi vào
+# load_batch.loaded_by, dup_candidate.decided_by, dq_rule.updated_by.
+nguoi_dung:
+  - ten_dang_nhap: my.marketing
+    vai_tro: MARKETING           # Nhân viên Marketing: nạp tệp (UC1), xác nhận Gộp/Giữ riêng (UC5)
+    don_vi: VAN_PHONG            # thuộc văn phòng công ty → phạm vi dữ liệu toàn công ty
+  - ten_dang_nhap: ql.mm001
+    vai_tro: QUAN_LY_CUA_HANG    # Quản lý cửa hàng: cấu hình quy tắc (UC6), dashboard của đơn vị mình (UC8)
+    don_vi: MM001                # mã cửa hàng trong stores.csv

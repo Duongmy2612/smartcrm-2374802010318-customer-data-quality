@@ -1,0 +1,3 @@
+-- Lớp ③ Lưu trữ – schema dwh (kho dữ liệu hình sao): dim_date, dim_batch, dim_rule (SCD loại 2),
+-- fact_dq_check, fact_dup_pair, view v_rule_rate, v_batch_score – theo docs/erd.drawio trang 2.
+-- Sprint 2 (buổi 9 – 10) cùng load_dwh.py (TD-04).

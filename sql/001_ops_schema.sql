@@ -1,0 +1,2 @@
+-- Lớp ③ Lưu trữ – schema ops (tầng tác nghiệp): 6 bảng theo docs/erd.drawio trang 1.
+-- Sprint 1 (buổi 8): viết DDL.
