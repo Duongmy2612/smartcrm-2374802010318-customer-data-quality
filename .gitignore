@@ -1,0 +1,26 @@
+# Bí mật – KHÔNG BAO GIỜ commit (NFR-07)
+.env
+
+# Môi trường ảo, bộ đệm Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Dữ liệu: tải từ LMS hoặc sinh lại bằng script với seed 42 (có dữ liệu cá nhân)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Báo cáo sinh tự động mỗi lần chạy pipeline (ảnh/báo cáo minh chứng để trong docs/)
+reports/*
+!reports/.gitkeep
+
+# IDE / hệ điều hành
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
