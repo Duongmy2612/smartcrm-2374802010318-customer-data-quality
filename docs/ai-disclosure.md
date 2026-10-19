@@ -11,3 +11,9 @@ Sinh viên: Dương Diễm My – MSSV 2374802010318 · Luồng L7 – Chất l�
 **Tôi xác nhận đã đọc, hiểu và chịu trách nhiệm về toàn bộ nội dung nộp.**
 
 Họ tên: Dương Diễm My · MSSV: 2374802010318 · Ngày: 09/10/2026
+
+## Bản chỉnh sửa BT1 sau phản hồi (19/10/2026, buổi 8)
+
+| Công cụ | Dùng vào việc gì | Áp dụng ở phần nào | Đã kiểm chứng thế nào |
+|---|---|---|---|
+| Claude (Anthropic) | Theo phản hồi BT1: rút gọn bản PDF từ 27 xuống 13 trang (giữ nguyên thiết kế), soạn nhật ký thay đổi TD-01 – TD-05, chuyển Phụ lục A, B và khung K4 vào repo, dọn repo (`.venv`, `.env`), chuẩn bị các commit để em đẩy hồ sơ BT1 lên repo. | `BT1_2374802010318_DuongDiemMy.pdf`; `docs/thay-doi-thiet-ke.md`, `docs/ra-soat-bt1.md`, `docs/srs.md` mục 8; `.gitignore`, `.env.example` | Đối chiếu tự động mọi con số giữa bản 13 trang và bản 27 trang: không con số nào bị đổi. [ ] Em đọc lại cả 13 trang và tự giải thích được TD-01 – TD-05. |

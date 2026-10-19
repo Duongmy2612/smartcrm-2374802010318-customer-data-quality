@@ -6,8 +6,8 @@
 | Track | DA (Data Analytics) |
 | Học phần | Chuyên đề tốt nghiệp 1 (71ITGR40203) – Trường ĐH Văn Lang |
 | Luồng nghiệp vụ | L7 – Chất lượng dữ liệu khách hàng |
-| Phiên bản | 1.1 (Buổi 6 – nộp kèm Bài tập 1); thay đổi so với 1.0 (Buổi 4) ở mục 7 |
-| Tài liệu liên quan | `docs/usecase.drawio`, `docs/architecture.drawio`, `docs/dataflow.drawio`, `docs/erd.drawio`, `docs/wireframe.drawio` / `docs/wireframe.png`, `docs/data-requirements.md`, `docs/ai-disclosure.md` |
+| Phiên bản | 1.2 (Buổi 8 – sau phản hồi Bài tập 1; yêu cầu không đổi so với 1.1, xem mục 8). 1.1: Buổi 6 – nộp kèm Bài tập 1; thay đổi so với 1.0 (Buổi 4) ở mục 7 |
+| Tài liệu liên quan | `docs/usecase.drawio`, `docs/architecture.drawio`, `docs/dataflow.drawio`, `docs/erd.drawio`, `docs/wireframe.drawio` / `docs/wireframe.png`, `docs/data-requirements.md`, `docs/ai-disclosure.md`, `docs/thay-doi-thiet-ke.md`, `docs/ra-soat-bt1.md` |
 
 **Phạm vi một câu:** Nạp tệp khách hàng thô, chuẩn hóa số điện thoại và họ tên, phát hiện cặp hồ sơ nghi trùng bằng so khớp mờ để Nhân viên Marketing xác nhận gộp hoặc giữ riêng, rồi đo và báo cáo chỉ số mức độ sạch dữ liệu theo từng đợt nạp.
 
@@ -282,7 +282,7 @@ Nơi hiển thị thông báo của từng luồng ngoại lệ: vùng thông b�
 
 ## 7. Lịch sử thay đổi (1.0 Buổi 4 → 1.1 Buổi 6)
 
-| # | Thay đổi | Lý do / căn cứ | Vị trí trong BT1 |
+| # | Thay đổi | Lý do / căn cứ | Vị trí trong BT1 (bản nộp 09/10) |
 |---|---|---|---|
 | 1 | User Story 11 → 7: gộp US4 + US5 cũ thành US4; gộp US7 + US8 cũ thành US6; US10 → WON'T W1; US11 → ràng buộc QT-15 (FR-11, NFR-07); đánh số lại US1 – US7; bỏ dẫn chiếu V4 ở story báo cáo. | Đề bài yêu cầu 5 – 7 User Story; case study ánh xạ V4 tới L6, L10, không phải L7. | 1.3, B.4 |
 | 2 | FR-05, FR-08, FR-11 nâng từ SHOULD lên MUST; việc tạo name_key chuyển từ FR-03 sang FR-04; mã lỗi MISSING_NAME và việc ghi hồ sơ hợp lệ vào customer_clean ghi rõ ở FR-02. | UC4, UC7 là bước bắt buộc («include») của use case MUST (UC5; UC1, UC5) nên xếp SHOULD là mâu thuẫn; FR-11 thực hiện quy tắc bắt buộc QT-15; FR-04 (MUST) chấm điểm trên name_key nên không được phụ thuộc FR-03 (SHOULD); customer_clean.full_name là NOT NULL nên kiểm MISSING_NAME phải thuộc bước MUST. | 1.3, 1.6 |
@@ -315,3 +315,18 @@ Nơi hiển thị thông báo của từng luồng ngoại lệ: vùng thông b�
 | US9 | US7 | Đánh số lại |
 | US10 | W1 (WON'T) | Chuyển vào danh sách chủ ý không làm |
 | US11 | QT-15 (FR-11, NFR-07) | Yêu cầu bảo mật từ quy tắc nghiệp vụ, không phải mục tiêu của actor |
+
+---
+
+## 8. Lịch sử thay đổi 1.1 → 1.2 (Buổi 8, sau phản hồi Bài tập 1)
+
+Không thay đổi User Story, FR, NFR, quy tắc nghiệp vụ, bảng hay cột nào. Thay đổi chỉ ở cách nộp và trình bày hồ sơ; chi tiết từng điểm ở `docs/thay-doi-thiet-ke.md`:
+
+| Mã | Thay đổi | Ảnh hưởng tới tài liệu |
+|---|---|---|
+| TD-01 | Nộp một tệp PDF đúng tên `BT1_2374802010318_DuongDiemMy.pdf`. | Tệp PDF ở gốc repo. |
+| TD-02 | Đẩy đủ hồ sơ BT1 lên repo; bỏ `.venv`, `.env` khỏi repo; thêm nhánh `main`. | Repo. |
+| TD-03 | PDF rút gọn còn 13 trang: Phụ lục A → `docs/data-requirements.md` mục 5.1; Phụ lục B.1, B.2, Bảng 4.2 (bản 09/10) → `docs/ra-soat-bt1.md`; Phụ lục B.3, B.4 → mục 7 của tài liệu này; khung K4 → `docs/wireframe.drawio` trang 4; bảng chỉ số trong view và quy tắc nạp kho → `docs/data-requirements.md` mục 5.2. | Bản đầy đủ của mọi bảng vẫn ở `docs/srs.md` và `docs/data-requirements.md`. |
+| TD-04 | Thứ tự hiện thực: Sprint 1 làm phần nền (extract, transform, dq_evaluate), Sprint 2 làm `match.py`, `load_dwh.py` và đo NFR-01, NFR-03. | README mục 6. |
+| TD-05 | Khai báo AI theo từng phần, có cột kiểm chứng. | `docs/ai-disclosure.md`, README mục 7. |
+

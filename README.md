@@ -59,6 +59,8 @@ cp .env.example .env                 # điền thông tin kết nối PostgreSQL
 # đặt customers_raw.csv (thư mục dataset/ trên LMS) vào data/raw/
 python notebooks/profiling_customers.py data/raw/customers_raw.csv
 ```
+**Nộp bài tập (TD-01):** một tệp PDF duy nhất, đúng tên `BT<số>_2374802010318_DuongDiemMy.pdf`; mở lại tệp sau khi nộp; link repo ở trang bìa bấm được; repo để public (hoặc đã mời giảng viên làm collaborator) và đã `git push` đủ tệp gốc.
+
 **Tái lập (NFR-05):** mọi bước ngẫu nhiên dùng `seed = 42`; mẫu phát triển `data/processed/mau_cum_8000.csv` sinh lại giống hệt mỗi lần chạy.
 
 ## 6. Khai báo sử dụng công cụ AI
