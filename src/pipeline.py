@@ -22,7 +22,7 @@ from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 
 from src import config
-from src.etl import extract, transform
+from src.etl import dq_evaluate, extract, transform
 
 MA_THANH_CONG, MA_LOI_KY_THUAT, MA_TU_CHOI = 0, 1, 2
 
@@ -138,8 +138,32 @@ def chay_uc1(tep, don_vi: str, nguoi_nap: str, nap_lai: bool = False, ghi_csdl: 
         in_ra(f"      → hồ sơ lỗi kèm lý do: {bc['tep_ho_so_loi']} ({so(n_loi)} dòng, FR-10)")
         bc['thoi_gian']['transform'] = t_tf + time.perf_counter() - t0
 
-        # ---------------- [3] dq_evaluate (FR-08) – commit sau
-        in_ra('[3/4] dq_evaluate chưa hiện thực')
+        # ---------------- [3] dq_evaluate (FR-08) – UC1 «include» UC7: đo TRƯỚC/SAU ngay trong giao dịch nạp
+        t0 = time.perf_counter()
+        if conn is not None:
+            dq_evaluate.khoi_tao_quy_tac(conn, 'he_thong')
+            quy_tac = dq_evaluate.doc_quy_tac_dang_bat(conn)
+        else:
+            quy_tac = dq_evaluate.QUY_TAC_MAC_DINH
+        ket_qua = dq_evaluate.do_mot_lan(df, quy_tac)
+        do_luc = datetime.now()
+        if conn is not None:
+            n_kq = dq_evaluate.ghi_ket_qua(conn, batch_id, ket_qua, quy_tac, do_luc)
+            ghi = f'→ ops.dq_result +{n_kq} dòng'
+        else:
+            ghi = '(không ghi CSDL)'
+        bc['chat_luong'] = _bang_chat_luong(ket_qua, quy_tac)
+        truoc = dq_evaluate.chi_so_muc_do_sach(ket_qua, quy_tac, 'TRUOC')
+        sau = dq_evaluate.chi_so_muc_do_sach(ket_qua, quy_tac, 'SAU')
+        bc['chi_so'] = {'TRUOC': round(truoc, 2), 'SAU': round(sau, 2)}
+        in_ra(f'[3/4] dq_evaluate {len(quy_tac)} quy tắc × 2 giai đoạn {ghi}')
+        in_ra(f"      {'Quy tắc':<8}{'Trọng số':>9}{'Ngưỡng':>9}   {'TRƯỚC':<18}{'SAU':<18}")
+        for d in bc['chat_luong']:
+            in_ra(f"      {d['ma']:<8}{d['trong_so']:>9}{d['nguong']:>9}   {d['truoc']:<18}{d['sau']:<18}")
+        t, s_ = bc['chi_so']['TRUOC'], bc['chi_so']['SAU']      # chênh lệch tính trên số đã làm tròn, như BT1
+        in_ra(f'      Chỉ số mức độ sạch (QL7-06): TRƯỚC {diem(t)} ({dq_evaluate.xep_loai(t)}) → '
+              f'SAU {diem(s_)} ({dq_evaluate.xep_loai(s_)}), {diem(s_ - t, dau=True)} điểm')
+        bc['thoi_gian']['dq_evaluate'] = time.perf_counter() - t0
 
         # ---------------- [4] load_dwh (FR-09)
         in_ra('[4/4] load_dwh    chưa hiện thực – Sprint 2 (TD-04)')
@@ -148,7 +172,10 @@ def chay_uc1(tep, don_vi: str, nguoi_nap: str, nap_lai: bool = False, ghi_csdl: 
     in_ra(f"Số dòng: tệp {so(hs['so_dong'])} → bảng tạm {so(len(df))} = sạch {so(tt['CLEAN'])} "
           f"+ chờ quyết định {so(tt['PENDING_DUP'])} + lỗi {so(tt['ERROR'])}")
     in_ra(f"Thời gian: extract {giay(tg['extract'])} · transform {giay(tg['transform'])} · "
-          f"tổng {giay(sum(tg.values()))} (NFR-01: nạp và chuẩn hóa 8.000 dòng ≤ 60 s)")
+          f"dq_evaluate {giay(tg['dq_evaluate'])} · tổng {giay(sum(tg.values()))} (NFR-01: nạp và chuẩn hóa 8.000 dòng ≤ 60 s)")
+    tep_bc = ghi_bao_cao(bc, hs, thu_muc_ra or config.duong_dan(cau_hinh, 'thu_muc_bao_cao'))
+    bc['tep_bao_cao'] = _tuong_doi(tep_bc)
+    in_ra(f"Báo cáo: {bc['tep_bao_cao']}")
     return bc
 
 
@@ -158,6 +185,61 @@ def _tuong_doi(p: pathlib.Path) -> str:
         return str(p.relative_to(config.GOC))
     except ValueError:
         return str(p)
+
+
+def diem(x: float, dau: bool = False) -> str:
+    return (f'{x:+.2f}' if dau else f'{x:.2f}').replace('.', ',')
+
+
+def _bang_chat_luong(ket_qua, quy_tac) -> list[dict]:
+    """Một dòng / quy tắc: tỉ lệ đạt TRƯỚC, SAU và đạt/chưa đạt so với ngưỡng (để in và ghi báo cáo)."""
+    theo = {(k.rule_code, k.measure_stage): k for k in ket_qua}
+    dong = []
+    for q in quy_tac:
+        o = {'ma': q['rule_code'], 'ten': q['rule_name'], 'trong_so': f"{float(q['weight']):.2f}".replace('.', ','),
+             'nguong': f"≥ {float(q['pass_threshold']):g}%"}
+        for gd, khoa in (('TRUOC', 'truoc'), ('SAU', 'sau')):
+            k = theo[(q['rule_code'], gd)]
+            dat = k.ti_le * 100 >= float(q['pass_threshold'])
+            o[khoa] = f"{pt(k.ti_le)} {'đạt' if dat else 'chưa đạt'}"
+            o[khoa + '_so'] = f'{so(k.pass_count)}/{so(k.total_records)}'
+        dong.append(o)
+    return dong
+
+
+def ghi_bao_cao(bc: dict, hs: dict, thu_muc: pathlib.Path) -> pathlib.Path:
+    """Báo cáo Markdown chỉ có SỐ ĐẾM (không có họ tên, số điện thoại) nên an toàn để đính kèm minh chứng."""
+    tt, tk = bc['chuan_hoa']['trang_thai'], bc['chuan_hoa']
+    d = [f"# Báo cáo UC1 – đợt nạp {bc['batch_id']}", '',
+         f"- Tệp: `{bc['tep']}` · SHA-256 `{bc['file_hash']}`",
+         f"- Đơn vị nguồn: {bc['don_vi']} · Người nạp: {bc['nguoi_nap']} · Bắt đầu: {bc['bat_dau']}",
+         f"- Ghi CSDL: {'có' if bc['ghi_csdl'] else 'không (--khong-ghi-csdl)'}", '',
+         f"## 1. Extract – {so(hs['so_dong'])} dòng × {hs['so_cot']} cột", '',
+         '| Cột | Ô trống | Tỉ lệ |', '|---|---:|---:|']
+    d += [f'| {c} | {so(k)} | {pt(r)} |' for c, (k, r) in hs['o_trong'].items()]
+    d += ['', '## 2. Transform – số dòng trước → sau', '',
+          '| Hạng mục | Số hồ sơ |', '|---|---:|',
+          f"| Số điện thoại đúng dạng sẵn | {so(tk['so_dung_dang_san'])} |",
+          f"| Số điện thoại sai dạng đã chuẩn hóa | {so(tk['so_da_chuan_hoa'])} |",
+          f"| Số điện thoại không quy đổi được (INVALID_PHONE) | {so(tk['so_khong_quy_doi_duoc'])} |",
+          f"| Họ tên được sửa cách viết | {so(tk['ten_duoc_sua_cach_viet'])} |",
+          f"| **CLEAN** – vào customer_clean | {so(tt['CLEAN'])} |",
+          f"| **PENDING_DUP** – hồ sơ lặp chờ quyết định | {so(tt['PENDING_DUP'])} |",
+          f"| **ERROR** – ở lại bảng tạm | {so(tt['ERROR'])} |"]
+    d += [f'| &nbsp;&nbsp;{k} | {so(v)} |' for k, v in tk['ma_loi'].items()]
+    d += ['', f"Tệp hồ sơ lỗi kèm lý do: `{bc['tep_ho_so_loi']}` (có dữ liệu cá nhân, không commit).", '',
+          '## 3. Chất lượng TRƯỚC / SAU (FR-08, QL7-06)', '',
+          '| Quy tắc | Tên | Trọng số | Ngưỡng | TRƯỚC (đạt/kiểm) | SAU (đạt/kiểm) |', '|---|---|---:|---:|---|---|']
+    d += [f"| {o['ma']} | {o['ten']} | {o['trong_so']} | {o['nguong']} | {o['truoc']} ({o['truoc_so']}) | "
+          f"{o['sau']} ({o['sau_so']}) |" for o in bc['chat_luong']]
+    t, s = bc['chi_so']['TRUOC'], bc['chi_so']['SAU']
+    d += ['', f"**Chỉ số mức độ sạch:** TRƯỚC {diem(t)} ({dq_evaluate.xep_loai(t)}) → SAU {diem(s)} "
+              f"({dq_evaluate.xep_loai(s)}), {diem(s - t, dau=True)} điểm.", '',
+          '## 4. Thời gian (NFR-01)', '', '| Bước | Giây |', '|---|---:|']
+    d += [f"| {k} | {v:.2f} |".replace('.', ',') for k, v in bc['thoi_gian'].items()]
+    p = thu_muc / f"uc1-dot-{bc['batch_id']}-{datetime.now():%Y%m%d_%H%M%S}.md"
+    p.write_text('\n'.join(d) + '\n', encoding='utf-8')
+    return p
 
 
 class _khong_csdl:
