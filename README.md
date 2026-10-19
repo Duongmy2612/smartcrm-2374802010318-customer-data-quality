@@ -188,7 +188,7 @@ Mỗi lần chạy ghi:
 | Công cụ | Dùng vào việc gì | Cách tự kiểm chứng |
 |---|---|---|
 | Claude (Anthropic) – BT1 | Rà soát hồ sơ Buổi 4; script profiling; bản nháp mục 3, 4, 5; tệp `.drawio`, Markdown | Chạy lại script profiling với seed 42 và đối chiếu từng con số ở mục 4.1, 4.5; mở từng tệp `.drawio` để đối chiếu; tự giải thích được GRAIN, SCD loại 2 |
-| Claude (Anthropic) – buổi 8 | Rút gọn PDF BT1, nhật ký TD-01 – TD-11; bản nháp DDL, `extract.py`, `transform.py`, `dq_evaluate.py`, `pipeline.py`, test, README | Theo từng phần, có ô đánh dấu: `docs/ai-disclosure.md` |
+| Claude (Anthropic) – buổi 8 | Rút gọn PDF BT1, nhật ký TD-01 – TD-12; bản nháp DDL, `extract.py`, `transform.py`, `dq_evaluate.py`, `pipeline.py`, test, README | Theo từng phần, có ô đánh dấu: `docs/ai-disclosure.md` |
 
 ## Tài liệu
 
@@ -196,7 +196,7 @@ Mỗi lần chạy ghi:
 |---|---|
 | `docs/srs.md` | SRS 1.2: User Story, tiêu chí chấp nhận, đặc tả UC5, FR, NFR, quy tắc, truy vết, lịch sử thay đổi |
 | `docs/data-requirements.md` | Nguồn dữ liệu, số đo profiling, từ điển dữ liệu 11 bảng, quy tắc DQ, thuật toán so khớp |
-| `docs/thay-doi-thiet-ke.md` | Nhật ký thay đổi thiết kế TD-01 – TD-11 (đọc lại khi chấm BT2, BT3) |
+| `docs/thay-doi-thiet-ke.md` | Nhật ký thay đổi thiết kế TD-01 – TD-12 (đọc lại khi chấm BT2, BT3) |
 | `docs/ra-soat-bt1.md` | Tự kiểm BT1, sáu phép kiểm nhất quán, năm lỗi ERD |
 | `docs/ai-disclosure.md` | Khai báo AI theo từng phần |
 | `docs/*.drawio`, `docs/export/` | Use Case, kiến trúc, data flow, ERD (ops + star schema), wireframe K1 – K4 |

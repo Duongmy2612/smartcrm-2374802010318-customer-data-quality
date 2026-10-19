@@ -154,3 +154,17 @@ bốn câu lập luận có số đo, bảng truy vết 11/11 FR) **giữ nguyê
   - Mẫu số điện thoại dùng `[0-9]` cho khớp đúng CHECK của CSDL.
   - Trên `customers_raw.csv` không có trường hợp nào như vậy (họ tên dài nhất 21 ký tự, địa chỉ 38), nên số đo không đổi.
 - **Ảnh hưởng:** `transform.kiem_do_dai_ho_so_sach`, `MAU_SO_CHUAN`; `dq_evaluate.MAU_SO_CHUAN`; test `test_kiem_do_dai_truoc_khi_ghi_customer_clean`, `test_chu_so_unicode_khong_duoc_chap_nhan`, `test_gia_tri_qua_dai_bi_tu_choi_ca_dot`.
+
+### TD-12  Hàm chuẩn hóa đầu tiên là số điện thoại, không phải ngày
+
+- **Nguồn:** Slide buổi 8 (DA): "Viết hàm chuẩn hoá ĐẦU TIÊN: xử lý ba định dạng ngày trong cột ngay". Ví dụ này lấy từ repo mẫu L6, nơi tệp đơn hàng `orders_2024_2026.csv` có ba định dạng ngày.
+- **Quyết định:** SỬA nhiệm vụ cho đúng dữ liệu của L7.
+  - Hàm chuẩn hóa đầu tiên là `transform.chuan_hoa_so_dien_thoai` (QT-02); hàm thứ hai là `transform.chuan_hoa_ho_ten` (FR-03).
+  - Không viết hàm quy đổi ngày.
+- **Lý do:**
+  - Tệp nguồn của L7 là `customers_raw.csv`, không phải tệp đơn hàng. Cột ngày duy nhất là `ngay_tao`, đã đo ở BT1 mục 4.1: 67.037/67.037 giá trị dạng `yyyy-mm-dd` (2024-01-01 → 2026-08-28), không ô nào trống. Không có gì để quy đổi.
+  - Cột "nhiều định dạng" thật của L7 là số điện thoại: 5 dạng ghi, 28,40% hồ sơ ghi số sai dạng. Số điện thoại cũng là khóa so khớp của `match.py` (Sprint 2), nên phải chuẩn hóa trước.
+  - Kết quả quan sát được tương đương dòng "ngày đọc được 302/302" của ví dụ slide: "19.041 sai dạng đã chuẩn hóa · 0 không quy đổi được" (`docs/sprint1/ket-qua-pipeline.png`).
+- **Ảnh hưởng:**
+  - Không đổi thiết kế. `ngay_tao` giữ nguyên giá trị gốc ở `stg_customer.created_raw` (NFR-05); chỉ dùng để hiển thị "ngày ghi nhận" ở K4 (UC5) và xuất CSV hồ sơ lỗi.
+  - Nếu sau này tệp của cửa hàng lẫn định dạng ngày thì thêm hàm quy đổi vào `transform.py`, kèm test, và ghi một TD mới.
