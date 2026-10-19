@@ -78,3 +78,79 @@ bốn câu lập luận có số đo, bảng truy vết 11/11 FR) **giữ nguyê
   - Mỗi mô-đun và hàm nghiệp vụ trong `src/etl/` có docstring ghi FR/QT nó thực hiện và lý do chọn cách làm.
   - Các quy tắc đã hiện thực (QT-01, QT-02, QL7-04, QL7-06, FR-03, AC1.2 – AC1.4) đều có test em tự chạy được (`pytest -q`).
   - Có test hồi quy đối chiếu kết quả với đúng các con số đã nộp ở mục 4.5 BT1 (87,20 → 94,76).
+
+---
+
+## Trong Sprint 1 (buổi 8, ngày 19/10/2026) – quyết định khi hiện thực
+
+### TD-06  Giữ cấu trúc `src/etl/` 6 mô-đun theo sơ đồ kiến trúc
+
+- **Nguồn:** Slide buổi 8 gợi ý track DA dựng `src/extract/`, `src/transform/`, `src/quality/`, `src/load/` + `pipeline.py` như repo mẫu. Checklist buổi 8 lại yêu cầu `src/` ánh xạ một–một với sơ đồ kiến trúc **đã nộp**.
+- **Quyết định:** GIỮ NGUYÊN.
+- **Lý do:**
+  - Sơ đồ kiến trúc (Hình 3.1) và cấu trúc track DA của Buổi 2 (`src/etl/`) đã chốt `src/etl/` gồm 6 mô-đun, mỗi mô-đun một nhóm FR.
+  - Bốn pha của gợi ý vẫn có đủ: extract → `extract.py`, transform → `transform.py`, quality → `dq_evaluate.py`, load → `load_dwh.py`. Hai mô-đun còn lại (`match.py`, `merge_service.py`) là nghiệp vụ riêng của L7 mà repo mẫu (L6) không có.
+  - Đổi sang cấu trúc của repo mẫu sẽ làm Hình 3.1 và Bảng 3.1 không còn khớp mã nguồn.
+- **Ảnh hưởng:** Không đổi sơ đồ.
+  - `src/pipeline.py` hiện thực đúng dòng "UC1: extract → transform → dq_evaluate → load_dwh" của Bảng 3.1.
+  - `src/db.py` là mũi tên ② ↔ ③; `sql/` là lớp ③.
+  - Ghi ở README mục 4.
+
+### TD-07  Không thêm bảng reject riêng
+
+- **Nguồn:** Slide buổi 8 (DA): "Ghi bảng reject cho dòng không quy đổi được, kèm lý do"; repo mẫu có bảng `reject_rows`.
+- **Quyết định:** GIỮ NGUYÊN thiết kế (không thêm bảng).
+- **Lý do:**
+  - QL7-04 đã quy định hồ sơ lỗi ở lại bảng tạm `stg_customer` kèm `error_code`; đó chính là "bảng reject" của L7. Thêm một bảng thứ hai chứa cùng các dòng đó sẽ trùng dữ liệu.
+  - Lý do dạng câu chữ suy ra được từ `error_code` nên không lưu, tránh lỗi ERD "lưu giá trị tính được". Câu lý do được sinh khi xuất CSV hồ sơ lỗi (FR-10).
+- **Ảnh hưởng:** `transform.py` (`LY_DO`, `xuat_ho_so_loi`) ghi `data/processed/ho_so_loi_dot_<n>.csv` có cột `ly_do`. ERD không đổi.
+
+### TD-08  Làm rõ hai quy tắc khi hiện thực: mã lỗi chính, hồ sơ lặp và DQ-05
+
+- **Nguồn:** Khi viết `transform.py` và `dq_evaluate.py`, có hai chỗ SRS chưa nói rõ:
+  - (a) Một hồ sơ có nhiều lỗi thì cột `error_code` (chỉ một giá trị) ghi mã nào?
+  - (b) Hồ sơ lỗi nhưng có số hợp lệ (MISSING_NAME) có được tính là "hồ sơ nạp sớm hơn" khi xác định hồ sơ lặp không?
+- **Quyết định:** SỬA (làm rõ quy tắc; không đổi bảng, cột).
+- **Lý do:**
+  - (a) Thứ tự ưu tiên MISSING_PHONE > INVALID_PHONE > MISSING_NAME, vì số điện thoại là khóa so khớp và không sửa được bằng làm sạch.
+  - (b) Không tính. Hồ sơ lỗi không vào `customer_clean` nên không thể là hồ sơ được giữ. Nếu tính nó, hồ sơ hợp lệ đứng sau sẽ bị treo ở PENDING_DUP mà không có hồ sơ đang hiệu lực nào để gộp vào.
+  - Hệ quả cho DQ-05: "đạt" = hồ sơ có số hợp lệ và không ở trạng thái PENDING_DUP.
+  - `customers_raw.csv` có 0 hồ sơ MISSING_NAME nên số đo không đổi (DQ-05 = 81,52% như BT1).
+- **Ảnh hưởng:**
+  - Mã nguồn: `transform.gan_ma_loi`, `transform.phan_loai`, `dq_evaluate.do_quy_tac`.
+  - Test: `test_ma_loi_theo_thu_tu_uu_tien`, `test_ho_so_loi_o_lai_bang_tam_va_khong_chan_ho_so_sau`.
+  - Tài liệu: `docs/data-requirements.md` mục 6 (ghi chú hiện thực).
+
+### TD-09  Cả UC1 trong một giao dịch; đo chất lượng không chặn việc nạp
+
+- **Nguồn:** Repo mẫu (L6) dừng pipeline khi một phép đo dưới ngưỡng. Thiết kế của em: UC1 «include» UC2, UC7.
+- **Quyết định:** SỬA cách hiện thực (thiết kế không đổi):
+  - extract → transform → dq_evaluate chạy trong **một** giao dịch.
+  - Quy tắc dưới ngưỡng **không** làm dừng việc nạp.
+- **Lý do:**
+  - Lỗi ở bất kỳ bước nào thì ROLLBACK, không còn đợt nạp dở. Test `test_loi_giua_chung_thi_rollback_ca_dot` giả lập lỗi khi ghi `customer_clean` và kiểm `load_batch` không có thêm dòng nào.
+  - Phân biệt hai loại: quy tắc **dưới ngưỡng** là kết quả đo, không chặn việc nạp. **Cấu hình quy tắc sai** (tổng trọng số ≠ 1,00, quy tắc chưa có cách đo) là lỗi kỹ thuật, nên ROLLBACK, mã thoát 1.
+  - Với L7, kết quả đo là **sản phẩm đầu ra** (FR-08), và dữ liệu bẩn chính là đầu vào cần làm sạch. DQ-01 chắc chắn dưới ngưỡng 98% vì 6,17% hồ sơ thiếu số; nếu dừng khi dưới ngưỡng thì không bao giờ nạp được.
+- **Ảnh hưởng:** `src/pipeline.py` (mã thoát 0 / 1 / 2); `tests/test_pipeline_csdl.py`; README mục 5.
+
+### TD-10  Phương án dự phòng khi chưa có PostgreSQL: `--khong-ghi-csdl`, không đổi sang SQLite
+
+- **Nguồn:** Slide buổi 8: SQLite thay PostgreSQL là phương án dự phòng hợp lệ.
+- **Quyết định:** SỬA: thêm tùy chọn `--khong-ghi-csdl`; vẫn giữ PostgreSQL là CSDL của thiết kế.
+- **Lý do:**
+  - DDL dùng những tính năng PostgreSQL mà thiết kế cần: chỉ mục duy nhất từng phần `WHERE is_active` (QT-01), CHECK bằng biểu thức chính quy (QT-02), hai schema `ops`/`dwh`. SQLite không có schema và không có toán tử regex, nên sẽ phải viết thêm một bộ DDL thứ hai.
+  - `--khong-ghi-csdl` vẫn chạy đủ extract, transform, dq_evaluate, xuất CSV hồ sơ lỗi và báo cáo trên mọi máy.
+- **Ảnh hưởng:** `src/pipeline.py`; README mục 2, 5.
+
+### TD-11  Kiểm độ dài trước khi ghi `customer_clean`; số điện thoại chỉ nhận chữ số ASCII
+
+- **Nguồn:** Rà soát độc lập Sprint 1 (19/10) tìm ra hai trường hợp biên làm lệnh INSERT lỗi giữa chừng (mã thoát 1), thay vì báo rõ cho người dùng.
+  - Cột `customer_clean` hẹp hơn cột `*_raw`: họ tên 120 so với 200, email 120 so với 200, địa chỉ 255 so với 300.
+  - Mẫu `\d` của Python nhận cả chữ số Unicode (ví dụ `０９０…`), trong khi CHECK `^0[0-9]{9}$` của CSDL thì không.
+- **Quyết định:** SỬA (không đổi bảng, cột).
+- **Lý do:**
+  - Từ chối cả đợt TRƯỚC khi ghi CSDL, báo rõ cột và số dòng (mã thoát 2), để cửa hàng sửa tại nguồn.
+  - Không cắt bớt giá trị, vì cắt là âm thầm làm mất dữ liệu.
+  - Mẫu số điện thoại dùng `[0-9]` cho khớp đúng CHECK của CSDL.
+  - Trên `customers_raw.csv` không có trường hợp nào như vậy (họ tên dài nhất 21 ký tự, địa chỉ 38), nên số đo không đổi.
+- **Ảnh hưởng:** `transform.kiem_do_dai_ho_so_sach`, `MAU_SO_CHUAN`; `dq_evaluate.MAU_SO_CHUAN`; test `test_kiem_do_dai_truoc_khi_ghi_customer_clean`, `test_chu_so_unicode_khong_duoc_chap_nhan`, `test_gia_tri_qua_dai_bi_tu_choi_ca_dot`.

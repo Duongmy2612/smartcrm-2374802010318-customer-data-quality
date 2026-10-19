@@ -267,6 +267,8 @@ Chọn **lược đồ hình sao (star)**, không chọn bông tuyết (snowflak
 
 **Công thức (QL7-06):** chỉ số mức độ sạch của một đợt tại một lần đo = Σ (trọng số × tỉ lệ đạt) × 100, tỉ lệ đạt = số hồ sơ đạt / số hồ sơ thuộc phạm vi áp dụng của quy tắc. Mẫu số theo phạm vi giúp hồ sơ thiếu số chỉ bị trừ điểm một lần (ở DQ-01), không bị phạt lại ở DQ-02, DQ-05.
 
+**Ghi chú hiện thực (Sprint 1, TD-08):** `error_code` ghi một mã chính theo thứ tự MISSING_PHONE > INVALID_PHONE > MISSING_NAME; hồ sơ lỗi không được tính là "hồ sơ nạp sớm hơn" khi xác định hồ sơ lặp; DQ-05 đạt = hồ sơ có số hợp lệ không ở trạng thái PENDING_DUP. Mã đo: `src/etl/dq_evaluate.py`; test hồi quy `tests/test_dq_evaluate.py` cho đúng 87,20 → 94,76.
+
 **Mục tiêu chung:** chỉ số mức độ sạch SAU ≥ 90 (loại *Tốt*) và cao hơn chỉ số TRƯỚC ít nhất 10 điểm.
 
 | Thời điểm | Chỉ số mức độ sạch |
