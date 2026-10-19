@@ -1,0 +1,170 @@
+<mxfile host="app.diagrams.net" agent="drawio_kit" version="24.7.17">
+  <diagram id="KienTruc-L7" name="KienTruc-L7">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="&lt;b&gt;SƠ ĐỒ KIẾN TRÚC PHÂN LỚP – Smart CRM · L7 Chất lượng dữ liệu khách hàng&lt;/b&gt;&lt;br&gt;&lt;i&gt;Prototype: một ứng dụng Python chạy cục bộ (không tách microservice). Ứng dụng làm sạch chỉ truy cập CSDL qua lớp xử lý; dashboard chỉ đọc schema dwh.&lt;/i&gt;" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=12.5;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="800" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="src" value="&lt;b&gt;Tệp khách hàng thô&lt;/b&gt;&lt;br&gt;CSV/Excel · data/raw/&lt;br&gt;&lt;i&gt;(ngoài hệ thống)&lt;/i&gt;" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;size=0.22;fillColor=#ffffff;strokeColor=#333333;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="44" y="46" width="150" height="62" as="geometry"/>
+        </mxCell>
+        <mxCell id="users" value="" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="318" y="40" width="330" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="usersT" value="&lt;b&gt;Người dùng&lt;/b&gt; – trình duyệt web, đăng nhập theo vai trò" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontSize=10.5;" vertex="1" parent="1">
+          <mxGeometry x="326" y="42" width="316" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="aMkt" value="Nhân viên&lt;br&gt;Marketing" style="shape=umlActor;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;html=1;outlineConnect=0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="350" y="62" width="20" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="aMgr" value="Quản lý&lt;br&gt;cửa hàng" style="shape=umlActor;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;html=1;outlineConnect=0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="510" y="62" width="20" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="L1" value="" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="0" y="122" width="800" height="136" as="geometry"/>
+        </mxCell>
+        <mxCell id="L1s" value="① TRÌNH BÀY" style="rounded=0;whiteSpace=wrap;html=1;horizontal=0;fontSize=12;fontStyle=1;fillColor=#b9d1f0;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="0" y="122" width="34" height="136" as="geometry"/>
+        </mxCell>
+        <mxCell id="A1" value="&lt;b&gt;Ứng dụng làm sạch dữ liệu&lt;/b&gt; – dashboard/app.py (Streamlit)&lt;br&gt;Trang: Nạp tệp [UC1, UC3] · Cặp nghi trùng [UC4, UC5] · Cấu hình quy tắc [UC6] · Xuất hồ sơ lỗi [UC9]&lt;br&gt;&lt;i&gt;Trách nhiệm:&lt;/i&gt; nhận thao tác, kiểm tra nhập liệu, hiển thị kết quả do ② trả về (số điện thoại đã che theo vai trò); không chứa quy tắc nghiệp vụ." style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=12;spacingLeft=4;spacingRight=4;" vertex="1" parent="1">
+          <mxGeometry x="44" y="146" width="452" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="A2" value="&lt;b&gt;Dashboard mức độ sạch&lt;/b&gt; [UC8]&lt;br&gt;dashboard/report.py (Streamlit)&lt;br&gt;K1 Tổng quan · K2 Theo quy tắc · K3 Cặp nghi trùng&lt;br&gt;&lt;i&gt;Trách nhiệm:&lt;/i&gt; trực quan hóa; lọc theo đơn vị nguồn của người xem (QT-14); chỉ đọc." style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=12;spacingLeft=4;spacingRight=4;" vertex="1" parent="1">
+          <mxGeometry x="508" y="146" width="280" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="L2" value="" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="0" y="300" width="800" height="236" as="geometry"/>
+        </mxCell>
+        <mxCell id="L2s" value="② XỬ LÝ – NGHIỆP VỤ" style="rounded=0;whiteSpace=wrap;html=1;horizontal=0;fontSize=12;fontStyle=1;fillColor=#b3d6b0;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="0" y="300" width="34" height="236" as="geometry"/>
+        </mxCell>
+        <mxCell id="L2n" value="&lt;i&gt;thư mục src/etl/ · Python (pandas, rapidfuzz) · mũi tên mảnh = thứ tự gọi chính; trình tự đầy đủ theo từng use case ở Bảng 3.1&lt;/i&gt;" style="text;html=1;align=right;verticalAlign=middle;fontSize=10.5;fontColor=#333333;align=left;" vertex="1" parent="1">
+          <mxGeometry x="44" y="302" width="744" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="B1" value="&lt;b&gt;extract.py&lt;/b&gt;&lt;br&gt;&lt;i&gt;FR-01&lt;/i&gt;&lt;br&gt;Đọc tệp, kiểm cột bắt buộc ho_ten, so_dien_thoai, băm SHA-256; ghi đợt nạp và hồ sơ thô." style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=11.5;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;spacingTop=3;" vertex="1" parent="1">
+          <mxGeometry x="44" y="326" width="185" height="98" as="geometry"/>
+        </mxCell>
+        <mxCell id="B2" value="&lt;b&gt;transform.py&lt;/b&gt;&lt;br&gt;&lt;i&gt;FR-02, FR-03, FR-10&lt;/i&gt;&lt;br&gt;Chuẩn hóa số điện thoại (QT-02), họ tên; gắn mã lỗi; đưa hồ sơ hợp lệ vào customer_clean; xuất CSV hồ sơ lỗi." style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=11.5;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;spacingTop=3;" vertex="1" parent="1">
+          <mxGeometry x="249" y="326" width="185" height="98" as="geometry"/>
+        </mxCell>
+        <mxCell id="B3" value="&lt;b&gt;match.py&lt;/b&gt;&lt;br&gt;&lt;i&gt;FR-04&lt;/i&gt;&lt;br&gt;Tạo name_key; blocking 5 số đầu / 5 số cuối; chấm điểm (QL7-03); sinh cặp nghi trùng (QL7-02, QL7-05)." style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=11.5;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;spacingTop=3;" vertex="1" parent="1">
+          <mxGeometry x="454" y="326" width="185" height="98" as="geometry"/>
+        </mxCell>
+        <mxCell id="B4" value="&lt;b&gt;merge_service.py&lt;/b&gt;&lt;br&gt;&lt;i&gt;FR-05, FR-06, FR-11&lt;/i&gt;&lt;br&gt;Danh sách cặp, che số theo vai trò (QT-15); Gộp / Giữ riêng trong một giao dịch (QT-01, QT-13, QL7-01, QL7-07)." style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=11.5;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;spacingTop=3;" vertex="1" parent="1">
+          <mxGeometry x="44" y="432" width="185" height="98" as="geometry"/>
+        </mxCell>
+        <mxCell id="B5" value="&lt;b&gt;dq_evaluate.py&lt;/b&gt;&lt;br&gt;&lt;i&gt;FR-07, FR-08&lt;/i&gt;&lt;br&gt;Lưu cấu hình quy tắc (tổng trọng số = 1,00); đo DQ-01..06, ghi dq_result (QL7-06)." style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=11.5;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;spacingTop=3;" vertex="1" parent="1">
+          <mxGeometry x="249" y="432" width="185" height="98" as="geometry"/>
+        </mxCell>
+        <mxCell id="B6" value="&lt;b&gt;load_dwh.py&lt;/b&gt;&lt;br&gt;&lt;i&gt;FR-09&lt;/i&gt;&lt;br&gt;Nạp dim/fact vào dwh, SCD loại 2 cho dim_rule; chạy sau mỗi lần phát hiện cặp, đo và lưu cấu hình." style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=11.5;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;spacingTop=3;" vertex="1" parent="1">
+          <mxGeometry x="454" y="432" width="185" height="98" as="geometry"/>
+        </mxCell>
+        <mxCell id="t12" value="" style="endArrow=block;endSize=5;html=1;strokeWidth=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="B1" target="B2">
+          <mxGeometry x="0.0" relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="t45" value="" style="endArrow=block;endSize=5;html=1;strokeWidth=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="B4" target="B5">
+          <mxGeometry x="0.0" relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="t56" value="" style="endArrow=block;endSize=5;html=1;strokeWidth=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="B5" target="B6">
+          <mxGeometry x="0.0" relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L3" value="" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="0" y="576" width="800" height="156" as="geometry"/>
+        </mxCell>
+        <mxCell id="L3s" value="③ LƯU TRỮ" style="rounded=0;whiteSpace=wrap;html=1;horizontal=0;fontSize=12;fontStyle=1;fillColor=#f5df9e;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="0" y="576" width="34" height="156" as="geometry"/>
+        </mxCell>
+        <mxCell id="C1" value="&lt;b&gt;schema ops&lt;/b&gt; (tác nghiệp) – PostgreSQL, CSDL smartcrm&lt;br&gt;load_batch · stg_customer · customer_clean&lt;br&gt;dup_candidate · dq_rule · dq_result" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffffff;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="44" y="598" width="400" height="124" as="geometry"/>
+        </mxCell>
+        <mxCell id="C2" value="&lt;b&gt;schema dwh&lt;/b&gt; (kho dữ liệu – lược đồ hình sao)&lt;br&gt;dim_date · dim_batch · dim_rule&lt;br&gt;fact_dq_check · fact_dup_pair&lt;br&gt;view v_rule_rate · v_batch_score&lt;br&gt;&lt;i&gt;chỉ chứa số đếm, không có dữ liệu cá nhân&lt;/i&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffffff;strokeColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="458" y="598" width="330" height="124" as="geometry"/>
+        </mxCell>
+        <mxCell id="eSrc" value="tải tệp lên" style="endArrow=block;endSize=6;html=1;strokeWidth=1.5;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0.9;entryX=0.166;entryY=0;" edge="1" parent="1" source="src" target="A1">
+          <mxGeometry x="0.0" relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eU1" value="" style="endArrow=block;endSize=6;html=1;strokeWidth=1.5;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.2485;exitY=1;entryX=0.7876;entryY=0;" edge="1" parent="1" source="users" target="A1">
+          <mxGeometry x="0.0" relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eU2" value="" style="endArrow=block;endSize=6;html=1;strokeWidth=1.5;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.8242;exitY=1;entryX=0.2929;entryY=0;" edge="1" parent="1" source="users" target="A2">
+          <mxGeometry x="0.0" relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eA1" value="gọi hàm Python trực tiếp (cùng tiến trình)" style="endArrow=block;endSize=6;html=1;strokeWidth=1.5;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.3375;entryY=0;" edge="1" parent="1" source="A1" target="L2">
+          <mxGeometry x="0.0" relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eDB" value="SQLAlchemy + psycopg2 · giao dịch BEGIN…COMMIT/ROLLBACK&lt;br&gt;thông tin kết nối đọc từ .env (không commit)" style="endArrow=block;endSize=6;html=1;strokeWidth=1.5;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.305;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="L2" target="C1">
+          <mxGeometry x="0.0" relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eDW" value="ghi dwh (INSERT / UPDATE)" style="endArrow=block;endSize=6;html=1;strokeWidth=1.5;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.2682;entryY=0;" edge="1" parent="1" source="B6" target="C2">
+          <mxGeometry x="0.0" relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eRO" value="SELECT qua tài khoản&lt;br&gt;chỉ đọc dash_reader" style="endArrow=block;endSize=6;html=1;dashed=1;strokeWidth=1.5;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.7286;exitY=1;entryX=0.7697;entryY=0;" edge="1" parent="1" source="A2" target="C2">
+          <mxGeometry x="0.0" relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="0" y="752" width="480" height="128" as="geometry"/>
+        </mxCell>
+        <mxCell id="lgT" value="&lt;b&gt;CHÚ THÍCH&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="10" y="756" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg1" value="" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=12;spacingLeft=4;spacingRight=4;" vertex="1" parent="1">
+          <mxGeometry x="12" y="782" width="44" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg1t" value="Thành phần / mô-đun: tên tệp, [UC], FR, trách nhiệm" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="64" y="780" width="170" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg2" value="" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffffff;strokeColor=#333333;fontSize=12;size=5;" vertex="1" parent="1">
+          <mxGeometry x="12" y="814" width="44" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg2t" value="CSDL / schema; tên bảng khớp mô hình dữ liệu (mục 4)" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="64" y="814" width="170" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg3" value="" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;size=0.22;fillColor=#ffffff;strokeColor=#333333;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="12" y="848" width="44" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg3t" value="Tệp nguồn nằm ngoài hệ thống" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="64" y="848" width="170" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg4" value="" style="endArrow=block;endSize=6;html=1;strokeWidth=1.5;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+          <mxGeometry x="0.0" relative="1" as="geometry">
+            <mxPoint x="250" y="794" as="sourcePoint"/>
+            <mxPoint x="292" y="794" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg4t" value="Gửi yêu cầu / gọi hàm / đọc–ghi dữ liệu (chiều mũi tên = chiều gọi)" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="778" width="175" height="32" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg5" value="" style="endArrow=block;endSize=6;html=1;dashed=1;strokeWidth=1.5;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+          <mxGeometry x="0.0" relative="1" as="geometry">
+            <mxPoint x="250" y="828" as="sourcePoint"/>
+            <mxPoint x="292" y="828" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg5t" value="Chỉ đọc (SELECT)" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="818" width="175" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg6" value="" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="250" y="850" width="42" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="lg6t" value="Lớp ①–③ (tên lớp ở dải dọc bên trái)" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="850" width="175" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="oos" value="&lt;b&gt;NGOÀI PHẠM VI&lt;/b&gt; (không xây dựng trong L7)&lt;br&gt;• Dữ liệu đơn hàng, bảo hành, kho linh kiện&lt;br&gt;• Phân khúc khách hàng (L1), dự báo rời bỏ (L9)&lt;br&gt;• Tự động gộp; gửi chiến dịch/khuyến mãi&lt;br&gt;• Tích hợp hệ thống bán hàng thật, SSO, triển khai máy chủ" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;fontSize=11.5;" vertex="1" parent="1">
+          <mxGeometry x="496" y="752" width="304" height="128" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
