@@ -33,7 +33,7 @@ Mekong Mobile chưa có CRM. Dữ liệu khách hàng rải rác ở Excel từn
 |---|---|---|
 | Python | **3.11 trở lên** | pandas 3 không chạy trên 3.10 trở xuống; máy phát triển dùng 3.11 (Homebrew) |
 | Thư viện | `requirements.txt` | pandas, openpyxl, rapidfuzz, SQLAlchemy, psycopg2-binary, python-dotenv, PyYAML, pytest |
-| CSDL | **PostgreSQL 14 trở lên** (đã chạy trên 16) | Cần một CSDL `smartcrm` và một tài khoản có quyền tạo schema trong CSDL đó. Pipeline tự tạo schema `ops` (DDL chạy lại an toàn). |
+| CSDL | **PostgreSQL 14 trở lên** (đã chạy trên 14 và 16) | Cần một CSDL `smartcrm` và một tài khoản có quyền tạo schema trong CSDL đó. Pipeline tự tạo schema `ops` (DDL chạy lại an toàn). |
 | Biến môi trường | `.env` (chép từ `.env.example`) | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`. `.env` **không commit** (NFR-07). |
 | Dữ liệu | `data/raw/customers_raw.csv` | Lấy trong bộ "Dataset Smart CRM" trên LMS. **Không commit** vì có dữ liệu cá nhân. |
 | Không có PostgreSQL? | `--khong-ghi-csdl` | Vẫn chạy được extract, chuẩn hóa, đo chất lượng, xuất CSV và báo cáo (phương án dự phòng – TD-10). |
@@ -132,7 +132,7 @@ Mỗi lần chạy ghi:
 
 ## 6. Trạng thái hiện tại (buổi 8 – 19/10/2026)
 
-**Sprint 1 – đã hiện thực.** Đã chạy trên MacBook của em (macOS, Python 3.11, PostgreSQL 16) ngày 21/10/2026; trước đó đã chạy thử trên Linux.
+**Sprint 1 – đã hiện thực.** Đã chạy trên MacBook của em (macOS, Python 3.11, PostgreSQL 14) ngày 21/10/2026; trước đó đã chạy thử trên Linux.
 
 - [x] Repo: bỏ `.venv` và `.env` khỏi git; có `.gitignore`, `.env.example`; có đủ hồ sơ BT1 (`srs.md`, 5 tệp `.drawio`); nhánh `main` và `dev`.
 - [x] Phản hồi BT1 đã xử lý: `docs/thay-doi-thiet-ke.md` TD-01 – TD-05; PDF đúng tên, rút từ 27 còn 13 trang.
@@ -148,7 +148,7 @@ Mỗi lần chạy ghi:
   | hồ sơ lỗi (FR-10) | CSV kèm lý do |
   | dq_evaluate (FR-08) | 12 dòng `dq_result`; chỉ số **87,20 → 94,76** |
 
-  Ảnh chụp màn hình trên MacBook của em: `docs/sprint1/ket-qua-pipeline.png`, `ket-qua-csdl.png`, `ket-qua-pytest.png`. Báo cáo của lần chạy này: `docs/sprint1/bao-cao-uc1-dot-1.md`.
+  Ảnh chụp màn hình trên MacBook của em trong `docs/sprint1/`: `moi-truong.png`, `ket-qua-pipeline.png`, `ket-qua-csdl.png`, `ket-qua-tu-choi.png`, `ket-qua-pytest.png`, `ket-qua-nfr01-a.png`, `ket-qua-nfr01-b.png`. Báo cáo của lần chạy này: `docs/sprint1/bao-cao-uc1-dot-1.md`.
 - [x] Các trường hợp bị từ chối và lỗi đều có test:
 
   | Trường hợp | Kết quả | Test |
@@ -166,7 +166,7 @@ Mỗi lần chạy ghi:
 | Môi trường đo | Pipeline (extract + transform + đo) | Cả lệnh (kể cả khởi động Python) | Kết luận |
 |---|---|---|---|
 | Linux, Python 3.11, PostgreSQL 16 (môi trường thử, 19/10) | 1,4 s | 2,1 s | Đạt |
-| MacBook của em (máy phát triển), 21/10/2026 | 1,2 s | 1,9 s | Đạt |
+| MacBook của em (máy phát triển), 21/10/2026 – lớn nhất của 2 lượt × 3 lần | 1,3 s | 3,0 s | Đạt |
 
 **Còn lại (theo thứ tự ưu tiên – TD-04, gợi ý của giảng viên cho BT2)**
 

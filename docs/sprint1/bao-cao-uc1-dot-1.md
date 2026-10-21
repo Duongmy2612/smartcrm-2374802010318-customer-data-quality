@@ -1,7 +1,7 @@
 # Báo cáo UC1 – đợt nạp 1
 
 - Tệp: `data/raw/customers_raw.csv` · SHA-256 `f5a84bdf5da67ea932d729f5c6ab6527ad7d0df9097a3a93558fc891c154117a`
-- Đơn vị nguồn: TONG_HOP · Người nạp: my.marketing · Bắt đầu: 2026-10-19T15:31:46
+- Đơn vị nguồn: TONG_HOP · Người nạp: my.marketing · Bắt đầu: 2026-10-21T14:09:50
 - Ghi CSDL: có
 
 ## 1. Extract – 67.037 dòng × 6 cột
@@ -49,6 +49,6 @@ Tệp hồ sơ lỗi kèm lý do: `data/processed/ho_so_loi_dot_1.csv` (có dữ
 
 | Bước | Giây |
 |---|---:|
-| extract | 4,27 |
-| transform | 5,43 |
-| dq_evaluate | 0,53 |
+| extract | 2,46 |
+| transform | 5,10 |
+| dq_evaluate | 0,30 |
