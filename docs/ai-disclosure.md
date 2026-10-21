@@ -23,7 +23,7 @@ Họ tên: Dương Diễm My · MSSV: 2374802010318 · Ngày: 09/10/2026
 
 | Công cụ | Dùng vào việc gì | Áp dụng ở phần nào | Đã kiểm chứng thế nào |
 |---|---|---|---|
-| Claude (Anthropic) | Theo nhận xét chấm BT1: rút bản PDF từ 13 xuống 9 trang (đặt hình và chữ hai cột, viết gọn câu chữ, giữ nguyên thiết kế), soạn TD-13, chuẩn bị commit cập nhật repo. | `BT1_2374802010318_DuongDiemMy.pdf`; `docs/thay-doi-thiet-ke.md` (TD-13), `docs/srs.md` mục 8, `README.md` | Đối chiếu tự động mọi con số giữa bản 9 trang với bản 13 trang và bản 09/10: không con số nào bị đổi. [ ] Em đọc lại cả 9 trang và tự giải thích được từng thay đổi ở TD-13. |
+| Claude (Anthropic) | Theo nhận xét chấm BT1: rút bản PDF từ 13 xuống 9 trang (đặt hình và chữ hai cột, viết gọn câu chữ, giữ nguyên thiết kế), soạn TD-13, chuẩn bị commit cập nhật repo. | `BT1_2374802010318_DuongDiemMy.pdf`; `docs/thay-doi-thiet-ke.md` (TD-13), `docs/srs.md` mục 8, `README.md` | Đối chiếu tự động mọi con số giữa bản 9 trang với bản 13 trang và bản 09/10: không con số nào bị đổi. [x] Em đọc lại cả 9 trang và tự giải thích được từng thay đổi ở TD-13. |
 
 ## Sprint 1 – buổi 8 (19/10/2026): khai báo theo từng phần (TD-05)
 
