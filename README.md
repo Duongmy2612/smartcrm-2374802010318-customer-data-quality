@@ -132,7 +132,7 @@ Mỗi lần chạy ghi:
 
 ## 6. Trạng thái hiện tại (buổi 8 – 19/10/2026)
 
-**Sprint 1 – đã hiện thực.** Đã chạy trên môi trường thử Linux + PostgreSQL 16; em chạy lại trên MacBook trước buổi 9.
+**Sprint 1 – đã hiện thực.** Đã chạy trên MacBook của em (macOS, Python 3.11, PostgreSQL 16) ngày 21/10/2026; trước đó đã chạy thử trên Linux.
 
 - [x] Repo: bỏ `.venv` và `.env` khỏi git; có `.gitignore`, `.env.example`; có đủ hồ sơ BT1 (`srs.md`, 5 tệp `.drawio`); nhánh `main` và `dev`.
 - [x] Phản hồi BT1 đã xử lý: `docs/thay-doi-thiet-ke.md` TD-01 – TD-05; PDF đúng tên, rút từ 27 còn 13 trang.
@@ -148,7 +148,7 @@ Mỗi lần chạy ghi:
   | hồ sơ lỗi (FR-10) | CSV kèm lý do |
   | dq_evaluate (FR-08) | 12 dòng `dq_result`; chỉ số **87,20 → 94,76** |
 
-  Ảnh kết quả (dựng lại từ log chạy thử, sẽ thay bằng ảnh chụp trên máy em): `docs/sprint1/ket-qua-pipeline.png`, `ket-qua-csdl.png`, `ket-qua-pytest.png`. Báo cáo mẫu: `docs/sprint1/bao-cao-uc1-dot-1.md`.
+  Ảnh chụp màn hình trên MacBook của em: `docs/sprint1/ket-qua-pipeline.png`, `ket-qua-csdl.png`, `ket-qua-pytest.png`. Báo cáo của lần chạy này: `docs/sprint1/bao-cao-uc1-dot-1.md`.
 - [x] Các trường hợp bị từ chối và lỗi đều có test:
 
   | Trường hợp | Kết quả | Test |
@@ -159,14 +159,14 @@ Mỗi lần chạy ghi:
   | Giá trị dài hơn cột của `customer_clean` | từ chối, báo số dòng (TD-11) | `test_gia_tri_qua_dai_bi_tu_choi_ca_dot` |
   | Lỗi giữa giao dịch | ROLLBACK, không còn đợt nạp dở (TD-09) | `test_loi_giua_chung_thi_rollback_ca_dot` |
 
-- [x] 51 test pass trên môi trường thử. Trên bản clone chưa có dữ liệu và CSDL test, 2 test hồi quy và 5 test tích hợp tự bỏ qua.
+- [x] 51 test pass trên môi trường thử và trên MacBook của em. Trên bản clone chưa có dữ liệu và CSDL test, 2 test hồi quy và 5 test tích hợp tự bỏ qua.
 
 **NFR-01, phần 1** – nạp và chuẩn hóa 8.000 dòng ≤ 60 giây. Đo 3 lần trên mẫu `mau_cum_8000.csv`, mỗi lần một CSDL mới, lấy giá trị lớn nhất:
 
 | Môi trường đo | Pipeline (extract + transform + đo) | Cả lệnh (kể cả khởi động Python) | Kết luận |
 |---|---|---|---|
 | Linux, Python 3.11, PostgreSQL 16 (môi trường thử, 19/10) | 1,4 s | 2,1 s | Đạt |
-| MacBook của em (máy phát triển) | *chưa đo – đo trước buổi 9* | | |
+| MacBook của em (máy phát triển), 21/10/2026 | 1,2 s | 1,9 s | Đạt |
 
 **Còn lại (theo thứ tự ưu tiên – TD-04, gợi ý của giảng viên cho BT2)**
 
@@ -179,7 +179,7 @@ Mỗi lần chạy ghi:
   - `merge_service.py` (UC5).
   - `dashboard/app.py` (K4, UC6, UC9) và `report.py` (K1 – K3). UC6 chỉ cho thêm quy tắc đã có cách đo trong `dq_evaluate.py`.
   - Tài khoản chỉ đọc `dash_reader`; tài khoản ứng dụng không có quyền DELETE (NFR-04).
-- [ ] Em chạy lại trên MacBook: đo NFR-01 phần 1, thay ảnh trong `docs/sprint1/` bằng ảnh chụp màn hình của em, đánh dấu các ô kiểm chứng trong `docs/ai-disclosure.md`.
+- [x] Em chạy lại trên MacBook: đo NFR-01 phần 1, thay ảnh trong `docs/sprint1/` bằng ảnh chụp màn hình của em, đánh dấu các ô kiểm chứng trong `docs/ai-disclosure.md`.
 
 **Ghi chú:** không dùng phương án dự phòng; CSDL vẫn là PostgreSQL. `--khong-ghi-csdl` chỉ để chạy thử khi máy chưa có PostgreSQL (TD-10).
 
