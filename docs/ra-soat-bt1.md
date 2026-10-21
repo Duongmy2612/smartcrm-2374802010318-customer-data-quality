@@ -4,6 +4,7 @@ Sinh viên: Dương Diễm My – MSSV 2374802010318 · L7 · Track DA
 
 Nội dung này là Phụ lục B.1, B.2 và Bảng 4.2 của bản BT1 nộp ngày 09/10/2026. Theo phản hồi BT1, chúng được chuyển từ PDF vào repo (TD-03 trong `docs/thay-doi-thiet-ke.md`); nội dung không đổi.
 Nhật ký thay đổi Buổi 4 → Buổi 6 (Phụ lục B.3) và ánh xạ User Story (Phụ lục B.4) nằm ở `docs/srs.md` mục 7.
+Số mục, số bảng trong tệp này theo bản 09/10. Trong bản nộp lại 21/10 (9 trang): GRAIN là Bảng 4.1, từ điển dữ liệu kho là Bảng 4.2, cùng ở mục 4.2 (TD-13).
 
 ## 1. Tự kiểm theo bảng tiêu chí kỹ thuật tối thiểu (Phụ lục B.1)
 

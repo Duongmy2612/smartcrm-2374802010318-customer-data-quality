@@ -19,6 +19,12 @@ Họ tên: Dương Diễm My · MSSV: 2374802010318 · Ngày: 09/10/2026
 | Claude (Anthropic) | Theo phản hồi BT1: rút gọn bản PDF từ 27 xuống 13 trang (giữ nguyên thiết kế), soạn nhật ký thay đổi TD-01 – TD-05, chuyển Phụ lục A, B và khung K4 vào repo, dọn repo (`.venv`, `.env`), chuẩn bị các commit để em đẩy hồ sơ BT1 lên repo. | `BT1_2374802010318_DuongDiemMy.pdf`; `docs/thay-doi-thiet-ke.md`, `docs/ra-soat-bt1.md`, `docs/srs.md` mục 8; `.gitignore`, `.env.example` | Đối chiếu tự động mọi con số giữa bản 13 trang và bản 27 trang: không con số nào bị đổi. [ ] Em đọc lại cả 13 trang và tự giải thích được TD-01 – TD-05. |
 
 
+## Bản nộp lại BT1 (21/10/2026)
+
+| Công cụ | Dùng vào việc gì | Áp dụng ở phần nào | Đã kiểm chứng thế nào |
+|---|---|---|---|
+| Claude (Anthropic) | Theo nhận xét chấm BT1: rút bản PDF từ 13 xuống 9 trang (đặt hình và chữ hai cột, viết gọn câu chữ, giữ nguyên thiết kế), soạn TD-13, chuẩn bị commit cập nhật repo. | `BT1_2374802010318_DuongDiemMy.pdf`; `docs/thay-doi-thiet-ke.md` (TD-13), `docs/srs.md` mục 8, `README.md` | Đối chiếu tự động mọi con số giữa bản 9 trang với bản 13 trang và bản 09/10: không con số nào bị đổi. [ ] Em đọc lại cả 9 trang và tự giải thích được từng thay đổi ở TD-13. |
+
 ## Sprint 1 – buổi 8 (19/10/2026): khai báo theo từng phần (TD-05)
 
 Mỗi dòng ghi đúng phần AI soạn nháp và việc em phải tự làm để kiểm chứng. Em chỉ đánh dấu [x] ô nào đã thật sự làm; ô chưa đánh dấu là việc còn nợ.

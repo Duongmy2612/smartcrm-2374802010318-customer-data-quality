@@ -3,7 +3,7 @@
 **Sinh viên:** Dương Diễm My – MSSV: 2374802010318
 **Track:** DA (Data Analytics)
 **Học phần:** Chuyên đề Tốt nghiệp 1 – Trường ĐH Văn Lang · HK1 2026 – 2027
-**Bài tập 1:** `BT1_2374802010318_DuongDiemMy.pdf` – bản chỉnh sửa theo phản hồi (19/10/2026); nhật ký `docs/thay-doi-thiet-ke.md`
+**Bài tập 1:** `BT1_2374802010318_DuongDiemMy.pdf` – bản nộp lại theo nhận xét chấm (21/10/2026, 9 trang); nhật ký `docs/thay-doi-thiet-ke.md`
 
 > Đánh số mục theo checklist buổi 8: mục 2 là yêu cầu môi trường, mục 6 là trạng thái hiện tại.
 

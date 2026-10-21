@@ -329,4 +329,5 @@ Không thay đổi User Story, FR, NFR, quy tắc nghiệp vụ, bảng hay cộ
 | TD-03 | PDF rút gọn còn 13 trang: Phụ lục A → `docs/data-requirements.md` mục 5.1; Phụ lục B.1, B.2, Bảng 4.2 (bản 09/10) → `docs/ra-soat-bt1.md`; Phụ lục B.3, B.4 → mục 7 của tài liệu này; khung K4 → `docs/wireframe.drawio` trang 4; bảng chỉ số trong view và quy tắc nạp kho → `docs/data-requirements.md` mục 5.2. | Bản đầy đủ của mọi bảng vẫn ở `docs/srs.md` và `docs/data-requirements.md`. |
 | TD-04 | Thứ tự hiện thực: Sprint 1 làm phần nền (extract, transform, dq_evaluate), Sprint 2 làm `match.py`, `load_dwh.py` và đo NFR-01, NFR-03. | README mục 6. |
 | TD-05 | Khai báo AI theo từng phần, có cột kiểm chứng. | `docs/ai-disclosure.md`, README mục 7. |
+| TD-13 | Bản nộp lại 21/10/2026: PDF rút tiếp còn 9 trang (hình và chữ đặt hai cột; ảnh nhúng đủ độ phân giải); mục 4 của PDF đánh số lại 4.1 – 4.3. | Tệp PDF ở gốc repo; `docs/thay-doi-thiet-ke.md`. |
 

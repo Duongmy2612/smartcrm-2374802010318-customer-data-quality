@@ -168,3 +168,50 @@ bốn câu lập luận có số đo, bảng truy vết 11/11 FR) **giữ nguyê
 - **Ảnh hưởng:**
   - Không đổi thiết kế. `ngay_tao` giữ nguyên giá trị gốc ở `stg_customer.created_raw` (NFR-05); chỉ dùng để hiển thị "ngày ghi nhận" ở K4 (UC5) và xuất CSV hồ sơ lỗi.
   - Nếu sau này tệp của cửa hàng lẫn định dạng ngày thì thêm hàm quy đổi vào `transform.py`, kèm test, và ghi một TD mới.
+
+---
+
+## Nộp lại Bài tập 1 (21/10/2026)
+
+Giảng viên cho nộp lại BT1 để chấm lại. Bản 13 trang ở TD-03 vẫn dài hơn mức gợi ý 6–9 trang.
+
+### TD-13  Rút bản PDF nộp lại còn 9 trang
+
+- **Phản hồi của GV:** Bài dài 27 trang, gấp ba mức gợi ý; khung K4 và Phụ lục A, B nên rút gọn hoặc để trong repo (cùng phản hồi với TD-03).
+- **Quyết định:** SỬA tiếp. PDF nộp lại còn 9 trang, kể cả trang bìa và phụ lục khai báo AI. Thay ý "không ép xuống ít hơn 13 trang" của TD-03.
+- **Lý do:**
+  - Đề Buổi 6 ghi khung trang cho từng mục: SRS 2–3 trang, Use Case 1–2, kiến trúc 1, mô hình dữ liệu 1–2, wireframe 1. Bản 13 trang vẫn vượt mức này.
+  - Lo ngại ở TD-03 là sơ đồ thu nhỏ sẽ không đọc được. Bản 9 trang xử lý lo ngại đó bằng ba cách:
+    - PDF nhúng ảnh ở đúng độ phân giải của ảnh xuất trong `docs/export/`, không nén mất dữ liệu, nên phóng to vẫn đọc rõ.
+    - Ảnh gốc vẫn ở `docs/export/`.
+    - Tệp `.drawio` gốc vẫn ở `docs/`.
+- **Ảnh hưởng:**
+  - **Dàn trang:**
+    - Hình và phần giải thích đặt hai cột: Hình 2.1, 3.1, 4.3, 5.1 – 5.3.
+    - Hình 4.1 (data flow) và Hình 4.2 (ERD tầng tác nghiệp) đặt cạnh nhau.
+  - **Bảng chuyển thành chữ:**
+    - Các bảng sau của bản 13 trang viết thành đoạn văn, giữ đúng các con số cũ: bảng nguồn dữ liệu (Bảng 4.1), bảng SCD (Bảng 4.4), bảng chỉ số mức độ sạch (Bảng 4.6).
+    - Bảng 5.1 của bản 13 trang viết thành phần chữ cạnh từng khung K1 – K3.
+  - **Đánh số lại mục 4:**
+
+    | Bản 9 trang | Bản 09/10 |
+    |---|---|
+    | 4.1 Dữ liệu nguồn, luồng dữ liệu, tầng tác nghiệp | 4.1 – 4.3 |
+    | 4.2 Kho dữ liệu: Bảng 4.1 GRAIN, Bảng 4.2 từ điển dữ liệu kho | 4.4 |
+    | 4.3 Quy tắc chất lượng: Bảng 4.3 | 4.5 |
+
+    Các tài liệu khác trong repo vẫn ghi số mục theo bản 09/10.
+  - **Giữ đủ trong PDF:**
+    - bảng thuật ngữ có cột tên trong CSDL;
+    - bảng truy vết 11/11 FR;
+    - 4 câu lập luận có số đo;
+    - GRAIN;
+    - `dim_rule` SCD loại 2;
+    - từ điển dữ liệu kho (kiểu, ràng buộc, ý nghĩa từng cột).
+  - **Đối chiếu lại với đề bài BT1**, chỉ đổi cách ghi, không đổi nội dung:
+    - đặc tả UC5 ghi tách các mục "Actor chính", "User Story liên quan" như đề yêu cầu;
+    - tên Mục 4 ghi đúng như đề: "Mô hình dữ liệu theo chuyên ngành";
+    - mục 3 ghi thêm dòng "Ngoài phạm vi" (khớp khung nét đứt trong Hình 3.1);
+    - mục 5 ghi rõ mỗi khung nối về UC8 và mọi trường hiển thị là cột của kho hoặc chỉ số tính trong view.
+  - **Không đổi** bảng, cột, FR, NFR, quy tắc hay con số nào. Đã đối chiếu tự động mọi con số của bản 9 trang với bản 09/10 và bản 13 trang.
+  - Repo chỉ giữ một tệp `BT1_2374802010318_DuongDiemMy.pdf`: bản nộp lại 9 trang.
