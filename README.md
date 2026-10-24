@@ -69,7 +69,9 @@ Mekong Mobile chưa có CRM. Dữ liệu khách hàng rải rác ở Excel từn
 - `[5/5] match`: EXACT_PHONE 11.625 · FUZZY 12.
 - Đối soát staging ↔ kho: 6 dòng, tất cả ✔.
 
-**Bước 12:** `79 passed` khi đã có `smartcrm_test`. Thiếu CSDL này hoặc thiếu dữ liệu thì một số test tự bỏ qua (`skipped`), không báo lỗi.
+**Bước 12:** làm đúng 12 bước trên một bản clone mới, kết quả là `78 passed, 1 skipped`. Test bị bỏ qua là test hồi quy trên mẫu 8.000 dòng: nó cần tệp `data/processed/mau_cum_8000.csv`, sinh bằng lệnh ở mục "Đo NFR-01" bên dưới. Sinh mẫu xong, chạy lại thì ra `79 passed`.
+
+Thiếu CSDL `smartcrm_test` thì 8 test tích hợp cũng tự bỏ qua (`skipped`), không báo lỗi.
 
 **Phép thử nạp lại** (nạp lần hai không nhân đôi dòng): `python -m src.etl.load_dwh`, chạy bao nhiêu lần cũng in `+0` ở mọi bảng và đối soát vẫn khớp.
 
@@ -180,12 +182,12 @@ Fact không mất dòng nào khi nối dimension: `fact_dq_check` tìm phiên b�
 | 1 | Module mở rộng theo track đã hiện thực và chạy được | ✔ | `match.py`, `load_dwh.py`, `sql/002_dwh_schema.sql`, `dashboard/report.py` |
 | 2 | Luồng chính chạy end-to-end, không lỗi treo | ✔ | mục 3 bước 9, mã thoát 0; `docs/sprint2/ket-qua-toan-luong.png` |
 | 3 | Chạy trên dữ liệu mẫu thật | ✔ | `customers_raw.csv` (67.037 dòng) và mẫu `mau_cum_8000.csv` |
-| 4 | Ảnh kết quả toàn luồng trong `docs/` | ✔ | `docs/sprint2/` (danh sách ảnh ở `docs/sprint2/README.md`) |
-| 5 | ≥ 5 unit test pass, lệnh test hiện số test | ✔ | `python -m pytest -q` → `79 passed`; 28 test mới cho `match.py`, `load_dwh.py`, `doc_kho.py` và luồng UC1 → UC3 |
+| 4 | Ảnh kết quả toàn luồng trong `docs/` | ✔ | `docs/sprint2/ket-qua-toan-luong.png` và 8 ảnh khác, danh sách ở `docs/sprint2/README.md` (ảnh của môi trường thử – em thay bằng ảnh chụp trên MacBook) |
+| 5 | ≥ 5 unit test pass, lệnh test hiện số test | ✔ | `python -m pytest -q` → `79 passed` (bản clone mới chưa sinh mẫu: `78 passed, 1 skipped`); 28 test mới cho `match.py`, `load_dwh.py`, `doc_kho.py` và luồng UC1 → UC3 |
 | 6 | Có test cho trường hợp biên hoặc luồng ngoại lệ | ✔ | `test_diem_bang_dung_nguong_van_tao_cap_fuzzy`, `test_khoang_diem_k3_bien_thuoc_khoang_tren`, `test_cap_da_co_hoac_da_giu_rieng_khong_de_xuat_lai`, `test_scd2_cau_hinh_doi_ma_thoi_diem_khong_tien_len_bi_tu_choi`, `test_uc3_loi_thi_dot_nap_van_con_va_chi_lenh_chay_lai` |
 | 7 | Ba trạng thái đang tải · rỗng · lỗi | ✔ | `dashboard/report.py`; ảnh `dashboard-rong.png`, `dashboard-loi.png` |
 | 8 | README mục 3 đủ các bước, mỗi bước một lệnh | ✔ | mục 3 |
-| 9 | Đã thử clone vào thư mục mới và chạy đúng README | ✔ | thử ngày 24/10/2026 trên môi trường thử: CSDL mới, làm đúng 12 bước mục 3 |
+| 9 | Đã thử clone vào thư mục mới và chạy đúng README | ✔ | thử ngày 24/10/2026 trên môi trường thử: CSDL mới, làm đúng 12 bước mục 3; nhật ký `docs/sprint2/thu-clone-moi.txt`. Phát hiện bước 12 ra `78 passed, 1 skipped` chứ không phải `79 passed` → đã sửa README |
 | 10 | Commit theo quy ước, tổng số commit ≥ 8 | ✔ | `git log --oneline` |
 
 **Yêu cầu riêng của track DA:**
@@ -203,11 +205,11 @@ Fact không mất dòng nào khi nối dimension: `fact_dq_check` tìm phiên b�
 
 | Môi trường đo | UC3 (match + nạp kho) | UC1 (phần 1) | Cả lệnh | Kết luận |
 |---|---|---|---|---|
-| Linux, Python 3.11, PostgreSQL 16 (môi trường thử, 24/10/2026) | 0,7 s | 1,2 s | 2,8 s | Đạt |
+| Linux, Python 3.11, PostgreSQL 16 (môi trường thử, 24/10/2026) – bản clone mới | 0,7 s | 1,2 s | 2,7 s | Đạt |
 
-Trên cả tệp 67.037 dòng: UC3 7,4 s.
+Trên cả tệp 67.037 dòng: UC3 7,4 s. Ảnh: `docs/sprint2/ket-qua-nfr01.png`.
 
-**NFR-06** – mỗi khung dashboard tải ≤ 5 giây: {NFR06}
+**NFR-06** – mỗi khung dashboard tải ≤ 5 giây với ≤ 24 đợt nạp. Đo từ lúc mở trang tới khi đủ 3 biểu đồ K1 – K3, 3 lần, lấy giá trị lớn nhất: 3,8 s với 1 đợt; 3,7 s với 24 đợt mẫu 8.000 dòng (nạp vào một CSDL riêng để đo). Đạt.
 
 ### 6.3 Còn lại
 
