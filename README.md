@@ -206,11 +206,11 @@ Fact không mất dòng nào khi nối dimension: `fact_dq_check` tìm phiên b�
 
 | Môi trường đo | UC3 (match + nạp kho) | UC1 (phần 1) | Cả lệnh | Kết luận |
 |---|---|---|---|---|
-| Linux, Python 3.11, PostgreSQL 16 (môi trường thử, 24/10/2026) – bản clone mới | 0,7 s | 1,2 s | 2,7 s | Đạt |
+| Linux, Python 3.11, PostgreSQL 16 (môi trường thử, 24/10/2026) – bản clone mới | 0,7 s | 1,3 s | 2,9 s | Đạt |
 
 Trên cả tệp 67.037 dòng (môi trường thử): UC3 7,4 s. Ảnh: `docs/sprint2/ket-qua-nfr01.png`.
 
-**NFR-06** – mỗi khung dashboard tải ≤ 5 giây với ≤ 24 đợt nạp. Đo trên môi trường thử, từ lúc mở trang tới khi đủ 3 biểu đồ K1 – K3, 3 lần, lấy giá trị lớn nhất: 3,8 s với 1 đợt; 3,7 s với 24 đợt mẫu 8.000 dòng (nạp vào một CSDL riêng để đo). Đạt.
+**NFR-06** – mỗi khung dashboard tải ≤ 5 giây với ≤ 24 đợt nạp. Đo trên môi trường thử, từ lúc mở trang tới khi đủ 4 biểu đồ K1 – K3, 3 lần, lấy giá trị lớn nhất: 4,1 s với 1 đợt; 4,1 s với 24 đợt mẫu 8.000 dòng (nạp vào một CSDL riêng để đo). Đạt, nhưng sát ngưỡng ở lần mở đầu tiên (bộ đệm rỗng) – đo lại trên MacBook.
 
 ### 6.3 Còn lại
 

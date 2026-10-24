@@ -1,7 +1,7 @@
 # Báo cáo UC1 – đợt nạp 1
 
 - Tệp: `data/raw/customers_raw.csv` · SHA-256 `f5a84bdf5da67ea932d729f5c6ab6527ad7d0df9097a3a93558fc891c154117a`
-- Đơn vị nguồn: TONG_HOP · Người nạp: my.marketing · Bắt đầu: 2026-10-24T01:25:19
+- Đơn vị nguồn: TONG_HOP · Người nạp: my.marketing · Bắt đầu: 2026-10-24T01:48:42
 - Ghi CSDL: có
 
 ## 1. Extract – 67.037 dòng × 6 cột
@@ -47,7 +47,7 @@ Tệp hồ sơ lỗi kèm lý do: `data/processed/ho_so_loi_dot_1.csv` (có dữ
 
 ## 4. UC3 – phát hiện cặp nghi trùng (FR-04)
 
-- Hồ sơ có số hợp lệ tham gia so khớp: 62.904 (51.279 số khác nhau); cặp ứng viên sau blocking (giữa hồ sơ đại diện của hai số khác nhau): 483.124; ngưỡng FUZZY 85.
+- Hồ sơ tham gia so khớp: 62.904 hồ sơ có số hợp lệ (51.279 số khác nhau); cặp ứng viên sau blocking (giữa hồ sơ đại diện của hai số khác nhau): 483.124; ngưỡng FUZZY 85.
 - Cặp mới: EXACT_PHONE 11.625 · FUZZY 12.
 
 ## 5. Nạp kho và đối soát staging (ops) ↔ kho (dwh)
@@ -65,8 +65,8 @@ Tệp hồ sơ lỗi kèm lý do: `data/processed/ho_so_loi_dot_1.csv` (có dữ
 
 | Bước | Giây |
 |---|---:|
-| extract | 3,95 |
-| transform | 5,32 |
-| dq_evaluate | 0,13 |
+| extract | 4,22 |
+| transform | 5,13 |
+| dq_evaluate | 0,15 |
 | load_dwh | 0,01 |
-| match | 7,38 |
+| match | 7,44 |
