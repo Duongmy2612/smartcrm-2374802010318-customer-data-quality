@@ -100,3 +100,4 @@ def test_ddl_chay_lai_khong_loi(csdl_test):
         assert conn.execute(text(dem), {'s': 'dwh', 't': 'BASE TABLE'}).scalar_one() == 5
         assert conn.execute(text(dem), {'s': 'dwh', 't': 'VIEW'}).scalar_one() == 2
         assert conn.execute(text('SELECT count(*) FROM dwh.dim_date')).scalar_one() == 1461   # 2024 – 2027
+        assert conn.execute(text("SELECT count(*) FROM pg_trigger WHERE tgname = 'trg_dq_rule_updated_at'")).scalar_one() == 1

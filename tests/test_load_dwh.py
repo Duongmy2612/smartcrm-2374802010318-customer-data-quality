@@ -79,3 +79,15 @@ def test_doi_quy_tac_lan_do_cu_giu_phien_ban_cu(csdl_test):
     sql = ("SELECT v.pass_threshold FROM dwh.v_rule_rate v WHERE v.rule_code = 'DQ-01' AND v.batch_id = {} "
            "AND v.measure_stage = 'SAU'")
     assert _dem(engine, sql.format(1)) == 98 and _dem(engine, sql.format(2)) == 95
+
+
+def test_sua_tay_quy_tac_khong_ghi_updated_at_van_nap_duoc(csdl_test):
+    """TD-21: sửa ngưỡng bằng một câu UPDATE không ghi updated_at (như sửa tay bằng psql) → trigger đặt updated_at
+    theo giờ CSDL, lần nạp sau vẫn chạy và sinh phiên bản mới, không dừng với lỗi. [dữ liệu sai]"""
+    engine, p, tmp = csdl_test
+    _chay(p, tmp)
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE ops.dq_rule SET pass_threshold = 90 WHERE rule_code = 'DQ-06'"))
+    _chay(p, tmp, nap_lai=True)
+    assert _dem(engine, "SELECT count(*) FROM dwh.dim_rule WHERE rule_code = 'DQ-06'") == 2
+    assert _dem(engine, "SELECT count(*) FROM dwh.dim_rule WHERE rule_code = 'DQ-06' AND valid_to IS NULL") == 1
