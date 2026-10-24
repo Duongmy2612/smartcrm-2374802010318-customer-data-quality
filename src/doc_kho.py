@@ -38,24 +38,65 @@ def khoang_diem(score: float) -> str:
     return '< 85' if s < 85 else '85 – <90' if s < 90 else '90 – <95' if s < 95 else '≥ 95'
 
 
+def vi_tri_nguong(nguong: float) -> float:
+    """Vị trí đường ngưỡng FUZZY trên trục khoảng điểm của K3.
+
+    Trục có 4 cột KHOANG_DIEM ở vị trí 0 – 3; ranh giới 85 | 90 | 95 nằm ở 0,5 | 1,5 | 2,5. Ngưỡng nằm giữa hai
+    ranh giới thì nội suy tuyến tính (87,5 → 1,0), để đường vẫn đúng chỗ khi cấu hình đổi ngưỡng khác 85.
+    """
+    n = float(nguong)
+    if n >= 85:
+        return 0.5 + (min(n, 100) - 85) / 5
+    return max(-0.5, 0.5 - (85 - n) / 10)
+
+
+def loc_don_vi(pham_vi: list[str] | None, don_vi_chon: list[str]) -> list[str] | None:
+    """Đơn vị được truy vấn = đơn vị đang chọn GIAO với phạm vi QT-14 (None = mọi đơn vị)."""
+    if pham_vi is None:
+        return list(don_vi_chon) or None
+    return [d for d in (don_vi_chon or pham_vi) if d in pham_vi]
+
+
 def _ngay(d) -> str:
     return d.strftime('%d/%m/%Y') if d else '…'
 
 
-def cau_giai_thich_rong(pham_vi: list[str] | None, don_vi_chon: list[str], tu: date | None, den: date | None,
-                         co_du_lieu_trong_kho: bool) -> str:
-    """Câu hiện khi bộ lọc không ra dòng nào: nói rõ VÌ SAO rỗng và nên làm gì tiếp."""
+def ly_do_rong(co_du_lieu_trong_kho: bool, pham_vi: list[str] | None, so_dot_trong_khoang: int,
+               so_dot_duoc_xem: int, so_don_vi_chon: int, so_dot_chon: int) -> str | None:
+    """Vì sao không còn đợt nạp nào để vẽ; None = có dữ liệu.
+
+    so_dot_trong_khoang: số đợt nạp trong khoảng ngày, mọi đơn vị (chỉ đếm, không đọc dữ liệu);
+    so_dot_duoc_xem   : số đợt trong khoảng ngày thuộc phạm vi QT-14 của người xem.
+    """
     if not co_du_lieu_trong_kho:
-        return ('Kho dữ liệu chưa có đợt nạp nào. Chạy luồng chính trước: '
-                '`python -m src.pipeline --tep data/raw/customers_raw.csv`, rồi bấm "Làm mới dữ liệu".')
+        return 'kho_rong'
     if pham_vi == []:
-        return 'Tài khoản này không có trong configs/config.yaml nên không được xem dữ liệu đơn vị nào (QT-14).'
-    don_vi = ', '.join(don_vi_chon) if don_vi_chon else ('mọi đơn vị' if pham_vi is None else ', '.join(pham_vi))
-    cau = f'Không có đợt nạp nào của {don_vi} nạp trong khoảng {_ngay(tu)} – {_ngay(den)}.'
-    if pham_vi is not None:
-        cau += (f' Theo QT-14, tài khoản này chỉ xem được đơn vị {", ".join(pham_vi)}; các đợt nạp hiện có '
-                'thuộc đơn vị khác.')
-    return cau + ' Thử mở rộng khoảng ngày nạp hoặc chọn đơn vị nguồn khác.'
+        return 'khong_quyen'
+    if so_dot_duoc_xem == 0:
+        return 'qt14' if so_dot_trong_khoang > 0 else 'khoang_ngay'
+    if so_don_vi_chon == 0:
+        return 'chua_chon_don_vi'
+    if so_dot_chon == 0:
+        return 'chua_chon_dot'
+    return None
+
+
+def cau_giai_thich_rong(ly_do: str, pham_vi: list[str] | None, tu: date | None, den: date | None) -> str:
+    """Câu hiện khi bộ lọc không ra dòng nào: nói rõ VÌ SAO rỗng và nên làm gì tiếp."""
+    khoang = f'{_ngay(tu)} – {_ngay(den)}'
+    pv = ', '.join(pham_vi) if pham_vi else ''
+    return {
+        'kho_rong': 'Kho dữ liệu chưa có đợt nạp nào. Chạy luồng chính trước: '
+                    '`python -m src.pipeline --tep data/raw/customers_raw.csv`, rồi bấm "Làm mới dữ liệu".',
+        'khong_quyen': 'Tài khoản này không có trong configs/config.yaml nên không được xem dữ liệu đơn vị nào (QT-14).',
+        'qt14': f'Trong khoảng {khoang} có đợt nạp, nhưng đều thuộc đơn vị khác. Theo QT-14, tài khoản này chỉ xem '
+                f'được đơn vị {pv}. Thử mở rộng khoảng ngày nạp; muốn xem toàn công ty thì dùng tài khoản Nhân viên '
+                'Marketing.',
+        'khoang_ngay': f'Không có đợt nạp nào{" của " + pv if pv else ""} trong khoảng {khoang}. '
+                       'Thử mở rộng khoảng ngày nạp.',
+        'chua_chon_don_vi': 'Chưa chọn đơn vị nguồn nào ở thanh bên. Chọn ít nhất một đơn vị để xem.',
+        'chua_chon_dot': 'Chưa chọn đợt nạp nào ở thanh bên. Chọn ít nhất một đợt để xem.',
+    }[ly_do]
 
 
 # ------------------------------------------------------------------ truy vấn (chỉ SELECT)
@@ -70,7 +111,7 @@ def doc_dot(conn, pham_vi: list[str] | None, don_vi_chon: list[str], tu: date | 
         WHERE  (:tu IS NULL OR b.loaded_at::DATE >= :tu) AND (:den IS NULL OR b.loaded_at::DATE <= :den)
     """
     tham = {'tu': tu, 'den': den}
-    loc = don_vi_chon or pham_vi
+    loc = loc_don_vi(pham_vi, don_vi_chon)
     if loc is not None:
         if not loc:
             return pd.DataFrame(columns=['batch_key'])
@@ -109,6 +150,12 @@ def doc_cap(conn, batch_keys: list[int]) -> pd.DataFrame:
         df['khoang_diem'] = df['score'].map(khoang_diem)
         df['trang_thai'] = df['status'].map(TRANG_THAI_CAP)
     return df
+
+
+def dem_dot_trong_khoang(conn, tu: date | None, den: date | None) -> int:
+    """Số đợt nạp trong khoảng ngày, mọi đơn vị – chỉ để giải thích trạng thái rỗng, không trả về dữ liệu."""
+    return int(conn.execute(text('SELECT count(*) FROM dwh.dim_batch WHERE (:tu IS NULL OR loaded_at::DATE >= :tu) '
+                                 'AND (:den IS NULL OR loaded_at::DATE <= :den)'), {'tu': tu, 'den': den}).scalar_one())
 
 
 def doc_thoi_diem_du_lieu(conn) -> dict:

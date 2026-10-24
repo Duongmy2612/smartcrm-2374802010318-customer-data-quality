@@ -47,10 +47,11 @@ def pt(x) -> str:
     return f'{float(x) * 100:.2f}%'.replace('.', ',')
 
 
-def ghi_nguon(nguon: str, td: dict) -> None:
-    lan_do = td['lan_do'].strftime('%d/%m/%Y %H:%M') if td.get('lan_do') else 'chưa có lần đo'
-    st.caption(f'Nguồn: {nguon} · dữ liệu đến lần đo {lan_do} · trang tải lúc {datetime.now():%H:%M:%S} · '
-               f'bộ đệm {BO_DEM_GIAY} giây (bấm "Làm mới dữ liệu" để đọc lại ngay).')
+def ghi_nguon(nguon: str, lan_do) -> None:
+    """Dòng ghi nguồn dưới mỗi biểu đồ: bảng/view nguồn, thời điểm dữ liệu của các đợt đang xem, bộ đệm."""
+    lan_do = pd.Timestamp(lan_do).strftime('%d/%m/%Y %H:%M') if pd.notna(lan_do) else 'chưa có lần đo'
+    st.caption(f'Nguồn: {nguon} · dữ liệu đến lần đo {lan_do} (lần đo mới nhất của các đợt đang xem) · trang tải '
+               f'lúc {datetime.now():%H:%M:%S} · bộ đệm {BO_DEM_GIAY} giây (bấm "Làm mới dữ liệu" để đọc lại ngay).')
 
 
 # ------------------------------------------------------------------ thanh bên: người xem và bộ lọc
@@ -74,14 +75,16 @@ with st.sidebar:
 try:
     with st.spinner('Đang tải dữ liệu từ kho dữ liệu…'):
         td = tai('doc_thoi_diem_du_lieu')
-        tat_ca = tai('doc_dot', pham_vi, [], tu, den)
+        tat_ca = tai('doc_dot', pham_vi, [], tu, den)            # các đợt trong khoảng ngày, trong phạm vi QT-14
         don_vi_co = sorted(tat_ca['source_unit'].unique()) if len(tat_ca) else []
         don_vi_chon = st.sidebar.multiselect('Đơn vị nguồn', don_vi_co, default=don_vi_co)
         dot = tat_ca[tat_ca['source_unit'].isin(don_vi_chon)] if len(tat_ca) else tat_ca
+        so_dot_chon = 0
         if len(dot):
             nhan = {r.batch_key: f'Đợt #{r.batch_id} · {r.loaded_at:%d/%m/%Y} · {r.file_name}' for r in dot.itertuples()}
             chon = st.sidebar.multiselect('Đợt nạp', list(nhan), default=list(nhan), format_func=nhan.get)
-            dot = dot[dot['batch_key'].isin(chon)]
+            dot, so_dot_chon = dot[dot['batch_key'].isin(chon)], len(chon)
+        trong_khoang = len(tat_ca) if len(tat_ca) or pham_vi is None else tai('dem_dot_trong_khoang', tu, den)
         quy_tac = tai('doc_ty_le_quy_tac', list(dot['batch_key'])) if len(dot) else pd.DataFrame()
         cap = tai('doc_cap', list(dot['batch_key'])) if len(dot) else pd.DataFrame()
 # ------------------------------------------------------------------ TRẠNG THÁI 3: lỗi
@@ -95,32 +98,39 @@ except Exception as e:                                  # noqa: BLE001
         st.rerun()
     st.stop()
 
-# ------------------------------------------------------------------ TRẠNG THÁI 2: rỗng
-if dot.empty:
-    st.info(doc_kho.cau_giai_thich_rong(pham_vi, [] if len(tat_ca) == 0 else don_vi_chon, tu, den,
-                                        co_du_lieu_trong_kho=bool(td['so_dot'])))
+# ------------------------------------------------------------------ TRẠNG THÁI 2: rỗng – nói đúng nguyên nhân
+ly_do = doc_kho.ly_do_rong(bool(td['so_dot']), pham_vi, trong_khoang, len(tat_ca), len(don_vi_chon), so_dot_chon)
+if ly_do:
+    st.info(doc_kho.cau_giai_thich_rong(ly_do, pham_vi, tu, den))
     st.stop()
 
+lan_do = dot['measured_at'].max()
 k1, k2, k3 = st.tabs(['K1 · Tổng quan', 'K2 · Theo quy tắc', 'K3 · Cặp nghi trùng'])
 
 # ------------------------------------------------------------------ K1 – Q2
 with k1:
     st.subheader('Chỉ số mức độ sạch của từng đợt TRƯỚC và SAU làm sạch – đã đạt mức Tốt chưa?')
     moi = dot.iloc[-1]
-    sau_moi = quy_tac[(quy_tac['batch_key'] == moi['batch_key']) & (quy_tac['measure_stage'] == 'SAU')]
-    the = sau_moi.set_index('rule_code')
+    the = quy_tac[(quy_tac['batch_key'] == moi['batch_key']) & (quy_tac['measure_stage'] == 'SAU')].set_index('rule_code')
+
+    def chi_so(ma):
+        """Thẻ chỉ số từ một quy tắc; quy tắc đã tắt (UC6) thì hiện '–' thay vì lỗi."""
+        if ma not in the.index:
+            return '–', f'{ma} không đo ở lần này'
+        r = the.loc[ma]
+        return pt(1 - float(r['pass_rate'])), f"{so(r['fail_count'])} hồ sơ ({ma})"
+
     c = st.columns(5)
     c[0].metric('Chỉ số SAU (đợt mới nhất)', diem(moi['sau']), moi['xep_loai'], delta_color='off',
                 delta_arrow='off', border=True)
     c[1].metric('Chỉ số TRƯỚC làm sạch', diem(moi['truoc']),
                 f"chênh lệch {float(moi['sau']) - float(moi['truoc']):+.2f} điểm".replace('.', ','),
                 delta_color='off', delta_arrow='off', border=True)
-    c[2].metric('Số hồ sơ được đánh giá', so(the.loc['DQ-01', 'total_records']), 'của đợt nạp mới nhất',
+    c[2].metric('Số hồ sơ được đánh giá', so(the['total_records'].max()) if len(the) else '–', 'của đợt nạp mới nhất',
                 delta_color='off', delta_arrow='off', border=True)
-    c[3].metric('Thiếu số điện thoại', pt(1 - float(the.loc['DQ-01', 'pass_rate'])),
-                f"{so(the.loc['DQ-01', 'fail_count'])} hồ sơ (DQ-01)", delta_color='off', delta_arrow='off', border=True)
-    c[4].metric('Hồ sơ lặp có cặp Chờ xử lý', pt(1 - float(the.loc['DQ-05', 'pass_rate'])),
-                f"{so(the.loc['DQ-05', 'fail_count'])} hồ sơ (DQ-05)", delta_color='off', delta_arrow='off', border=True)
+    c[3].metric('Thiếu số điện thoại', *chi_so('DQ-01'), delta_color='off', delta_arrow='off', border=True)
+    c[4].metric('Hồ sơ lặp có cặp Chờ xử lý', *chi_so('DQ-05'), delta_color='off', delta_arrow='off',
+                border=True)
 
     # Đường theo đợt nạp như wireframe K1 (BT1 Hình 5.1): SAU nét liền, TRƯỚC nét đứt; mốc 90 (Tốt) và 75 (Kém)
     nhan_dot = [f'Đợt #{r.batch_id}<br>{r.loaded_at:%d/%m/%Y}' for r in dot.itertuples()]
@@ -132,17 +142,21 @@ with k1:
     fig.add_hline(y=90, line_dash='dash', line_color='gray', annotation_text='90 · Tốt', annotation_position='top right')
     fig.add_hline(y=75, line_dash='dot', line_color='gray', annotation_text='75 · Kém',
                   annotation_position='bottom right')
-    fig.update_layout(yaxis=dict(title='Chỉ số mức độ sạch (0–100)', range=[70, 101]), xaxis=dict(type='category'),
+    thap = min(70, int(min(dot['truoc'].astype(float).min(), dot['sau'].astype(float).min())) // 10 * 10)
+    fig.update_layout(yaxis=dict(title='Chỉ số mức độ sạch (0–100)', range=[thap, 101]), xaxis=dict(type='category'),
                       height=380, margin=dict(t=20, b=20), legend=dict(orientation='h', y=1.08))
-    st.plotly_chart(fig, use_container_width=True)
-    st.markdown(f"**Đọc biểu đồ:** đợt mới nhất (#{moi['batch_id']}) tăng từ {diem(moi['truoc'])} lên "
-                f"{diem(moi['sau'])} điểm nhờ chuẩn hóa; xếp loại **{moi['xep_loai']}**. Phần còn thiếu để lên gần "
-                f"100 nằm ở hồ sơ lặp chờ Gộp/Giữ riêng (DQ-05) và số điện thoại thiếu thật (DQ-01) – xem K2.")
-    ghi_nguon('dwh.v_batch_score (fact_dq_check ⨝ dim_rule ⨝ dim_batch ⨝ dim_date), lần đo mới nhất mỗi đợt', td)
+    st.plotly_chart(fig)
+    doi = float(moi['sau']) - float(moi['truoc'])
+    xu_huong = (f"tăng từ {diem(moi['truoc'])} lên {diem(moi['sau'])} điểm sau làm sạch" if doi > 0 else
+                f"giảm từ {diem(moi['truoc'])} xuống {diem(moi['sau'])} điểm sau làm sạch" if doi < 0 else
+                f"giữ nguyên {diem(moi['sau'])} điểm sau làm sạch")
+    st.markdown(f"**Đọc biểu đồ:** đợt mới nhất (#{moi['batch_id']}) {xu_huong}; xếp loại **{moi['xep_loai']}** "
+                f"(đường 90 là mức Tốt, 75 là mức Kém – QL7-06). Quy tắc nào làm mất điểm: xem K2.")
+    ghi_nguon('dwh.v_batch_score (fact_dq_check ⨝ dim_rule ⨝ dim_batch ⨝ dim_date), lần đo mới nhất mỗi đợt', lan_do)
     st.dataframe(pd.DataFrame({
         'Đợt': dot['batch_id'], 'Ngày nạp': dot['loaded_at'].dt.strftime('%d/%m/%Y %H:%M'), 'Tệp': dot['file_name'],
         'Đơn vị nguồn': dot['source_unit'], 'TRƯỚC': dot['truoc'].map(diem), 'SAU': dot['sau'].map(diem),
-        'Xếp loại': dot['xep_loai']}), hide_index=True, use_container_width=True)
+        'Xếp loại': dot['xep_loai']}), hide_index=True)
 
 # ------------------------------------------------------------------ K2 – Q3
 with k2:
@@ -151,33 +165,52 @@ with k2:
     nhan = {r.batch_key: f'Đợt #{r.batch_id} · {r.loaded_at:%d/%m/%Y}' for r in dot.itertuples()}
     bk = a.selectbox('Đợt nạp', list(nhan)[::-1], format_func=nhan.get)
     gd = b.radio('Giai đoạn đo', ['SAU', 'TRUOC'], format_func=doc_kho.GIAI_DOAN.get, horizontal=True)
-    q = quy_tac[(quy_tac['batch_key'] == bk) & (quy_tac['measure_stage'] == gd)].sort_values('lost_points')
+    q = quy_tac[(quy_tac['batch_key'] == bk) & (quy_tac['measure_stage'] == gd)]
     if q.empty:
         st.info('Đợt này chưa có lần đo ở giai đoạn đã chọn. Chạy lại luồng chính cho đợt này hoặc chọn giai đoạn khác.')
     else:
-        nhan_qt = [f'{r.rule_code} · {r.rule_name}' for r in q.itertuples()]
+        trai, phai = st.columns(2)
+        # Biểu đồ trái (như wireframe K2): tỉ lệ đạt từng quy tắc, mốc tham chiếu = ngưỡng đạt của quy tắc đó
+        qs = q.sort_values('lost_points')
+        nhan_qt = [f'{r.rule_code} · {r.rule_name}' for r in qs.itertuples()]
         fig = go.Figure()
-        fig.add_bar(y=nhan_qt, x=(q['pass_rate'].astype(float) * 100), orientation='h', name='Tỉ lệ đạt',
-                    marker_color=['#2e7d32' if ok else '#c62828' for ok in q['is_pass']],
-                    text=[f'{pt(r.pass_rate)} · mất {diem(r.lost_points)} điểm' for r in q.itertuples()],
-                    textposition='inside', insidetextanchor='start')
-        fig.add_scatter(y=nhan_qt, x=q['pass_threshold'].astype(float), mode='markers', name='Ngưỡng đạt của quy tắc',
-                        marker=dict(symbol='line-ns', size=26, line=dict(width=3, color='black')))
-        fig.update_layout(xaxis=dict(title='Tỉ lệ đạt (%) – vạch đen là ngưỡng đạt', range=[0, 102], dtick=20), height=380,
-                          margin=dict(t=20, b=20), legend=dict(orientation='h', y=1.08))
-        st.plotly_chart(fig, use_container_width=True)
-        top = q.iloc[-1]
+        fig.add_bar(y=nhan_qt, x=(qs['pass_rate'].astype(float) * 100), orientation='h', name='Tỉ lệ đạt',
+                    marker_color=['#2e7d32' if ok else '#c62828' for ok in qs['is_pass']],
+                    text=[pt(v) for v in qs['pass_rate']], textposition='inside', insidetextanchor='start')
+        fig.add_scatter(y=nhan_qt, x=qs['pass_threshold'].astype(float), mode='markers', name='Ngưỡng đạt',
+                        marker=dict(symbol='line-ns', size=24, line=dict(width=3, color='black')))
+        fig.update_layout(title=dict(text='Tỉ lệ đạt theo quy tắc (vạch đen = ngưỡng đạt)', font_size=14),
+                          xaxis=dict(title='Tỉ lệ đạt (%)', range=[0, 106], dtick=20), height=400,
+                          margin=dict(t=60, b=20), legend=dict(orientation='h', y=1.0, yanchor='bottom', x=0))
+        trai.plotly_chart(fig)
+        # Biểu đồ phải (như wireframe K2): điểm bị mất từng quy tắc – trả lời thẳng câu hỏi Q3
+        qm = q.sort_values('rule_code')
         tong = float(q['lost_points'].sum())
-        st.markdown(f"**Đọc biểu đồ:** {top['rule_code']} ({top['rule_name'].lower()}) làm mất nhiều điểm nhất "
-                    f"(**{diem(top['lost_points'])}** trên tổng {diem(tong)} điểm bị mất → chỉ số "
-                    f"{diem(100 - tong)}). Thanh đỏ là quy tắc chưa đạt ngưỡng.")
-        ghi_nguon('dwh.v_rule_rate (fact_dq_check ⨝ dim_rule – trọng số, ngưỡng của phiên bản đang hiệu lực lúc đo)', td)
+        fig = go.Figure(go.Bar(x=qm['rule_code'], y=qm['lost_points'].astype(float), marker_color='#1f3864',
+                               text=[diem(v) for v in qm['lost_points']], textposition='outside', name='Điểm bị mất'))
+        fig.add_hline(y=10, line_dash='dash', line_color='gray', annotation_position='top left',
+                      annotation_text='10 điểm = tổng mức được mất tối đa để còn Tốt (≥ 90)')
+        fig.update_layout(title=dict(text=f'Điểm bị mất = trọng số × (1 − tỉ lệ đạt) × 100 · tổng {diem(tong)} → '
+                                          f'chỉ số {diem(100 - tong)}', font_size=14),
+                          yaxis=dict(title='Điểm bị mất', range=[0, max(12, float(q['lost_points'].max()) * 1.2)]),
+                          height=400, margin=dict(t=60, b=20))
+        phai.plotly_chart(fig)
+        top = qs.iloc[-1]
+        if tong == 0:
+            st.markdown('**Đọc biểu đồ:** mọi quy tắc đạt 100%, không quy tắc nào làm mất điểm ở lần đo này.')
+        else:
+            st.markdown(f"**Đọc biểu đồ:** {top['rule_code']} ({top['rule_name'].lower()}) làm mất nhiều điểm nhất – "
+                        f"**{diem(top['lost_points'])}** trên tổng {diem(tong)} điểm bị mất. Thanh đỏ (biểu đồ trái) là "
+                        f"quy tắc chưa đạt ngưỡng của chính nó; tổng điểm bị mất dưới đường 10 điểm (biểu đồ phải) "
+                        f"nghĩa là đợt vẫn ở mức Tốt.")
+        ghi_nguon('dwh.v_rule_rate (fact_dq_check ⨝ dim_rule – trọng số, ngưỡng của phiên bản đang hiệu lực lúc đo)',
+                  lan_do)
         st.dataframe(pd.DataFrame({
-            'Quy tắc': q['rule_code'], 'Loại': q['rule_type'], 'Số kiểm': q['total_records'].map(so),
-            'Số đạt': q['pass_count'].map(so), 'Tỉ lệ đạt': q['pass_rate'].map(pt),
-            'Ngưỡng': q['pass_threshold'].map(lambda x: f'≥ {float(x):g}%'), 'Trọng số': q['weight'].map(lambda x: diem(x)),
-            'Điểm bị mất': q['lost_points'].map(diem), 'Đạt': q['is_pass'].map({True: '✓', False: '✗'})}
-        ).iloc[::-1], hide_index=True, use_container_width=True)
+            'Quy tắc': qs['rule_code'], 'Loại': qs['rule_type'], 'Số kiểm': qs['total_records'].map(so),
+            'Số đạt': qs['pass_count'].map(so), 'Tỉ lệ đạt': qs['pass_rate'].map(pt),
+            'Ngưỡng': qs['pass_threshold'].map(lambda x: f'≥ {float(x):g}%'), 'Trọng số': qs['weight'].map(diem),
+            'Điểm bị mất': qs['lost_points'].map(diem), 'Đạt': qs['is_pass'].map({True: '✓', False: '✗'})}
+        ).iloc[::-1], hide_index=True)
 
 # ------------------------------------------------------------------ K3 – Q4, Q5
 with k3:
@@ -190,25 +223,36 @@ with k3:
         theo_tt = cap.groupby('status')['so_cap'].sum()
         da_xu_ly = int(theo_tt.get('MERGED', 0) + theo_tt.get('KEEP_SEPARATE', 0))
         c = st.columns(5)
-        for o, (nhan_the, gia_tri) in zip(c, [('Tổng cặp nghi trùng', so(tong)),
+        for o, (nhan_the, gia_tri) in zip(c, [('Tổng cặp nghi trùng', so(tong)),       # Q4: thẻ theo trạng thái
                                               ('Chờ xử lý', so(theo_tt.get('PENDING', 0))),
                                               ('Gộp', so(theo_tt.get('MERGED', 0))),
                                               ('Giữ riêng', so(theo_tt.get('KEEP_SEPARATE', 0))),
                                               ('Tỉ lệ đã xử lý', pt(da_xu_ly / tong))]):
             o.metric(nhan_the, gia_tri, border=True)
-        bang = (cap.groupby(['khoang_diem', 'trang_thai'])['so_cap'].sum().unstack(fill_value=0)
-                .reindex(doc_kho.KHOANG_DIEM, fill_value=0))
-        fig = go.Figure([go.Bar(name=tt, x=bang.index, y=bang[tt], text=bang[tt].map(so), textposition='outside')
-                         for tt in bang.columns])
+        # Q5: phân bố điểm theo khoảng, tách loại so khớp – ngưỡng chỉ áp cho FUZZY (khác số)
+        bang = (cap.groupby(['khoang_diem', 'match_type'])['so_cap'].sum().unstack(fill_value=0)
+                .reindex(index=doc_kho.KHOANG_DIEM, fill_value=0))
+        mau = {'EXACT_PHONE': '#1f3864', 'FUZZY': '#e8a33d'}
+        ten = {'EXACT_PHONE': 'EXACT_PHONE (cùng số)', 'FUZZY': 'FUZZY (khác số, điểm ≥ ngưỡng)'}
+        fig = go.Figure([go.Bar(name=ten.get(lo, lo), x=bang.index, y=bang[lo], marker_color=mau.get(lo),
+                                text=[so(v) if v else '' for v in bang[lo]], textposition='outside')
+                         for lo in bang.columns])
         nguong = float(cau_hinh['nguong_fuzzy'])
-        fig.add_vline(x=0.5, line_dash='dash', annotation_text=f'ngưỡng tạo cặp FUZZY = {nguong:g} (QL7-02)',
-                      annotation_position='top right')
-        fig.update_layout(barmode='stack', xaxis_title='Khoảng điểm tương đồng',
-                          yaxis_title='Số cặp', height=360, margin=dict(t=30, b=20))
-        st.plotly_chart(fig, use_container_width=True)
+        fig.add_vline(x=doc_kho.vi_tri_nguong(nguong), line_dash='dash',
+                      annotation_text=f'ngưỡng tạo cặp FUZZY = {nguong:g} (QL7-02)', annotation_position='top right')
+        # Thang log: 11.620 cặp cùng số ở '≥ 95' và vài cặp sát ngưỡng vẫn cùng nhìn thấy được trên một biểu đồ
+        fig.update_layout(barmode='group', xaxis_title='Khoảng điểm tương đồng', height=380,
+                          yaxis=dict(title='Số cặp (thang log)', type='log', dtick=1),
+                          margin=dict(t=30, b=20), legend=dict(orientation='h', y=1.08))
+        st.plotly_chart(fig)
         theo_loai = cap.groupby('match_type')['so_cap'].sum()
+        fz = cap[cap['match_type'] == 'FUZZY']
+        ex_thap = int(cap[(cap['match_type'] == 'EXACT_PHONE') & (cap['score'].astype(float) < nguong)]['so_cap'].sum())
         st.markdown(f"**Đọc biểu đồ:** {so(theo_tt.get('PENDING', 0))}/{so(tong)} cặp còn chờ Nhân viên Marketing "
-                    f"quyết định (UC5 – Sprint 3). EXACT_PHONE {so(theo_loai.get('EXACT_PHONE', 0))} cặp (cùng số), "
-                    f"FUZZY {so(theo_loai.get('FUZZY', 0))} cặp (khác số, điểm ≥ {nguong:g}). Cặp EXACT_PHONE có điểm "
-                    f"< 85 là cùng số nhưng họ tên khác xa – nên xem kỹ trước khi Gộp (QL7-01).")
-        ghi_nguon('dwh.fact_dup_pair ⨝ dim_batch (điểm chia khoảng khi truy vấn, không lưu)', td)
+                    f"quyết định (UC5 – Sprint 3). FUZZY {so(theo_loai.get('FUZZY', 0))} cặp, "
+                    + (f"thấp nhất {diem(fz['score'].astype(float).min())} điểm – sát ngưỡng {nguong:g}, nên đây là các "
+                       f"cặp cần xem kỹ nhất khi chỉnh ngưỡng (NFR-03). " if len(fz) else '')
+                    + f"EXACT_PHONE {so(theo_loai.get('EXACT_PHONE', 0))} cặp (cùng số, không xét ngưỡng); "
+                    f"{so(ex_thap)} cặp trong số đó có điểm < {nguong:g} là cùng số nhưng họ tên khác xa – nên xem kỹ "
+                    f"trước khi Gộp (QL7-01).")
+        ghi_nguon('dwh.fact_dup_pair ⨝ dim_batch (điểm chia khoảng khi truy vấn, không lưu)', lan_do)
