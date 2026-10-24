@@ -1,0 +1,102 @@
+# Nhật ký thử clone mới – làm đúng 12 bước README mục 3 (checklist buổi 10, mục 9)
+# Môi trường thử: Linux, Python 3.11, PostgreSQL 16 – ngày 24/10/2026, CSDL smartcrm và smartcrm_test đã xóa trước khi thử.
+# Hai điểm khác máy thật, ghi rõ để không hiểu nhầm:
+#   - Bước 1 clone từ bản sao cục bộ của repo (commit chưa đẩy lên GitHub lúc thử); trên máy em dùng đúng URL GitHub ở README.
+#   - Lệnh createdb dùng tài khoản PostgreSQL đặt qua biến PGHOST/PGUSER/PGPASSWORD của môi trường thử; mật khẩu đã che (***).
+# Kết quả: bước 9 mã thoát 0, đối soát 6/6 ✔; bước 12 ra "78 passed, 1 skipped" – khác dòng "79 passed" README ghi lúc đó,
+# nên README đã sửa bước 12 (test hồi quy trên mẫu 8.000 dòng cần sinh mẫu trước).
+
+── Bước 1: Lấy mã nguồn
+$ git clone -q -b dev /home/claude/b10/repo smartcrm-2374802010318-customer-data-quality
+
+── Bước 2: Vào thư mục repo
+$ cd smartcrm-2374802010318-customer-data-quality
+
+── Bước 3: Tạo môi trường ảo
+$ python3.11 -m venv .venv
+
+── Bước 4: Kích hoạt môi trường ảo
+$ source .venv/bin/activate
+
+── Bước 5: Cài thư viện
+$ pip install -q -r requirements.txt 2>&1 | grep -v 'notice' ; pip list 2>/dev/null | grep -E -i '^(pandas|rapidfuzz|SQLAlchemy|streamlit|plotly|pytest) '
+
+pandas                    3.0.6
+plotly                    6.9.0
+pytest                    9.1.1
+RapidFuzz                 3.14.6
+SQLAlchemy                2.1.1
+streamlit                 1.64.0
+
+── Bước 6: Tạo .env rồi điền DB_USER, DB_PASSWORD
+$ cp .env.example .env
+  (đã điền DB_USER=smartcrm_app, DB_PASSWORD=*** vào .env)
+
+── Bước 7: Tạo CSDL rỗng
+$ createdb smartcrm
+
+── Bước 8: Chép dữ liệu nguồn
+$ cp /home/claude/b10/Dataset/customers_raw.csv data/raw/
+
+── Bước 9: Chạy luồng chính end-to-end
+$ python -m src.pipeline --tep data/raw/customers_raw.csv
+[1/5] extract    data/raw/customers_raw.csv: 67.037 dòng × 6 cột · SHA-256 f5a84bdf5da6…
+      Ô trống: record_id 0 (0,00%) · ho_ten 0 (0,00%) · so_dien_thoai 4.133 (6,17%) · email 30.157 (44,99%) · dia_chi 6.023 (8,98%) · ngay_tao 0 (0,00%)
+      → ops.load_batch: đợt 1 (TONG_HOP, my.marketing); ops.stg_customer +67.037 hồ sơ thô (LOADED)
+[2/5] transform  số điện thoại: 43.863 đúng dạng sẵn · 19.041 sai dạng đã chuẩn hóa · 0 không quy đổi được · 4.133 trống
+      họ tên: 5.930 hồ sơ được sửa cách viết (FR-03)
+      phân loại: CLEAN 51.279 · PENDING_DUP 11.625 · ERROR 4.133 (MISSING_PHONE 4.133, INVALID_PHONE 0, MISSING_NAME 0)
+      → ops.customer_clean: 0 → 51.279 hồ sơ đang hiệu lực (+51.279)
+      → hồ sơ lỗi kèm lý do: data/processed/ho_so_loi_dot_1.csv (4.133 dòng, FR-10)
+[3/5] dq_evaluate 6 quy tắc × 2 giai đoạn → ops.dq_result +12 dòng
+      Quy tắc  Trọng số   Ngưỡng   TRƯỚC             SAU               
+      DQ-01        0,25    ≥ 98%   93,83% chưa đạt   93,83% chưa đạt   
+      DQ-02        0,25    ≥ 95%   69,73% chưa đạt   100,00% đạt       
+      DQ-03        0,15    ≥ 99%   100,00% đạt       100,00% đạt       
+      DQ-04        0,10    ≥ 97%   100,00% đạt       100,00% đạt       
+      DQ-05        0,20    ≥ 98%   81,52% chưa đạt   81,52% chưa đạt   
+      DQ-06        0,05    ≥ 95%   100,00% đạt       100,00% đạt       
+      Chỉ số mức độ sạch (QL7-06): TRƯỚC 87,20 (Chấp nhận được) → SAU 94,76 (Tốt), +7,56 điểm
+[4/5] load_dwh    dim_date (thêm ngày) +0 · dim_batch +1 · dim_rule (phiên bản mới) +6 · dim_rule (đóng phiên bản) +0 · fact_dq_check +12 · fact_dup_pair (thêm/cập nhật) +0
+[5/5] match       62.904 hồ sơ có số hợp lệ (51.279 số khác nhau) · blocking 5 số đầu/cuối: 483.124 cặp ứng viên · ngưỡng 85
+      EXACT_PHONE 11.625 · FUZZY 12 → ops.dup_candidate +11.637 cặp PENDING
+      load_dwh    dim_date (thêm ngày) +0 · dim_batch +0 · dim_rule (phiên bản mới) +0 · dim_rule (đóng phiên bản) +0 · fact_dq_check +0 · fact_dup_pair (thêm/cập nhật) +11.637
+      Đối soát staging (ops) ↔ kho (dwh):
+      ✔ Đợt nạp: ops 1 · dwh 1 – cùng GRAIN: 1 dòng = 1 đợt
+      ✔ Kết quả đo: ops 12 · dwh 12 – cùng GRAIN: 1 dòng = 1 quy tắc × 1 đợt × 1 giai đoạn × 1 lần đo
+      ✔ Cặp nghi trùng: ops 11.637 · dwh 11.637 – cùng GRAIN: 1 dòng = 1 cặp
+      ✔ Hồ sơ thô ↔ mẫu số DQ-01 (lần đo mới nhất): ops 67.037 · dwh 67.037 – khác GRAIN: kho không lưu từng hồ sơ; mẫu số của DQ-01 là mọi hồ sơ của đợt nên phải bằng số hồ sơ thô
+      ✔ Hồ sơ lặp chờ quyết định ↔ cặp EXACT_PHONE chờ xử lý: ops 11.625 · dwh 11.625 – QL7-02: mỗi hồ sơ lặp sinh đúng một cặp EXACT_PHONE với hồ sơ nạp sớm nhất của cùng số
+      ✔ Lần đo trước phiên bản quy tắc đầu tiên (gán phiên bản sớm nhất): ops 0 · dwh 0 – phải bằng 0; khác 0 là đồng hồ hai máy lệch (TD-16)
+Số dòng: tệp 67.037 → bảng tạm 67.037 = sạch 51.279 + chờ quyết định 11.625 + lỗi 4.133
+Thời gian: extract 3,7 s · transform 5,0 s · dq_evaluate 0,1 s → 8,9 s (NFR-01 phần 1: nạp và chuẩn hóa 8.000 dòng ≤ 60 s)
+           UC3 phát hiện cặp + nạp kho 7,1 s (NFR-01 phần 2: ≤ 120 s trên 8.000 hồ sơ) · toàn luồng 16,0 s
+Báo cáo: reports/uc1-dot-1-20261024_011752.md
+(mã thoát của bước 9: 0)
+
+── Bước 10: Mở dashboard
+$ streamlit run dashboard/report.py   (chạy nền để chụp ảnh – xem ảnh dashboard-*.png)
+
+── Bước 11: Tạo CSDL kiểm thử
+$ createdb smartcrm_test
+
+── Bước 12: Chạy kiểm thử
+$ python -m pytest -q
+................s....................................................... [ 91%]
+.......                                                                  [100%]
+78 passed, 1 skipped in 3.33s
+
+── Phép thử nạp lại (nạp lần hai không nhân đôi dòng)
+$ python -m src.etl.load_dwh
+load_dwh: dim_date (thêm ngày) +0 · dim_batch +0 · dim_rule (phiên bản mới) +0 · dim_rule (đóng phiên bản) +0 · fact_dq_check +0 · fact_dup_pair (thêm/cập nhật) +0 (0,1 s)
+Đối soát staging (ops) ↔ kho (dwh):
+      ✔ Đợt nạp: ops 1 · dwh 1 – cùng GRAIN: 1 dòng = 1 đợt
+      ✔ Kết quả đo: ops 12 · dwh 12 – cùng GRAIN: 1 dòng = 1 quy tắc × 1 đợt × 1 giai đoạn × 1 lần đo
+      ✔ Cặp nghi trùng: ops 11.637 · dwh 11.637 – cùng GRAIN: 1 dòng = 1 cặp
+      ✔ Hồ sơ thô ↔ mẫu số DQ-01 (lần đo mới nhất): ops 67.037 · dwh 67.037 – khác GRAIN: kho không lưu từng hồ sơ; mẫu số của DQ-01 là mọi hồ sơ của đợt nên phải bằng số hồ sơ thô
+      ✔ Hồ sơ lặp chờ quyết định ↔ cặp EXACT_PHONE chờ xử lý: ops 11.625 · dwh 11.625 – QL7-02: mỗi hồ sơ lặp sinh đúng một cặp EXACT_PHONE với hồ sơ nạp sớm nhất của cùng số
+      ✔ Lần đo trước phiên bản quy tắc đầu tiên (gán phiên bản sớm nhất): ops 0 · dwh 0 – phải bằng 0; khác 0 là đồng hồ hai máy lệch (TD-16)
+
+── git status sau khi chạy (không có .env, dữ liệu, báo cáo nào lọt vào git)
+$ git status --short
+(rỗng = sạch)
