@@ -1,11 +1,14 @@
 # Thư viện của prototype L7 (Python 3.11 trở lên – pandas 3 yêu cầu ≥ 3.11).
 # Chỉ ghi thư viện dùng trực tiếp. pandas, rapidfuzz, SQLAlchemy, psycopg2-binary, python-dotenv, PyYAML: cùng
 # phiên bản với .venv của máy phát triển (pip freeze 25/09). openpyxl, pytest: thêm ở buổi 8.
+# streamlit, plotly: thêm ở buổi 10 (dashboard K1 – K3).
 pandas==3.0.6            # đọc, chuẩn hóa, đo chất lượng
 openpyxl==3.1.5          # đọc tệp .xlsx (FR-01 nhận CSV/Excel)
-rapidfuzz==3.14.6        # so khớp mờ (match.py – Sprint 2), script profiling
+rapidfuzz==3.14.6        # so khớp mờ (match.py), script profiling
 SQLAlchemy==2.1.1        # kết nối PostgreSQL (mũi tên ② ↔ ③ của Hình 3.1)
 psycopg2-binary==2.9.13  # driver PostgreSQL
 python-dotenv==1.2.3     # đọc .env (NFR-07: bí mật không nằm trong mã)
 PyYAML==6.0.3            # đọc configs/config.yaml
 pytest==9.1.1            # kiểm thử
+streamlit==1.64.0        # dashboard K1 – K3 (dashboard/report.py, UC8)
+plotly==6.9.0            # biểu đồ của dashboard (đường, cột, mốc tham chiếu)

@@ -39,6 +39,27 @@ def tao_engine():
     return create_engine(url, executemany_mode='values_plus_batch')
 
 
+def tao_engine_chi_doc():
+    """Kết nối cho dashboard (lớp ①): chỉ SELECT được (NFR-06, NFR-07).
+
+    Có DASH_DB_USER trong .env → dùng tài khoản riêng đó. Để trống → dùng DB_USER nhưng phiên làm việc đặt
+    default_transaction_read_only = on, nên mọi lệnh ghi đều bị PostgreSQL từ chối (TD-19).
+    """
+    load_dotenv(GOC / '.env')
+    thieu = [k for k in BIEN_BAT_BUOC if not os.getenv(k)]
+    if thieu:
+        raise ThieuCauHinhCSDL(f"Thiếu biến {', '.join(thieu)} trong .env")
+    rieng = (os.getenv('DASH_DB_USER') or '').strip()
+    url = URL.create(
+        'postgresql+psycopg2',
+        username=rieng or os.getenv('DB_USER'),
+        password=(os.getenv('DASH_DB_PASSWORD') if rieng else os.getenv('DB_PASSWORD')) or None,
+        host=os.getenv('DB_HOST'), port=int(os.getenv('DB_PORT')), database=os.getenv('DB_NAME'),
+    )
+    return create_engine(url, pool_pre_ping=True, pool_size=2, max_overflow=2,
+                         connect_args={'options': '-c default_transaction_read_only=on', 'connect_timeout': 5})
+
+
 def _co_lenh(sql: str) -> bool:
     """True nếu tệp .sql còn lệnh sau khi bỏ chú thích (tệp chỉ có chú thích thì bỏ qua)."""
     return bool(re.sub(r'--[^\n]*', '', sql).strip())
