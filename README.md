@@ -55,7 +55,7 @@ Mekong Mobile chưa có CRM. Dữ liệu khách hàng rải rác ở Excel từn
 | 4 | Kích hoạt môi trường ảo | `source .venv/bin/activate` (Windows: `.venv\Scripts\activate`) |
 | 5 | Cài thư viện | `pip install -r requirements.txt` |
 | 6 | Tạo tệp cấu hình kết nối, rồi mở `.env` điền `DB_USER`, `DB_PASSWORD` | `cp .env.example .env` |
-| 7 | Tạo CSDL rỗng (một lần; báo "already exists" là bình thường) | `createdb smartcrm` |
+| 7 | Tạo CSDL rỗng (một lần; báo "already exists" là bình thường; không có lệnh `createdb` thì mở psql và gõ `CREATE DATABASE smartcrm;`) | `createdb smartcrm` |
 | 8 | Chép dữ liệu nguồn vào `data/raw/` | `cp <thư mục Dataset>/customers_raw.csv data/raw/` |
 | 9 | **Chạy luồng chính end-to-end:** UC1 nạp – chuẩn hóa – đo – nạp kho, rồi UC3 phát hiện cặp – nạp kho | `python -m src.pipeline --tep data/raw/customers_raw.csv` |
 | 10 | Mở dashboard K1 – K3, rồi vào http://localhost:8501 | `streamlit run dashboard/report.py` |
