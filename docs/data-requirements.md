@@ -252,7 +252,7 @@ Chọn **lược đồ hình sao (star)**, không chọn bông tuyết (snowflak
 - dim_batch: thêm các đợt nạp chưa có (theo batch_id); không cập nhật dòng cũ (loại 0). dim_date sinh sẵn một lần.
 - fact_dq_check: thêm các dòng ops.dq_result chưa có (theo result_id); rule_key = phiên bản có valid_from ≤ measured_at < valid_to (valid_to NULL coi như vô hạn).
 - fact_dup_pair: thêm cặp mới; với cặp đã có (theo pair_id) chỉ cập nhật status và decided_date_key khi có quyết định.
-- Ghi chú hiện thực (Sprint 2, `src/etl/load_dwh.py`): dim_date vẫn sinh sẵn nhưng load_dwh thêm ngày còn thiếu trước khi nạp fact (TD-15); measured_at lấy theo đồng hồ PostgreSQL (TD-16); sau mỗi lần nạp in bảng đối soát số dòng `ops` ↔ `dwh` (README mục 6.1).
+- Ghi chú hiện thực (Sprint 2, `src/etl/load_dwh.py`): dim_date vẫn sinh sẵn nhưng load_dwh thêm ngày còn thiếu trước khi nạp fact (TD-15); fact nạp theo lô ngày (mỗi ngày đo / ngày phát hiện một câu lệnh); measured_at lấy theo đồng hồ PostgreSQL (TD-16), dq_rule.updated_at do trigger giữ (TD-21); sau mỗi lần nạp in bảng đối soát số dòng `ops` ↔ `dwh` (README mục 6.1).
 
 ## 6. Quy tắc chất lượng dữ liệu (nội dung `dq_rule` / `dim_rule`)
 
@@ -296,7 +296,7 @@ Chọn **lược đồ hình sao (star)**, không chọn bông tuyết (snowflak
 **Ghi chú hiện thực (Sprint 2, `src/etl/match.py`):**
 - FUZZY chỉ so giữa hồ sơ đại diện (nạp sớm nhất) của hai số khác nhau; các hồ sơ cùng số đã nối với đại diện bằng cặp EXACT_PHONE (TD-18).
 - "Cặp ứng viên" in ra khi chạy đếm theo cách này: mẫu 8.000 dòng 6.911 cặp, tệp đầy đủ 483.124 cặp. Số 11.858 ở bước 2 là số đo của BT1, đếm mọi cặp hồ sơ trong cùng khối, kể cả 1.501 cặp cùng số. Hai số đo hai thứ khác nhau; không sửa số của BT1.
-- Kết quả trên tệp đầy đủ: EXACT_PHONE 11.625, FUZZY 12. Thời gian: mẫu 0,7 s, tệp đầy đủ 7,4 s, gồm cả nạp kho (NFR-01 phần 2).
+- Kết quả trên tệp đầy đủ: EXACT_PHONE 11.625, FUZZY 12. Thời gian trên môi trường thử: mẫu 0,7 s, tệp đầy đủ khoảng 7 s, gồm cả nạp kho (NFR-01 phần 2).
 
 ## 8. Câu hỏi phân tích và mức chi tiết báo cáo
 

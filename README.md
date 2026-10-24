@@ -35,7 +35,7 @@ Mekong Mobile chưa có CRM. Dữ liệu khách hàng rải rác ở Excel từn
 |---|---|---|
 | Python | **3.11 trở lên** | pandas 3 không chạy trên 3.10 trở xuống; máy phát triển dùng 3.11 (Homebrew) |
 | Thư viện | `requirements.txt` | pandas, openpyxl, rapidfuzz, SQLAlchemy, psycopg2-binary, python-dotenv, PyYAML, pytest; Streamlit, Plotly (dashboard, buổi 10) |
-| CSDL | **PostgreSQL 14 trở lên** (đã chạy trên 14 và 16) | Cần CSDL `smartcrm` và một tài khoản có quyền tạo schema trong CSDL đó. Luồng chính tự tạo schema `ops`, `dwh` (DDL chạy lại an toàn). Kiểm thử tích hợp dùng CSDL riêng `smartcrm_test`. |
+| CSDL | **PostgreSQL 14 trở lên**, đang chạy (macOS: `brew services start postgresql@14`). Sprint 1 đã chạy trên 14 (MacBook) và 16; Sprint 2 mới chạy trên 16 (môi trường thử) | Cần CSDL `smartcrm` và một tài khoản có quyền tạo schema trong CSDL đó. Luồng chính tự tạo schema `ops`, `dwh` (DDL chạy lại an toàn). Kiểm thử tích hợp dùng CSDL riêng `smartcrm_test`. |
 | Biến môi trường | `.env` (chép từ `.env.example`) | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`; `DASH_DB_USER` để trống thì dashboard dùng `DB_USER` ở chế độ chỉ đọc (TD-19). `.env` **không commit** (NFR-07). |
 | Dữ liệu | `data/raw/customers_raw.csv` | Lấy trong bộ "Dataset Smart CRM" trên LMS. **Không commit** vì có dữ liệu cá nhân. |
 | Cổng | 8501 còn trống | Dashboard Streamlit; đổi bằng `--server.port`. |
@@ -45,7 +45,7 @@ Mekong Mobile chưa có CRM. Dữ liệu khách hàng rải rác ở Excel từn
 
 ## 3. Các bước dựng hệ thống – mỗi bước một lệnh
 
-Đã thử trên một thư mục clone mới, làm đúng từng bước dưới đây (README mục 6). Lệnh viết cho macOS/Linux; Windows ghi chú bên cạnh.
+Các bước dưới đây đã được thử trên một bản clone mới ở môi trường thử (Linux) ngày 24/10/2026, nhật ký ở `docs/sprint2/thu-clone-moi.txt`. Lệnh viết cho macOS/Linux; Windows ghi chú bên cạnh. Trước bước 1, PostgreSQL phải đang chạy (README mục 2).
 
 | # | Việc | Lệnh |
 |---|---|---|
@@ -54,11 +54,11 @@ Mekong Mobile chưa có CRM. Dữ liệu khách hàng rải rác ở Excel từn
 | 3 | Tạo môi trường ảo | `python3.11 -m venv .venv` |
 | 4 | Kích hoạt môi trường ảo | `source .venv/bin/activate` (Windows: `.venv\Scripts\activate`) |
 | 5 | Cài thư viện | `pip install -r requirements.txt` |
-| 6 | Tạo tệp cấu hình kết nối, rồi mở `.env` điền `DB_USER`, `DB_PASSWORD` | `cp .env.example .env` |
-| 7 | Tạo CSDL rỗng (một lần; báo "already exists" là bình thường; không có lệnh `createdb` thì mở psql và gõ `CREATE DATABASE smartcrm;`) | `createdb smartcrm` |
+| 6 | Tạo tệp cấu hình kết nối, rồi mở `.env` điền `DB_USER`, `DB_PASSWORD` (PostgreSQL cài bằng Homebrew: `DB_USER` là tên tài khoản macOS, `DB_PASSWORD` để trống) | `cp .env.example .env` |
+| 7 | Tạo CSDL rỗng (một lần; báo "already exists" là bình thường; không có lệnh `createdb` thì dùng `psql -d postgres -c 'CREATE DATABASE smartcrm;'`) | `createdb smartcrm` |
 | 8 | Chép dữ liệu nguồn vào `data/raw/` | `cp <thư mục Dataset>/customers_raw.csv data/raw/` |
 | 9 | **Chạy luồng chính end-to-end:** UC1 nạp – chuẩn hóa – đo – nạp kho, rồi UC3 phát hiện cặp – nạp kho | `python -m src.pipeline --tep data/raw/customers_raw.csv` |
-| 10 | Mở dashboard K1 – K3, rồi vào http://localhost:8501 | `streamlit run dashboard/report.py` |
+| 10 | Mở dashboard K1 – K3, rồi mở trình duyệt vào http://localhost:8501. Lệnh giữ cửa sổ Terminal (Ctrl+C để dừng); bước 11 – 12 làm ở một tab Terminal mới: `cd` vào thư mục repo rồi `source .venv/bin/activate` | `streamlit run dashboard/report.py` |
 | 11 | Tạo CSDL riêng cho kiểm thử (một lần) | `createdb smartcrm_test` |
 | 12 | Chạy kiểm thử – màn hình in số test pass | `python -m pytest -q` |
 
@@ -69,9 +69,9 @@ Mekong Mobile chưa có CRM. Dữ liệu khách hàng rải rác ở Excel từn
 - `[5/5] match`: EXACT_PHONE 11.625 · FUZZY 12.
 - Đối soát staging ↔ kho: 6 dòng, tất cả ✔.
 
-**Bước 12:** làm đúng 12 bước trên một bản clone mới, kết quả là `78 passed, 1 skipped`. Test bị bỏ qua là test hồi quy trên mẫu 8.000 dòng: nó cần tệp `data/processed/mau_cum_8000.csv`, sinh bằng lệnh ở mục "Đo NFR-01" bên dưới. Sinh mẫu xong, chạy lại thì ra `79 passed`.
+**Bước 12:** làm đúng 12 bước trên một bản clone mới, kết quả là `93 passed, 1 skipped`. Test bị bỏ qua là test hồi quy trên mẫu 8.000 dòng: nó cần tệp `data/processed/mau_cum_8000.csv`, sinh bằng lệnh ở mục "Đo NFR-01" bên dưới. Sinh mẫu xong, chạy lại thì ra `94 passed`.
 
-Thiếu CSDL `smartcrm_test` thì 8 test tích hợp cũng tự bỏ qua (`skipped`), không báo lỗi.
+Thiếu CSDL `smartcrm_test` thì 9 test tích hợp cũng tự bỏ qua (`skipped`), không báo lỗi.
 
 **Phép thử nạp lại** (nạp lần hai không nhân đôi dòng): `python -m src.etl.load_dwh`, chạy bao nhiêu lần cũng in `+0` ở mọi bảng và đối soát vẫn khớp.
 
@@ -101,7 +101,8 @@ src/doc_kho.py        truy vấn chỉ đọc kho dwh và quy tắc hiển thị
 src/db.py             mũi tên ② ↔ ③: SQLAlchemy + psycopg2, kết nối đọc từ .env, giao dịch
 src/config.py         đọc configs/config.yaml (người dùng, vai trò, ngưỡng – không có bí mật)
 sql/                  ③ LƯU TRỮ  001_ops_schema.sql (6 bảng) ✔ · 002_dwh_schema.sql (5 bảng + 2 view) ✔
-tests/                79 test (pytest): 69 unit test, 2 test hồi quy cần dữ liệu, 8 test tích hợp cần PostgreSQL
+                                 003_dq_rule_updated_at.sql (trigger giữ updated_at của quy tắc, TD-21) ✔
+tests/                94 test (pytest): 83 unit test, 2 test hồi quy cần dữ liệu, 9 test tích hợp cần PostgreSQL
                       (fixture CSDL kiểm thử ở conftest.py)
 docs/                 srs.md, data-requirements.md, thay-doi-thiet-ke.md, ra-soat-bt1.md, ai-disclosure.md,
                       5 tệp .drawio + export/*.png, sprint1/, sprint2/ (ảnh kết quả chạy, báo cáo mẫu)
@@ -160,7 +161,7 @@ Luồng lấy từ đặc tả UC1 «include» UC7 và UC3 của BT1 (Bảng 3.1
 | 3 | Đo 6 quy tắc TRƯỚC/SAU làm sạch | `dq_evaluate.py` | chỉ số mức độ sạch 87,20 → 94,76 (Tốt) |
 | 4 | Nạp kho – dimension trước, fact sau (hết giao dịch 1) | `load_dwh.py` | `dim_batch` +1 · `dim_rule` +6 · `fact_dq_check` +12 |
 | 5 | Phát hiện cặp nghi trùng, nạp kho, đối soát (giao dịch 2) | `match.py`, `load_dwh.py` | 62.904 hồ sơ có số hợp lệ · 483.124 cặp ứng viên · EXACT_PHONE 11.625 · FUZZY 12 → `fact_dup_pair` +11.637; đối soát 6/6 ✔ |
-| 6 | Xem dashboard K1 – K3 | `dashboard/report.py` | 3 biểu đồ, mỗi biểu đồ một câu hỏi phân tích (Q2, Q3, Q4 – Q5) |
+| 6 | Xem dashboard K1 – K3 | `dashboard/report.py` | 4 biểu đồ (K2 có hai, như wireframe), mỗi biểu đồ gắn một câu hỏi phân tích (Q2, Q3, Q5); thẻ chỉ số K3 trả lời Q4 |
 
 **Đối soát staging (`ops`) ↔ kho (`dwh`)** – in ở cuối bước 5 và khi chạy `python -m src.etl.load_dwh`:
 
@@ -183,21 +184,21 @@ Fact không mất dòng nào khi nối dimension: `fact_dq_check` tìm phiên b�
 | 2 | Luồng chính chạy end-to-end, không lỗi treo | ✔ | mục 3 bước 9, mã thoát 0; `docs/sprint2/ket-qua-toan-luong.png` |
 | 3 | Chạy trên dữ liệu mẫu thật | ✔ | `customers_raw.csv` (67.037 dòng) và mẫu `mau_cum_8000.csv` |
 | 4 | Ảnh kết quả toàn luồng trong `docs/` | ✔ | `docs/sprint2/ket-qua-toan-luong.png` và 8 ảnh khác, danh sách ở `docs/sprint2/README.md` (ảnh của môi trường thử – em thay bằng ảnh chụp trên MacBook) |
-| 5 | ≥ 5 unit test pass, lệnh test hiện số test | ✔ | `python -m pytest -q` → `79 passed` (bản clone mới chưa sinh mẫu: `78 passed, 1 skipped`); 28 test mới cho `match.py`, `load_dwh.py`, `doc_kho.py` và luồng UC1 → UC3 |
-| 6 | Có test cho trường hợp biên hoặc luồng ngoại lệ | ✔ | `test_diem_bang_dung_nguong_van_tao_cap_fuzzy`, `test_khoang_diem_k3_bien_thuoc_khoang_tren`, `test_cap_da_co_hoac_da_giu_rieng_khong_de_xuat_lai`, `test_scd2_cau_hinh_doi_ma_thoi_diem_khong_tien_len_bi_tu_choi`, `test_uc3_loi_thi_dot_nap_van_con_va_chi_lenh_chay_lai` |
+| 5 | ≥ 5 unit test pass, lệnh test hiện số test | ✔ | `python -m pytest -q` → `94 passed` (bản clone mới chưa sinh mẫu: `93 passed, 1 skipped`); 43 test mới cho `match.py`, `load_dwh.py`, `doc_kho.py` và luồng UC1 → UC3 |
+| 6 | Có test cho trường hợp biên hoặc luồng ngoại lệ | ✔ | `test_diem_bang_dung_nguong_van_tao_cap_fuzzy`, `test_khoang_diem_k3_bien_thuoc_khoang_tren`, `test_cap_da_co_hoac_da_giu_rieng_khong_de_xuat_lai`, `test_scd2_cau_hinh_doi_ma_thoi_diem_khong_tien_len_bi_tu_choi`, `test_uc3_loi_thi_dot_nap_van_con_va_chi_lenh_chay_lai`, `test_duong_nguong_k3_dung_cho_khi_doi_nguong`, `test_ly_do_rong_dung_nguyen_nhan`, `test_sua_tay_quy_tac_khong_ghi_updated_at_van_nap_duoc` |
 | 7 | Ba trạng thái đang tải · rỗng · lỗi | ✔ | `dashboard/report.py`; ảnh `dashboard-rong.png`, `dashboard-loi.png` |
 | 8 | README mục 3 đủ các bước, mỗi bước một lệnh | ✔ | mục 3 |
-| 9 | Đã thử clone vào thư mục mới và chạy đúng README | ✔ | thử ngày 24/10/2026 trên môi trường thử: CSDL mới, làm đúng 12 bước mục 3; nhật ký `docs/sprint2/thu-clone-moi.txt`. Phát hiện bước 12 ra `78 passed, 1 skipped` chứ không phải `79 passed` → đã sửa README |
+| 9 | Đã thử clone vào thư mục mới và chạy đúng README | ✔ môi trường thử | 24/10/2026: CSDL mới, làm đúng 12 bước mục 3; clone từ bản sao cục bộ vì commit chưa đẩy lên GitHub; nhật ký `docs/sprint2/thu-clone-moi.txt`. Lần thử đầu phát hiện bước 12 ghi sai kết quả mong đợi (ghi `passed` hết, thực tế có 1 test `skipped`) → đã sửa README. Em thử lại trên MacBook, clone từ GitHub (mục 6.3) |
 | 10 | Commit theo quy ước, tổng số commit ≥ 8 | ✔ | `git log --oneline` |
 
 **Yêu cầu riêng của track DA:**
 
 | Yêu cầu | Cách làm | Kiểm chứng |
 |---|---|---|
-| Nạp dimension bằng khóa nghiệp vụ, rồi nạp fact theo lô | `dim_batch` theo `batch_id`, `dim_rule` theo `rule_code` (SCD loại 2), `dim_date` theo `date_key`; fact theo lô = đợt nạp × lần đo, khóa `result_id`, `pair_id` | `src/etl/load_dwh.py` |
+| Nạp dimension bằng khóa nghiệp vụ, rồi nạp fact theo lô ngày | `dim_batch` theo `batch_id`, `dim_rule` theo `rule_code` (SCD loại 2), `dim_date` theo `date_key`; fact nạp sau, mỗi ngày đo / ngày phát hiện một lô (`_nap_theo_lo_ngay`), khóa `result_id`, `pair_id` | `src/etl/load_dwh.py` |
 | Đếm dòng staging và fact, giải thích chênh lệch | bảng đối soát ở mục 6.1 | in ra mỗi lần chạy |
-| ≥ 2 biểu đồ, mỗi biểu đồ một câu hỏi phân tích | K1 – Q2, K2 – Q3, K3 – Q4/Q5 (`docs/data-requirements.md` mục 8) | ảnh `dashboard-k1.png` … `k3.png` |
-| Mốc tham chiếu, dòng ghi nguồn và thời điểm dữ liệu | K1: đường 90 (Tốt) và 75 (Kém); K2: vạch ngưỡng đạt từng quy tắc; K3: ngưỡng 85. Dưới mỗi biểu đồ: bảng/view nguồn, thời điểm lần đo mới nhất, bộ đệm 60 giây | ảnh dashboard |
+| ≥ 2 biểu đồ, mỗi biểu đồ một câu hỏi phân tích | K1 – Q2; K2 (tỉ lệ đạt, điểm bị mất) – Q3; K3 – Q5, thẻ K3 – Q4 (`docs/data-requirements.md` mục 8) | ảnh `dashboard-k1.png` … `k3.png` |
+| Mốc tham chiếu, dòng ghi nguồn và thời điểm dữ liệu | K1: đường 90 (Tốt) và 75 (Kém); K2: vạch ngưỡng đạt từng quy tắc và đường 10 điểm (tổng điểm được mất tối đa để còn Tốt); K3: ngưỡng tạo cặp FUZZY 85. Dưới mỗi biểu đồ: bảng/view nguồn, thời điểm lần đo mới nhất, bộ đệm 60 giây | ảnh dashboard |
 | Nạp lần hai không nhân đôi dòng | mọi INSERT có `ON CONFLICT` / `NOT EXISTS` theo khóa nghiệp vụ | `python -m src.etl.load_dwh` in `+0`; `test_nap_kho_lan_hai_khong_nhan_doi_dong` |
 | Bộ lọc rỗng hiện câu giải thích | câu nêu đơn vị, khoảng ngày, QT-14 và việc nên làm | `test_bo_loc_rong_noi_ro_vi_sao_va_nen_lam_gi`; ảnh `dashboard-rong.png` |
 
@@ -207,13 +208,13 @@ Fact không mất dòng nào khi nối dimension: `fact_dq_check` tìm phiên b�
 |---|---|---|---|---|
 | Linux, Python 3.11, PostgreSQL 16 (môi trường thử, 24/10/2026) – bản clone mới | 0,7 s | 1,2 s | 2,7 s | Đạt |
 
-Trên cả tệp 67.037 dòng: UC3 7,4 s. Ảnh: `docs/sprint2/ket-qua-nfr01.png`.
+Trên cả tệp 67.037 dòng (môi trường thử): UC3 7,4 s. Ảnh: `docs/sprint2/ket-qua-nfr01.png`.
 
-**NFR-06** – mỗi khung dashboard tải ≤ 5 giây với ≤ 24 đợt nạp. Đo từ lúc mở trang tới khi đủ 3 biểu đồ K1 – K3, 3 lần, lấy giá trị lớn nhất: 3,8 s với 1 đợt; 3,7 s với 24 đợt mẫu 8.000 dòng (nạp vào một CSDL riêng để đo). Đạt.
+**NFR-06** – mỗi khung dashboard tải ≤ 5 giây với ≤ 24 đợt nạp. Đo trên môi trường thử, từ lúc mở trang tới khi đủ 3 biểu đồ K1 – K3, 3 lần, lấy giá trị lớn nhất: 3,8 s với 1 đợt; 3,7 s với 24 đợt mẫu 8.000 dòng (nạp vào một CSDL riêng để đo). Đạt.
 
 ### 6.3 Còn lại
 
-- [ ] Em chạy lại trên MacBook: 12 bước mục 3, đo NFR-01 phần 2 ba lần, thay ảnh `docs/sprint2/` bằng ảnh chụp màn hình của em, đánh dấu các ô kiểm chứng ở `docs/ai-disclosure.md`.
+- [ ] Em chạy lại trên MacBook: đẩy repo lên GitHub, clone vào thư mục mới, làm đúng 12 bước mục 3, đo NFR-01 phần 2 ba lần, thay ảnh `docs/sprint2/` bằng ảnh chụp màn hình của em, đánh dấu các ô kiểm chứng ở `docs/ai-disclosure.md`.
 - [ ] Peer review (buổi 10): bạn cùng lớp clone repo, chạy theo README và mở issue 3 dòng (mẫu `.github/ISSUE_TEMPLATE/peer-review.md`); em sửa README theo issue.
 - [ ] **NFR-03:** em tự gán nhãn 300 cặp, tính precision/recall ở ngưỡng 85 (chuyển sang Sprint 3 – TD-14).
 - [ ] NFR-02: tập 200 dòng gán nhãn tay đủ 5 dạng số.
@@ -281,7 +282,7 @@ Trên cả tệp 67.037 dòng: UC3 7,4 s. Ảnh: `docs/sprint2/ket-qua-nfr01.png
 |---|---|---|
 | Claude (Anthropic) – BT1 | Rà soát hồ sơ Buổi 4; script profiling; bản nháp mục 3, 4, 5; tệp `.drawio`, Markdown | Chạy lại script profiling với seed 42 và đối chiếu từng con số ở mục 4.1, 4.5; mở từng tệp `.drawio` để đối chiếu; tự giải thích được GRAIN, SCD loại 2 |
 | Claude (Anthropic) – buổi 8 | Rút gọn PDF BT1, nhật ký TD-01 – TD-12; bản nháp DDL, `extract.py`, `transform.py`, `dq_evaluate.py`, `pipeline.py`, test, README | Theo từng phần, có ô đánh dấu: `docs/ai-disclosure.md` |
-| Claude (Anthropic) – buổi 10 | Bản nháp `sql/002_dwh_schema.sql`, `match.py`, `load_dwh.py`, `doc_kho.py`, `dashboard/report.py`, 28 test mới, README mục 3 và 6, TD-14 – TD-20; ảnh `docs/sprint2/` chụp trên môi trường thử | Theo từng phần, có ô đánh dấu: `docs/ai-disclosure.md` mục Sprint 2 |
+| Claude (Anthropic) – buổi 10 | Bản nháp `sql/002_dwh_schema.sql`, `match.py`, `load_dwh.py`, `doc_kho.py`, `dashboard/report.py`, `sql/003`, 43 test mới, README mục 3 và 6, TD-14 – TD-21; ảnh `docs/sprint2/` chụp trên môi trường thử | Theo từng phần, có ô đánh dấu: `docs/ai-disclosure.md` mục Sprint 2 |
 
 ## Tài liệu
 
@@ -289,7 +290,7 @@ Trên cả tệp 67.037 dòng: UC3 7,4 s. Ảnh: `docs/sprint2/ket-qua-nfr01.png
 |---|---|
 | `docs/srs.md` | SRS 1.2: User Story, tiêu chí chấp nhận, đặc tả UC5, FR, NFR, quy tắc, truy vết, lịch sử thay đổi |
 | `docs/data-requirements.md` | Nguồn dữ liệu, số đo profiling, từ điển dữ liệu 11 bảng, quy tắc DQ, thuật toán so khớp |
-| `docs/thay-doi-thiet-ke.md` | Nhật ký thay đổi thiết kế TD-01 – TD-20 (đọc lại khi chấm BT2, BT3) |
+| `docs/thay-doi-thiet-ke.md` | Nhật ký thay đổi thiết kế TD-01 – TD-21 (đọc lại khi chấm BT2, BT3) |
 | `docs/ra-soat-bt1.md` | Tự kiểm BT1, sáu phép kiểm nhất quán, năm lỗi ERD |
 | `docs/ai-disclosure.md` | Khai báo AI theo từng phần |
 | `docs/*.drawio`, `docs/export/` | Use Case, kiến trúc, data flow, ERD (ops + star schema), wireframe K1 – K4 |

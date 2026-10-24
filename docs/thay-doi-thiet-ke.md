@@ -276,7 +276,7 @@ Buổi 10 yêu cầu track DA nạp kho dữ liệu và dựng dashboard ≥ 2 b
   - `--khong-phat-hien-cap` chỉ chạy UC1.
 - **Lý do:**
   - UC3 là use case riêng, không phải phần «include» của UC1.
-  - Gói chung một giao dịch thì một lỗi lúc so khớp làm mất cả đợt đã chuẩn hóa và đo xong. Trên tệp đầy đủ, UC1 mất 9,1 s và UC3 mất 7,4 s.
+  - Gói chung một giao dịch thì một lỗi lúc so khớp làm mất cả đợt đã chuẩn hóa và đo xong. Trên tệp đầy đủ (môi trường thử), UC1 mất khoảng 9 giây và UC3 khoảng 7 giây.
 - **Ảnh hưởng:**
   - `test_uc3_loi_thi_dot_nap_van_con_va_chi_lenh_chay_lai` kiểm luồng ngoại lệ này.
   - TD-09 vẫn đúng cho UC1.
@@ -311,7 +311,7 @@ Buổi 10 yêu cầu track DA nạp kho dữ liệu và dựng dashboard ≥ 2 b
 - **Quyết định – giữ đúng wireframe:**
   - Ba tab K1 · K2 · K3.
   - K1: năm thẻ chỉ số, đường chỉ số mức độ sạch theo đợt nạp (SAU nét liền, TRƯỚC nét đứt), mốc 90 · Tốt và 75 · Kém, bảng các đợt nạp.
-  - K2: thanh tỉ lệ đạt theo quy tắc, có vạch ngưỡng đạt, thanh chưa đạt tô khác màu; bảng chi tiết có điểm bị mất.
+  - K2: hai biểu đồ như wireframe – tỉ lệ đạt theo quy tắc có vạch ngưỡng đạt (thanh chưa đạt tô đỏ), và điểm bị mất từng quy tắc; bảng chi tiết.
   - K3: năm thẻ (tổng, Chờ xử lý, Gộp, Giữ riêng, tỉ lệ đã xử lý); phân bố cặp theo khoảng điểm < 85 · 85 – <90 · 90 – <95 · ≥ 95.
   - Dòng ghi nguồn dưới mỗi biểu đồ.
   - Bộ lọc đơn vị nguồn theo QT-14.
@@ -319,10 +319,25 @@ Buổi 10 yêu cầu track DA nạp kho dữ liệu và dựng dashboard ≥ 2 b
 
   | Khung | Wireframe | Sprint 2 | Lý do |
   |---|---|---|---|
-  | K2 | Hai biểu đồ: tỉ lệ đạt và điểm bị mất | Một biểu đồ tỉ lệ đạt; điểm bị mất ghi trên nhãn thanh, trong câu "Đọc biểu đồ" và cột của bảng | Biểu đồ thứ ba trở đi được phép cắt (slide buổi 10); con số vẫn hiện đủ |
+  | K2 | Biểu đồ điểm bị mất không có mốc tham chiếu | Thêm đường 10 điểm: tổng điểm được mất tối đa để đợt còn mức Tốt (≥ 90, QL7-06) | Slide buổi 10 yêu cầu mỗi biểu đồ có mốc tham chiếu |
   | K2 | Bộ lọc lần đo, loại quy tắc; ghi chú "Hiệu quả chuẩn hóa" (Q6) | Lần đo mới nhất của đợt; không lọc loại quy tắc; số liệu Q6 nằm trong báo cáo mỗi lần chạy (`reports/`) | Mỗi đợt hiện chỉ có một lần đo (đo lại khi đổi quy tắc là UC6 – Sprint 3) |
-  | K3 | Số cặp theo trạng thái theo đợt; tỉ lệ gộp theo khoảng điểm; số cặp quyết định theo ngày | Một biểu đồ: khoảng điểm × trạng thái, mốc ngưỡng 85 | Tỉ lệ gộp và ngày quyết định cần quyết định của UC5 (Sprint 3); hiện mọi cặp đang Chờ xử lý |
+  | K3 | Số cặp theo trạng thái theo đợt; tỉ lệ gộp theo khoảng điểm; số cặp quyết định theo ngày | Một biểu đồ: số cặp theo khoảng điểm, tách EXACT_PHONE / FUZZY, thang log, mốc ngưỡng 85; trạng thái ở 5 thẻ (Q4) | Tỉ lệ gộp và ngày quyết định cần quyết định của UC5 (Sprint 3). Hiện mọi cặp đang Chờ xử lý nên tách theo trạng thái không cho thêm thông tin; tách theo loại so khớp cho thấy ngưỡng chỉ áp cho FUZZY. Thang log để 12 cặp sát ngưỡng vẫn thấy được cạnh 11.620 cặp ≥ 95 |
   | Chung | Người xem là người đăng nhập | Chọn người xem ở thanh bên (hoặc `?nguoi_xem=` trên địa chỉ trang) để áp QT-14 | Đăng nhập/SSO ngoài phạm vi (BT1 mục 1); đây là mô phỏng vai trò, không phải xác thực |
 
 - **Ảnh hưởng:** Sprint 3 bổ sung phần K3 còn thiếu sau khi có `merge_service.py`; README mục 6.3.
 
+### TD-21  `dq_rule.updated_at` tự cập nhật khi quy tắc bị sửa (trigger)
+
+- **Nguồn:** Rà soát độc lập trước khi nộp. Sửa ngưỡng DQ-06 bằng một câu UPDATE không ghi `updated_at` (như sửa tay bằng psql) thì lần nạp kho sau dừng với lỗi "updated_at … không sau valid_from". Mọi lần chạy luồng chính sau đó ROLLBACK cả UC1.
+- **Quyết định:** Thêm migration `sql/003_dq_rule_updated_at.sql`.
+  - Trigger BEFORE UPDATE trên `ops.dq_rule`: câu UPDATE không tự ghi `updated_at` thì trigger đặt `updated_at = clock_timestamp()`.
+  - Giữ lỗi trong `quyet_dinh_scd2` cho trường hợp `updated_at` bị ghi lùi về trước.
+  - Không sửa `sql/001_ops_schema.sql` đã nộp ở Sprint 1.
+- **Lý do:**
+  - `valid_from` của phiên bản mới phải là thời điểm cấu hình đổi, tức là trước mọi lần đo dùng cấu hình mới.
+  - Nếu lấy thời điểm nạp kho làm `valid_from`, lần đo ngay sau khi sửa sẽ bị gắn nhầm phiên bản cũ: trong UC1, việc đo chạy trước bước nạp kho, cùng một giao dịch.
+  - Trigger ghi đúng thời điểm sửa, cùng đồng hồ với `measured_at` (TD-16). UC6 (Sprint 3) vẫn ghi `updated_at` như thiết kế.
+- **Ảnh hưởng:**
+  - Không đổi bảng hay cột.
+  - `CREATE OR REPLACE TRIGGER` cần PostgreSQL 14 trở lên, đúng yêu cầu ở README mục 2.
+  - Test `test_sua_tay_quy_tac_khong_ghi_updated_at_van_nap_duoc` (không có trigger thì test này lỗi); test DDL kiểm có trigger.
