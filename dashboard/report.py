@@ -163,7 +163,7 @@ with k2:
                     textposition='inside', insidetextanchor='start')
         fig.add_scatter(y=nhan_qt, x=q['pass_threshold'].astype(float), mode='markers', name='Ngưỡng đạt của quy tắc',
                         marker=dict(symbol='line-ns', size=26, line=dict(width=3, color='black')))
-        fig.update_layout(xaxis=dict(title='Tỉ lệ đạt (%) – vạch đen là ngưỡng đạt', range=[0, 101]), height=380,
+        fig.update_layout(xaxis=dict(title='Tỉ lệ đạt (%) – vạch đen là ngưỡng đạt', range=[0, 102], dtick=20), height=380,
                           margin=dict(t=20, b=20), legend=dict(orientation='h', y=1.08))
         st.plotly_chart(fig, use_container_width=True)
         top = q.iloc[-1]
