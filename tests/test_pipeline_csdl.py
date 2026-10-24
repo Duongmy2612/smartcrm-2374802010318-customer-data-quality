@@ -1,34 +1,16 @@
-"""Kiểm thử tích hợp UC1 với PostgreSQL thật: AC1.4, ROLLBACK (TD-09), NFR-04, DDL chạy lại được.
+"""Kiểm thử tích hợp luồng chính (UC1 → UC3 → kho) với PostgreSQL thật: AC1.4, ROLLBACK (TD-09), NFR-04,
+DDL chạy lại được.
 
-Dùng một CSDL RIÊNG cho kiểm thử (mặc định smartcrm_test, đổi bằng biến DB_NAME_TEST) – mỗi test xóa và tạo lại
-schema ops trong CSDL đó, KHÔNG đụng tới CSDL smartcrm đang dùng. Tạo một lần: `createdb smartcrm_test`.
+Dùng một CSDL RIÊNG cho kiểm thử (fixture csdl_test ở tests/conftest.py; mặc định smartcrm_test, đổi bằng biến
+DB_NAME_TEST) – mỗi test xóa và tạo lại schema ops, dwh trong CSDL đó, KHÔNG đụng tới CSDL smartcrm đang dùng.
+Tạo một lần: `createdb smartcrm_test`.
 Không kết nối được (chưa có PostgreSQL, chưa tạo CSDL test, thiếu .env) → các test này tự bỏ qua (skip).
 """
-import os
-
 import pytest
 from sqlalchemy import text
 
 from src import db, pipeline
 from src.etl import transform
-from tests.test_pipeline import TEP
-
-
-@pytest.fixture
-def csdl_test(monkeypatch, tmp_path):
-    from dotenv import load_dotenv
-    load_dotenv(db.GOC / '.env')
-    monkeypatch.setenv('DB_NAME', os.getenv('DB_NAME_TEST', 'smartcrm_test'))
-    try:
-        engine = db.tao_engine()
-        with engine.begin() as conn:
-            conn.exec_driver_sql('DROP SCHEMA IF EXISTS ops CASCADE')
-    except Exception as e:                      # noqa: BLE001
-        pytest.skip(f'không kết nối được CSDL kiểm thử: {type(e).__name__}')
-    p = tmp_path / 'dot.csv'
-    p.write_text(TEP, encoding='utf-8')
-    yield engine, p, tmp_path
-    engine.dispose()
 
 
 def _chay(p, tmp_path, **kw):
@@ -50,6 +32,10 @@ def test_nap_tep_ghi_dung_bang(csdl_test):
     assert _dem(engine, "SELECT count(*) FROM ops.stg_customer WHERE error_code = 'MISSING_PHONE'") == 1
     assert _dem(engine, 'SELECT count(*) FROM ops.dq_result') == 12          # 6 quy tắc × 2 giai đoạn
     assert _dem(engine, "SELECT full_name FROM ops.customer_clean WHERE phone = '0901234567'") == 'Nguyễn Văn An'
+    # UC3: hồ sơ lặp (dòng 2) ghép với hồ sơ nạp sớm nhất cùng số (dòng 1) → 1 cặp EXACT_PHONE, đã nạp vào kho
+    assert _dem(engine, "SELECT count(*) FROM ops.dup_candidate WHERE match_type = 'EXACT_PHONE'") == 1
+    assert _dem(engine, 'SELECT count(*) FROM dwh.fact_dup_pair') == 1
+    assert _dem(engine, "SELECT clean_index FROM dwh.v_batch_score WHERE measure_stage = 'SAU'") > 0
 
 
 def test_ac14_nap_lai_bi_tu_choi_roi_xac_nhan(csdl_test):
@@ -76,6 +62,26 @@ def test_loi_giua_chung_thi_rollback_ca_dot(csdl_test, monkeypatch):
         assert co_bang is None or conn.execute(text('SELECT count(*) FROM ops.load_batch')).scalar_one() == 0
 
 
+def test_uc3_loi_thi_dot_nap_van_con_va_chi_lenh_chay_lai(csdl_test, monkeypatch):
+    """TD-17: hai giao dịch. UC3 lỗi → đợt nạp và lần đo của UC1 vẫn còn, không có cặp dở dang; thông báo chỉ
+    đúng lệnh chạy lại riêng UC3, chạy lệnh đó thì kho đủ và đối soát khớp. [luồng ngoại lệ]"""
+    engine, p, tmp = csdl_test
+    from src.etl import match
+    that = match.phat_hien_cap
+
+    def hong(conn, batch_id, nguong):
+        raise RuntimeError('giả lập mất kết nối khi so khớp')
+    monkeypatch.setattr(match, 'phat_hien_cap', hong)
+    with pytest.raises(pipeline.LoiUC3, match='python -m src.etl.match --dot 1'):
+        _chay(p, tmp)
+    assert _dem(engine, 'SELECT count(*) FROM ops.load_batch') == 1
+    assert _dem(engine, 'SELECT count(*) FROM dwh.fact_dq_check') == 12
+    assert _dem(engine, 'SELECT count(*) FROM ops.dup_candidate') == 0
+    monkeypatch.setattr(match, 'phat_hien_cap', that)
+    assert match.main(['--dot', '1']) == 0
+    assert _dem(engine, 'SELECT count(*) FROM dwh.fact_dup_pair') == 1
+
+
 def test_nfr04_so_dang_hieu_luc_dung_mau_va_khong_trung(csdl_test):
     engine, p, tmp = csdl_test
     _chay(p, tmp)
@@ -89,4 +95,8 @@ def test_ddl_chay_lai_khong_loi(csdl_test):
     with engine.begin() as conn:
         db.khoi_tao_csdl(conn)
         db.khoi_tao_csdl(conn)
-        assert conn.execute(text("SELECT count(*) FROM information_schema.tables WHERE table_schema = 'ops'")).scalar_one() == 6
+        dem = "SELECT count(*) FROM information_schema.tables WHERE table_schema = :s AND table_type = :t"
+        assert conn.execute(text(dem), {'s': 'ops', 't': 'BASE TABLE'}).scalar_one() == 6
+        assert conn.execute(text(dem), {'s': 'dwh', 't': 'BASE TABLE'}).scalar_one() == 5
+        assert conn.execute(text(dem), {'s': 'dwh', 't': 'VIEW'}).scalar_one() == 2
+        assert conn.execute(text('SELECT count(*) FROM dwh.dim_date')).scalar_one() == 1461   # 2024 – 2027

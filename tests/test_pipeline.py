@@ -22,6 +22,7 @@ def test_chay_thu_khong_ghi_csdl(tmp_path):
     assert bc['chuan_hoa']['trang_thai'] == {'CLEAN': 2, 'PENDING_DUP': 1, 'ERROR': 1}
     assert (tmp_path / 'ho_so_loi_dot_thu.csv').read_text(encoding='utf-8-sig').count('MISSING_PHONE') == 1
     assert 0 <= bc['chi_so']['TRUOC'] <= bc['chi_so']['SAU'] <= 100
+    assert bc['so_khop']['exact'] == 1 and bc['so_khop']['fuzzy'] == 0   # UC3 chạy thử trong bộ nhớ
 
 
 def test_chi_nhan_vien_marketing_duoc_nap_tep(tmp_path):
