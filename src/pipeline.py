@@ -210,7 +210,7 @@ def chay_uc1(tep, don_vi: str, nguoi_nap: str, nap_lai: bool = False, ghi_csdl: 
 
 
 def _dong_nap_kho(ra: dict) -> str:
-    return ' · '.join(f'{k} +{so(v)}' for k, v in ra.items())
+    return load_dwh.dong_nap_kho(ra, so)
 
 
 def _chay_uc3(bc: dict, df, engine, cau_hinh: dict, in_ra) -> None:
@@ -238,13 +238,21 @@ def _chay_uc3(bc: dict, df, engine, cau_hinh: dict, in_ra) -> None:
         ghi = f"→ ops.dup_candidate +{so(kq['exact'] + kq['fuzzy'])} cặp PENDING"
     bc['thoi_gian']['match'] = time.perf_counter() - t0
     bc['so_khop'] = kq
-    in_ra(f"[5/5] match       {so(kq['ho_so_so_khop'])} hồ sơ có số hợp lệ ({so(kq['so_khac_nhau'])} số khác nhau) · "
+    in_ra(f"[5/5] match       {_pham_vi_so_khop(kq)} ({so(kq['so_khac_nhau'])} số khác nhau) · "
           f"blocking 5 số đầu/cuối: {so(kq['cap_ung_vien'])} cặp ứng viên · ngưỡng {kq['nguong']:g}")
     in_ra(f"      EXACT_PHONE {so(kq['exact'])} · FUZZY {so(kq['fuzzy'])} {ghi}")
     if engine is not None:
         in_ra('      load_dwh    ' + _dong_nap_kho(bc['nap_kho_uc3']))
         in_ra('      Đối soát staging (ops) ↔ kho (dwh):')
         load_dwh.in_doi_soat(bc['doi_soat'], in_ra)
+
+
+def _pham_vi_so_khop(kq: dict) -> str:
+    """Đợt đầu: số hồ sơ đem so = số hồ sơ của đợt. Từ đợt 2: hồ sơ mới được so cùng hồ sơ của các đợt trước."""
+    tong, dot = kq['ho_so_so_khop'], kq.get('ho_so_dot', kq['ho_so_so_khop'])
+    if dot == tong:
+        return f'{so(tong)} hồ sơ có số hợp lệ'
+    return f'{so(dot)} hồ sơ hợp lệ của đợt, so cùng {so(tong)} hồ sơ tính cả các đợt trước'
 
 
 def _tuong_doi(p: pathlib.Path) -> str:
@@ -306,7 +314,7 @@ def ghi_bao_cao(bc: dict, hs: dict, thu_muc: pathlib.Path) -> pathlib.Path:
     if 'so_khop' in bc:
         k = bc['so_khop']
         d += ['## 4. UC3 – phát hiện cặp nghi trùng (FR-04)', '',
-              f"- Hồ sơ có số hợp lệ tham gia so khớp: {so(k['ho_so_so_khop'])} ({so(k['so_khac_nhau'])} số khác nhau); "
+              f"- Hồ sơ tham gia so khớp: {_pham_vi_so_khop(k)} ({so(k['so_khac_nhau'])} số khác nhau); "
               f"cặp ứng viên sau blocking (giữa hồ sơ đại diện của hai số khác nhau): "
               f"{so(k['cap_ung_vien'])}; ngưỡng FUZZY {k['nguong']:g}.",
               f"- Cặp mới: EXACT_PHONE {so(k['exact'])} · FUZZY {so(k['fuzzy'])}.", '']

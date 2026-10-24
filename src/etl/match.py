@@ -174,7 +174,7 @@ def main(argv=None) -> int:
         giay = f"{kq['thoi_gian']:.1f}".replace('.', ',')
         print(f"UC3 đợt {a.dot}: {so(kq['ho_so_so_khop'])} hồ sơ · {so(kq['cap_ung_vien'])} cặp ứng viên · "
               f"EXACT_PHONE +{so(kq['exact'])} · FUZZY +{so(kq['fuzzy'])} · {giay} s")
-        print('load_dwh: ' + ' · '.join(f'{k} +{v}' for k, v in nap.items()))
+        print('load_dwh: ' + load_dwh.dong_nap_kho(nap, so))
         return 0
     except Exception as e:                            # noqa: BLE001
         print(f'LỖI: {type(e).__name__}: {e}', file=sys.stderr)

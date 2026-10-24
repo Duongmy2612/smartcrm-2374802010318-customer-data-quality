@@ -8,11 +8,13 @@ Hợp đồng dữ liệu (chốt ở BT1, docs/data-requirements.md mục 5.2):
        dim_rule  : SCD loại 2 – so ops.dq_rule với phiên bản hiện hành theo rule_code; khác thì đóng phiên bản
                    cũ (valid_to = updated_at) rồi thêm phiên bản mới. Lưu cấu hình mà không đổi gì → không sinh
                    phiên bản.
-    2. Fact sau, theo lô (đợt nạp × lần đo) và theo khóa nghiệp vụ:
+    2. Fact sau, THEO LÔ NGÀY (mỗi ngày đo / ngày phát hiện một câu lệnh, theo thứ tự ngày) và theo khóa
+       nghiệp vụ:
        fact_dq_check : thêm dòng ops.dq_result chưa có (result_id); rule_key = phiên bản có
                        valid_from ≤ measured_at < valid_to.
        fact_dup_pair : thêm cặp mới (pair_id); cặp đã có chỉ cập nhật status, decided_date_key khi đổi.
-    Nạp lần hai không nhân đôi dòng: mọi lệnh INSERT có ON CONFLICT / NOT EXISTS theo khóa nghiệp vụ.
+    Nạp lần hai không nhân đôi dòng: mọi lệnh INSERT có ON CONFLICT / NOT EXISTS theo khóa nghiệp vụ, và chỉ
+    những ngày còn dòng chưa nạp mới thành một lô.
 
 Chạy riêng (ví dụ để kiểm phép thử nạp lại):  python -m src.etl.load_dwh
 """
@@ -103,7 +105,15 @@ LEFT JOIN LATERAL (
        SELECT d.rule_key FROM dwh.dim_rule d
        WHERE  d.rule_code = q.rule_code ORDER BY d.valid_from LIMIT 1) sm ON TRUE
 WHERE  NOT EXISTS (SELECT 1 FROM dwh.fact_dq_check f WHERE f.result_id = r.result_id)
+  AND  r.measured_at::DATE = :ngay                                  -- một lô = một ngày đo
 ORDER  BY r.result_id
+"""
+
+# Các ngày còn dòng chưa nạp → mỗi ngày một lô
+SQL_LO_DQ = """
+SELECT DISTINCT r.measured_at::DATE FROM ops.dq_result r
+WHERE  NOT EXISTS (SELECT 1 FROM dwh.fact_dq_check f WHERE f.result_id = r.result_id)
+ORDER  BY 1
 """
 
 SQL_FACT_CAP = """
@@ -114,12 +124,16 @@ SELECT c.pair_id, b.batch_key, TO_CHAR(c.detected_at, 'YYYYMMDD')::INT,
 FROM   ops.dup_candidate c
 JOIN   ops.stg_customer  s ON s.stg_id = c.stg_id_b
 JOIN   dwh.dim_batch     b ON b.batch_id = s.batch_id
+WHERE  c.detected_at::DATE = :ngay                                  -- một lô = một ngày phát hiện
 ORDER  BY c.pair_id
 ON CONFLICT (pair_id) DO UPDATE
 SET    status = EXCLUDED.status, decided_date_key = EXCLUDED.decided_date_key
 WHERE  dwh.fact_dup_pair.status IS DISTINCT FROM EXCLUDED.status
    OR  dwh.fact_dup_pair.decided_date_key IS DISTINCT FROM EXCLUDED.decided_date_key
 """
+
+# Cặp đã có vẫn có thể đổi trạng thái (UC5) nên xét mọi ngày phát hiện; ngày không có gì đổi cho 0 dòng.
+SQL_LO_CAP = 'SELECT DISTINCT detected_at::DATE FROM ops.dup_candidate ORDER BY 1'
 
 
 def nap_dim_rule(conn) -> dict:
@@ -140,16 +154,32 @@ def nap_dim_rule(conn) -> dict:
     return {'dong_phien_ban': len(dong), 'them_phien_ban': len(them)}
 
 
+def _nap_theo_lo_ngay(conn, sql_lo: str, sql_nap: str) -> tuple[int, int]:
+    """Chạy sql_nap cho từng ngày trong sql_lo, theo thứ tự ngày. Trả về (số dòng, số lô có dòng thêm/cập nhật)."""
+    so_dong = so_lo = 0
+    for (ngay,) in conn.execute(text(sql_lo)).all():
+        n = conn.execute(text(sql_nap), {'ngay': ngay}).rowcount
+        so_dong, so_lo = so_dong + n, so_lo + (n > 0)
+    return so_dong, so_lo
+
+
 def nap_kho(conn) -> dict:
-    """Nạp dimension rồi fact; trả về số dòng thêm/cập nhật theo bảng (lần nạp thứ hai: toàn số 0)."""
+    """Nạp dimension rồi fact theo lô ngày; trả về số dòng thêm/cập nhật theo bảng và số lô ngày đã nạp
+    (lần nạp thứ hai: toàn số 0)."""
     ra = {'dim_date (thêm ngày)': conn.execute(text(SQL_NGAY_THIEU)).rowcount,
           'dim_batch': conn.execute(text(SQL_DIM_BATCH)).rowcount}
     scd = nap_dim_rule(conn)
     ra['dim_rule (phiên bản mới)'] = scd['them_phien_ban']
     ra['dim_rule (đóng phiên bản)'] = scd['dong_phien_ban']
-    ra['fact_dq_check'] = conn.execute(text(SQL_FACT_DQ)).rowcount
-    ra['fact_dup_pair (thêm/cập nhật)'] = conn.execute(text(SQL_FACT_CAP)).rowcount
+    ra['fact_dq_check'], lo_dq = _nap_theo_lo_ngay(conn, SQL_LO_DQ, SQL_FACT_DQ)
+    ra['fact_dup_pair (thêm/cập nhật)'], lo_cap = _nap_theo_lo_ngay(conn, SQL_LO_CAP, SQL_FACT_CAP)
+    ra['lô ngày'] = lo_dq + lo_cap
     return ra
+
+
+def dong_nap_kho(ra: dict, so=str) -> str:
+    """Một dòng in kết quả nạp kho: 'bảng +n' cho số dòng, 'lô ngày n' cho số lô."""
+    return ' · '.join(f'{k} {so(v)}' if k == 'lô ngày' else f'{k} +{so(v)}' for k, v in ra.items())
 
 
 # ------------------------------------------------------------------ đối soát staging ↔ kho
@@ -204,7 +234,7 @@ def main(argv=None) -> int:
             db.khoi_tao_csdl(conn)
             t0 = datetime.now()
             ra = nap_kho(conn)
-            print('load_dwh: ' + ' · '.join(f'{k} +{v}' for k, v in ra.items())
+            print('load_dwh: ' + dong_nap_kho(ra, lambda n: f'{n:,}'.replace(',', '.'))
                   + f' ({(datetime.now() - t0).total_seconds():.1f} s)'.replace('.', ','))
             print('Đối soát staging (ops) ↔ kho (dwh):')
             in_doi_soat(doi_soat(conn))
