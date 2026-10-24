@@ -252,6 +252,7 @@ Chọn **lược đồ hình sao (star)**, không chọn bông tuyết (snowflak
 - dim_batch: thêm các đợt nạp chưa có (theo batch_id); không cập nhật dòng cũ (loại 0). dim_date sinh sẵn một lần.
 - fact_dq_check: thêm các dòng ops.dq_result chưa có (theo result_id); rule_key = phiên bản có valid_from ≤ measured_at < valid_to (valid_to NULL coi như vô hạn).
 - fact_dup_pair: thêm cặp mới; với cặp đã có (theo pair_id) chỉ cập nhật status và decided_date_key khi có quyết định.
+- Ghi chú hiện thực (Sprint 2, `src/etl/load_dwh.py`): dim_date vẫn sinh sẵn nhưng load_dwh thêm ngày còn thiếu trước khi nạp fact (TD-15); measured_at lấy theo đồng hồ PostgreSQL (TD-16); sau mỗi lần nạp in bảng đối soát số dòng `ops` ↔ `dwh` (README mục 6.1).
 
 ## 6. Quy tắc chất lượng dữ liệu (nội dung `dq_rule` / `dim_rule`)
 
@@ -291,6 +292,11 @@ Chọn **lược đồ hình sao (star)**, không chọn bông tuyết (snowflak
 5. **Điểm tương đồng** = 0,6 × độ giống số điện thoại + 0,4 × độ giống họ tên (QL7-03).
 6. **Tạo cặp (QL7-02):** cùng `phone_norm` → `EXACT_PHONE`; nhóm k hồ sơ cùng số tạo k − 1 cặp, mỗi cặp ghép hồ sơ nạp sớm nhất với một hồ sơ còn lại (toàn bộ tệp: 11.625 cặp; mẫu: 1.347 cặp). Khác số và điểm ≥ 85 → `FUZZY`. Cặp đã Giữ riêng không tạo lại (QL7-05).
 7. Ngưỡng 85 là giá trị khởi đầu, chỉnh theo precision/recall trên 300 cặp gán nhãn tay (NFR-03).
+
+**Ghi chú hiện thực (Sprint 2, `src/etl/match.py`):**
+- FUZZY chỉ so giữa hồ sơ đại diện (nạp sớm nhất) của hai số khác nhau; các hồ sơ cùng số đã nối với đại diện bằng cặp EXACT_PHONE (TD-18).
+- "Cặp ứng viên" in ra khi chạy đếm theo cách này: mẫu 8.000 dòng 6.911 cặp, tệp đầy đủ 483.124 cặp. Số 11.858 ở bước 2 là số đo của BT1, đếm mọi cặp hồ sơ trong cùng khối, kể cả 1.501 cặp cùng số. Hai số đo hai thứ khác nhau; không sửa số của BT1.
+- Kết quả trên tệp đầy đủ: EXACT_PHONE 11.625, FUZZY 12. Thời gian: mẫu 0,7 s, tệp đầy đủ 7,4 s, gồm cả nạp kho (NFR-01 phần 2).
 
 ## 8. Câu hỏi phân tích và mức chi tiết báo cáo
 

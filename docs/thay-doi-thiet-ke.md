@@ -215,3 +215,114 @@ Giảng viên cho nộp lại BT1 để chấm lại. Bản 13 trang ở TD-03 v
     - mục 5 ghi rõ mỗi khung nối về UC8 và mọi trường hiển thị là cột của kho hoặc chỉ số tính trong view.
   - **Không đổi** bảng, cột, FR, NFR, quy tắc hay con số nào. Đã đối chiếu tự động mọi con số của bản 9 trang với bản 09/10 và bản 13 trang.
   - Repo chỉ giữ một tệp `BT1_2374802010318_DuongDiemMy.pdf`: bản nộp lại 9 trang.
+
+---
+
+## Trong Sprint 2 (buổi 10, ngày 24/10/2026) – module mở rộng track DA
+
+Buổi 10 yêu cầu track DA nạp kho dữ liệu và dựng dashboard ≥ 2 biểu đồ, luồng chính chạy end-to-end. Các quyết định dưới đây phát sinh khi hiện thực `match.py`, `load_dwh.py`, `sql/002_dwh_schema.sql`, `dashboard/report.py` và khi ghép luồng.
+
+### TD-14  Phạm vi Sprint 2 và phần cắt
+
+- **Nguồn:** Slide buổi 10: "Cắt phạm vi có ghi nhận là quyết định kỹ thuật có trách nhiệm". Được cắt: màn hình thứ tư trở đi, biểu đồ thứ ba trở đi, chức năng ngoài luồng chính. Không được cắt: luồng chính, ba trạng thái, test, README mục 3. TD-04 xếp Sprint 2 gồm `match.py`, `load_dwh.py` và đo NFR-01, NFR-03.
+- **Quyết định:**
+  - **Làm trong Sprint 2:**
+    - `match.py` (FR-04, UC3);
+    - `load_dwh.py` và `sql/002_dwh_schema.sql` (FR-09; 5 bảng, 2 view);
+    - `dashboard/report.py`: khung K1 – K3 (UC8), ba trạng thái, QT-14;
+    - đo NFR-01 phần 2.
+  - **Hoãn sang Sprint 3:**
+    - `merge_service.py` (UC5 – Gộp/Giữ riêng, FR-05, FR-06, FR-11);
+    - `dashboard/app.py` (K4, UC4 – UC6, UC9);
+    - tài khoản chỉ đọc `dash_reader` (TD-19);
+    - phần K2, K3 cần quyết định của UC5 (TD-20);
+    - NFR-02 (200 dòng gán nhãn) và **NFR-03** (300 cặp gán nhãn) – TD-04 xếp NFR-03 vào Sprint 2, nay dời.
+- **Lý do:**
+  - UC5 cần người quyết định từng cặp nên không nằm trong lệnh chạy end-to-end. Luồng tự động (UC1 → UC3 → kho → dashboard) chạy đủ mà không cần UC5.
+  - NFR-03 cần em tự gán nhãn 300 cặp bằng tay; không giao việc gán nhãn cho AI vì đó chính là phép kiểm chứng độc lập của thuật toán.
+  - Dashboard K1 – K3 là phần bắt buộc của track DA; K4 là màn hình tác nghiệp, thuộc UC5.
+- **Ảnh hưởng:**
+  - Mọi cặp trong kho đang ở trạng thái Chờ xử lý. DQ-05 SAU dừng ở 81,52%, chỉ số mức độ sạch SAU dừng ở 94,76, cho tới khi có UC5.
+  - Ngưỡng 85 chưa được kiểm chứng bằng precision/recall.
+  - README mục 6.3 ghi việc còn lại.
+
+### TD-15  `dim_date` được bổ sung ngày còn thiếu khi nạp
+
+- **Nguồn:** `docs/data-requirements.md` mục 5.2 ghi "dim_date sinh sẵn một lần" (01/01/2024 – 31/12/2027, 1.461 dòng).
+- **Quyết định:** GIỮ sinh sẵn 1.461 ngày trong `sql/002_dwh_schema.sql`. Trước khi nạp fact, `load_dwh` thêm các ngày đo, ngày phát hiện, ngày quyết định chưa có trong `dim_date` (`ON CONFLICT DO NOTHING`).
+- **Lý do:** `fact_dq_check.date_key` và `fact_dup_pair.detected_date_key` là khóa ngoại tới `dim_date`. Một ngày nằm ngoài khoảng sinh sẵn (chạy sau 2027, hoặc đồng hồ máy sai) sẽ làm hỏng cả giao dịch nạp. Đây đúng là triệu chứng "số dòng fact ít hơn staging" mà slide buổi 10 nêu.
+- **Ảnh hưởng:** `dim_date` vẫn là SCD loại 0: chỉ thêm, không sửa dòng cũ. Lần nạp bình thường in `dim_date (thêm ngày) +0`.
+
+### TD-16  Thời điểm đo lấy theo đồng hồ của CSDL (lỗi hợp đồng dữ liệu khi ghép `dq_evaluate` → `load_dwh`)
+
+- **Nguồn:** Bước 4 của sáu bước tích hợp (slide buổi 10): với mỗi chỗ đứt gãy, xác định là lỗi hợp đồng dữ liệu hay lỗi logic.
+- **Vấn đề:** Hai bên hiểu khác nhau về "thời điểm", nên đây là lỗi hợp đồng dữ liệu, không phải lỗi logic.
+  - Ở Sprint 1, `measured_at` do Python ghi theo giờ của máy chạy Python.
+  - `dq_rule.updated_at` (= `dim_rule.valid_from`) và `load_batch.loaded_at` do PostgreSQL ghi theo múi giờ của CSDL.
+  - `load_dwh` gắn mỗi lần đo với phiên bản quy tắc có `valid_from ≤ measured_at < valid_to`. Nếu giờ CSDL đi trước giờ Python, lần đo "xảy ra trước" phiên bản đầu tiên và không tìm được phiên bản. Ví dụ: CSDL đặt múi giờ +07 còn Python chạy trong container UTC, như khi đóng gói Docker ở buổi 11.
+- **Quyết định:**
+  - `measured_at` = `clock_timestamp()` của PostgreSQL, đọc trong cùng giao dịch. Dùng `clock_timestamp()` (giờ thật lúc đo), không dùng `now()` (giờ bắt đầu giao dịch).
+  - Phòng hờ: không tìm được phiên bản bao phủ thì gán phiên bản sớm nhất của quy tắc, không làm rơi dòng fact.
+  - Đối soát có thêm một dòng đếm số fact phải gán phòng hờ như vậy. Số này phải bằng 0.
+- **Ảnh hưởng:** Không đổi bảng hay cột. Khi chạy `--khong-ghi-csdl` (không có kho), lần đo vẫn dùng giờ máy.
+
+### TD-17  Luồng chính một lệnh, hai giao dịch: UC1 rồi UC3
+
+- **Nguồn:** BT1 Bảng 3.1: UC1 nạp xong thì UC3 phát hiện cặp tự động. TD-09: cả UC1 nằm trong một giao dịch. Slide buổi 10: luồng chính chạy end-to-end, không có bước thao tác tay.
+- **Quyết định:** `python -m src.pipeline --tep …` chạy hai giao dịch nối tiếp:
+  - **Giao dịch 1 (UC1):** extract → transform → dq_evaluate → load_dwh.
+  - **Giao dịch 2 (UC3):** match → load_dwh → đối soát.
+  - **UC3 lỗi:** giao dịch 2 ROLLBACK, đợt nạp của giao dịch 1 vẫn còn. Lệnh trả mã 1 và in lệnh chạy lại riêng UC3: `python -m src.etl.match --dot <n>`.
+  - `--khong-phat-hien-cap` chỉ chạy UC1.
+- **Lý do:**
+  - UC3 là use case riêng, không phải phần «include» của UC1.
+  - Gói chung một giao dịch thì một lỗi lúc so khớp làm mất cả đợt đã chuẩn hóa và đo xong. Trên tệp đầy đủ, UC1 mất 9,1 s và UC3 mất 7,4 s.
+- **Ảnh hưởng:**
+  - `test_uc3_loi_thi_dot_nap_van_con_va_chi_lenh_chay_lai` kiểm luồng ngoại lệ này.
+  - TD-09 vẫn đúng cho UC1.
+
+### TD-18  FUZZY chỉ so hồ sơ đại diện của mỗi số điện thoại
+
+- **Nguồn:** `docs/data-requirements.md` mục 7, bước 2 – 6: blocking 5 số đầu/cuối; cùng số → EXACT_PHONE (k − 1 cặp); khác số và điểm ≥ 85 → FUZZY.
+- **Vấn đề khi chạy trên tệp đầy đủ:** Nếu so mọi hồ sơ, số A có 2 hồ sơ và số B gần giống A sẽ sinh 2 cặp FUZZY cho cùng hai số. Đo được 21 cặp FUZZY nhưng chỉ ứng với 12 cặp số khác nhau. Marketing sẽ phải quyết định lặp cho cùng một khách.
+- **Quyết định:** SỬA cách hiện thực, không đổi quy tắc.
+  - FUZZY chỉ so giữa **hồ sơ đại diện** của mỗi số: hồ sơ nạp sớm nhất, cũng là hồ sơ mà các bản lặp đã ghép vào bằng cặp EXACT_PHONE.
+  - Công thức điểm (QL7-03), ngưỡng 85 và blocking giữ nguyên.
+- **Lý do:** Các hồ sơ cùng số đã được nối với hồ sơ đại diện bằng cặp EXACT_PHONE, nên một cặp FUZZY giữa hai đại diện đủ để Marketing thấy cả hai nhóm.
+- **Ảnh hưởng:**
+  - Tệp đầy đủ: FUZZY 21 → 12 cặp. Mẫu 8.000 dòng: 0 cặp FUZZY.
+  - "Cặp ứng viên" in ra giờ đếm giữa hồ sơ đại diện của hai số khác nhau: 6.911 trên mẫu, 483.124 trên tệp đầy đủ. Số này khác số 11.858 đo ở BT1 (`data-requirements.md` mục 7), vì số BT1 đếm mọi cặp hồ sơ trong cùng khối, kể cả 1.501 cặp cùng số. Không sửa số đo của BT1; ghi chú ở `data-requirements.md` mục 7.
+  - `test_fuzzy_chi_so_ho_so_dai_dien_cua_moi_so` giữ quyết định này.
+
+### TD-19  Dashboard dùng kết nối chỉ đọc; tài khoản `dash_reader` để Sprint 3
+
+- **Nguồn:** BT1 (kiến trúc, NFR-04, NFR-07): dashboard chỉ đọc schema `dwh` qua tài khoản riêng `dash_reader`.
+- **Quyết định:**
+  - Sprint 2: `src/db.tao_engine_chi_doc()` mở phiên PostgreSQL với `default_transaction_read_only=on`, dùng `DASH_DB_USER` nếu có trong `.env`, để trống thì dùng `DB_USER`. Mọi lệnh ghi từ dashboard bị PostgreSQL từ chối.
+  - Tài khoản riêng `dash_reader` (chỉ quyền SELECT trên `dwh`) tạo ở Sprint 3, cùng việc bỏ quyền DELETE của tài khoản ứng dụng.
+- **Lý do:**
+  - Tạo role cần quyền quản trị PostgreSQL. Cách làm khác nhau giữa máy em (Homebrew) và máy người chấm, nên thêm bước dễ làm hỏng README mục 3.
+  - Chế độ chỉ đọc của phiên chặn được ghi nhầm, nhưng **không** thay được phân quyền. Người cố ý vẫn có thể mở lại quyền ghi trong phiên.
+- **Ảnh hưởng:** `.env.example` để trống `DASH_DB_USER`, có chú thích. Dashboard chỉ in loại lỗi, không in chuỗi kết nối (NFR-07).
+
+### TD-20  Dashboard K1 – K3 so với wireframe BT1
+
+- **Nguồn:** Wireframe K1 – K3 (`docs/export/wf_k1.png` … `wf_k3.png`). Slide buổi 10: ≥ 2 biểu đồ, mỗi biểu đồ gắn một câu hỏi phân tích, có mốc tham chiếu, dòng ghi nguồn và thời điểm dữ liệu.
+- **Quyết định – giữ đúng wireframe:**
+  - Ba tab K1 · K2 · K3.
+  - K1: năm thẻ chỉ số, đường chỉ số mức độ sạch theo đợt nạp (SAU nét liền, TRƯỚC nét đứt), mốc 90 · Tốt và 75 · Kém, bảng các đợt nạp.
+  - K2: thanh tỉ lệ đạt theo quy tắc, có vạch ngưỡng đạt, thanh chưa đạt tô khác màu; bảng chi tiết có điểm bị mất.
+  - K3: năm thẻ (tổng, Chờ xử lý, Gộp, Giữ riêng, tỉ lệ đã xử lý); phân bố cặp theo khoảng điểm < 85 · 85 – <90 · 90 – <95 · ≥ 95.
+  - Dòng ghi nguồn dưới mỗi biểu đồ.
+  - Bộ lọc đơn vị nguồn theo QT-14.
+- **Khác wireframe:**
+
+  | Khung | Wireframe | Sprint 2 | Lý do |
+  |---|---|---|---|
+  | K2 | Hai biểu đồ: tỉ lệ đạt và điểm bị mất | Một biểu đồ tỉ lệ đạt; điểm bị mất ghi trên nhãn thanh, trong câu "Đọc biểu đồ" và cột của bảng | Biểu đồ thứ ba trở đi được phép cắt (slide buổi 10); con số vẫn hiện đủ |
+  | K2 | Bộ lọc lần đo, loại quy tắc; ghi chú "Hiệu quả chuẩn hóa" (Q6) | Lần đo mới nhất của đợt; không lọc loại quy tắc; số liệu Q6 nằm trong báo cáo mỗi lần chạy (`reports/`) | Mỗi đợt hiện chỉ có một lần đo (đo lại khi đổi quy tắc là UC6 – Sprint 3) |
+  | K3 | Số cặp theo trạng thái theo đợt; tỉ lệ gộp theo khoảng điểm; số cặp quyết định theo ngày | Một biểu đồ: khoảng điểm × trạng thái, mốc ngưỡng 85 | Tỉ lệ gộp và ngày quyết định cần quyết định của UC5 (Sprint 3); hiện mọi cặp đang Chờ xử lý |
+  | Chung | Người xem là người đăng nhập | Chọn người xem ở thanh bên (hoặc `?nguoi_xem=` trên địa chỉ trang) để áp QT-14 | Đăng nhập/SSO ngoài phạm vi (BT1 mục 1); đây là mô phỏng vai trò, không phải xác thực |
+
+- **Ảnh hưởng:** Sprint 3 bổ sung phần K3 còn thiếu sau khi có `merge_service.py`; README mục 6.3.
+
