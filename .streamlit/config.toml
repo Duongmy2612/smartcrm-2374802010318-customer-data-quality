@@ -1,0 +1,7 @@
+# Cấu hình Streamlit của repo (đọc khi chạy `streamlit run dashboard/report.py` từ thư mục gốc repo).
+[server]
+headless = true            # không hỏi email lần chạy đầu, không tự mở trình duyệt – tự mở http://localhost:8501
+port = 8501
+
+[browser]
+gatherUsageStats = false   # không gửi thống kê sử dụng
