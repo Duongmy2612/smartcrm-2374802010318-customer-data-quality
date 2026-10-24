@@ -55,7 +55,7 @@ Các bước dưới đây đã được thử trên một bản clone mới ở
 | 4 | Kích hoạt môi trường ảo | `source .venv/bin/activate` (Windows: `.venv\Scripts\activate`) |
 | 5 | Cài thư viện | `pip install -r requirements.txt` |
 | 6 | Tạo tệp cấu hình kết nối, rồi mở `.env` điền `DB_USER`, `DB_PASSWORD` (PostgreSQL cài bằng Homebrew: `DB_USER` là tên tài khoản macOS, `DB_PASSWORD` để trống) | `cp .env.example .env` |
-| 7 | Tạo CSDL rỗng (một lần; báo "already exists" là bình thường; không có lệnh `createdb` thì dùng `psql -d postgres -c 'CREATE DATABASE smartcrm;'`) | `createdb smartcrm` |
+| 7 | Tạo CSDL rỗng. Không có lệnh `createdb` thì dùng `psql -d postgres -c 'CREATE DATABASE smartcrm;'`. Báo "already exists" nghĩa là máy đã có CSDL từ lần chạy trước: nếu CSDL đó đã nạp `customers_raw.csv`, bước 9 sẽ bị từ chối vì tệp đã nạp (AC1.4) – chạy `dropdb smartcrm` rồi làm lại bước này | `createdb smartcrm` |
 | 8 | Chép dữ liệu nguồn vào `data/raw/` | `cp <thư mục Dataset>/customers_raw.csv data/raw/` |
 | 9 | **Chạy luồng chính end-to-end:** UC1 nạp – chuẩn hóa – đo – nạp kho, rồi UC3 phát hiện cặp – nạp kho | `python -m src.pipeline --tep data/raw/customers_raw.csv` |
 | 10 | Mở dashboard K1 – K3, rồi mở trình duyệt vào http://localhost:8501. Lệnh giữ cửa sổ Terminal (Ctrl+C để dừng); bước 11 – 12 làm ở một tab Terminal mới: `cd` vào thư mục repo rồi `source .venv/bin/activate` | `streamlit run dashboard/report.py` |
