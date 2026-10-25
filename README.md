@@ -183,7 +183,7 @@ Fact không mất dòng nào khi nối dimension: `fact_dq_check` tìm phiên b�
 | 1 | Module mở rộng theo track đã hiện thực và chạy được | ✔ | `match.py`, `load_dwh.py`, `sql/002_dwh_schema.sql`, `dashboard/report.py` |
 | 2 | Luồng chính chạy end-to-end, không lỗi treo | ✔ | mục 3 bước 9, mã thoát 0; `docs/sprint2/ket-qua-toan-luong.png` |
 | 3 | Chạy trên dữ liệu mẫu thật | ✔ | `customers_raw.csv` (67.037 dòng) và mẫu `mau_cum_8000.csv` |
-| 4 | Ảnh kết quả toàn luồng trong `docs/` | ✔ | `docs/sprint2/ket-qua-toan-luong.png` và 8 ảnh khác, danh sách ở `docs/sprint2/README.md`. 4 ảnh dòng lệnh chụp trên MacBook của em (25/10/2026); 5 ảnh dashboard còn là của môi trường thử |
+| 4 | Ảnh kết quả toàn luồng trong `docs/` | ✔ | `docs/sprint2/ket-qua-toan-luong.png` và 8 ảnh khác, danh sách ở `docs/sprint2/README.md`. cả 9 ảnh (4 ảnh dòng lệnh, 5 ảnh dashboard) chụp trên MacBook của em ngày 25/10/2026 |
 | 5 | ≥ 5 unit test pass, lệnh test hiện số test | ✔ | `python -m pytest -q` → `94 passed` (bản clone mới chưa sinh mẫu: `93 passed, 1 skipped`); 43 test mới cho `match.py`, `load_dwh.py`, `doc_kho.py` và luồng UC1 → UC3 |
 | 6 | Có test cho trường hợp biên hoặc luồng ngoại lệ | ✔ | `test_diem_bang_dung_nguong_van_tao_cap_fuzzy`, `test_khoang_diem_k3_bien_thuoc_khoang_tren`, `test_cap_da_co_hoac_da_giu_rieng_khong_de_xuat_lai`, `test_scd2_cau_hinh_doi_ma_thoi_diem_khong_tien_len_bi_tu_choi`, `test_uc3_loi_thi_dot_nap_van_con_va_chi_lenh_chay_lai`, `test_duong_nguong_k3_dung_cho_khi_doi_nguong`, `test_ly_do_rong_dung_nguyen_nhan`, `test_sua_tay_quy_tac_khong_ghi_updated_at_van_nap_duoc` |
 | 7 | Ba trạng thái đang tải · rỗng · lỗi | ✔ | `dashboard/report.py`; ảnh `dashboard-rong.png`, `dashboard-loi.png` |
@@ -216,7 +216,9 @@ Trên cả tệp 67.037 dòng: UC3 7,4 s (môi trường thử), 4,4 s (MacBook 
 ### 6.3 Còn lại
 
 - [x] Em chạy lại trên MacBook (25/10/2026): đẩy repo lên GitHub, clone vào thư mục mới, làm theo 12 bước mục 3, đo NFR-01 phần 2 ba lần, chạy kiểm thử – ảnh dòng lệnh trong `docs/sprint2/` là ảnh chụp trên MacBook.
-- [ ] Chụp 5 ảnh dashboard trên MacBook thay ảnh của môi trường thử, đo NFR-06 trên MacBook, đánh dấu các ô kiểm chứng ở `docs/ai-disclosure.md`.
+- [x] Chụp 5 ảnh dashboard trên MacBook (25/10/2026), gồm trạng thái rỗng (QT-14) và lỗi (tắt PostgreSQL).
+- [ ] Đo NFR-06 trên MacBook.
+- [ ] Đánh dấu các ô kiểm chứng ở `docs/ai-disclosure.md` (mục Sprint 2).
 - [ ] Peer review (buổi 10): bạn cùng lớp clone repo, chạy theo README và mở issue 3 dòng (mẫu `.github/ISSUE_TEMPLATE/peer-review.md`); em sửa README theo issue.
 - [ ] **NFR-03:** em tự gán nhãn 300 cặp, tính precision/recall ở ngưỡng 85 (chuyển sang Sprint 3 – TD-14).
 - [ ] NFR-02: tập 200 dòng gán nhãn tay đủ 5 dạng số.
@@ -284,7 +286,7 @@ Trên cả tệp 67.037 dòng: UC3 7,4 s (môi trường thử), 4,4 s (MacBook 
 |---|---|---|
 | Claude (Anthropic) – BT1 | Rà soát hồ sơ Buổi 4; script profiling; bản nháp mục 3, 4, 5; tệp `.drawio`, Markdown | Chạy lại script profiling với seed 42 và đối chiếu từng con số ở mục 4.1, 4.5; mở từng tệp `.drawio` để đối chiếu; tự giải thích được GRAIN, SCD loại 2 |
 | Claude (Anthropic) – buổi 8 | Rút gọn PDF BT1, nhật ký TD-01 – TD-12; bản nháp DDL, `extract.py`, `transform.py`, `dq_evaluate.py`, `pipeline.py`, test, README | Theo từng phần, có ô đánh dấu: `docs/ai-disclosure.md` |
-| Claude (Anthropic) – buổi 10 | Bản nháp `sql/002_dwh_schema.sql`, `match.py`, `load_dwh.py`, `doc_kho.py`, `dashboard/report.py`, `sql/003`, 43 test mới, README mục 3 và 6, TD-14 – TD-21; ảnh dashboard trong `docs/sprint2/` chụp trên môi trường thử (4 ảnh dòng lệnh là ảnh em chụp trên MacBook) | Theo từng phần, có ô đánh dấu: `docs/ai-disclosure.md` mục Sprint 2 |
+| Claude (Anthropic) – buổi 10 | Bản nháp `sql/002_dwh_schema.sql`, `match.py`, `load_dwh.py`, `doc_kho.py`, `dashboard/report.py`, `sql/003`, 43 test mới, README mục 3 và 6, TD-14 – TD-21; ảnh trong `docs/sprint2/` là ảnh em chụp trên MacBook (nhật ký `thu-clone-moi.txt` là của môi trường thử) | Theo từng phần, có ô đánh dấu: `docs/ai-disclosure.md` mục Sprint 2 |
 
 ## Tài liệu
 
