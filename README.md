@@ -35,7 +35,7 @@ Mekong Mobile chưa có CRM. Dữ liệu khách hàng rải rác ở Excel từn
 |---|---|---|
 | Python | **3.11 trở lên** | pandas 3 không chạy trên 3.10 trở xuống; máy phát triển dùng 3.11 (Homebrew) |
 | Thư viện | `requirements.txt` | pandas, openpyxl, rapidfuzz, SQLAlchemy, psycopg2-binary, python-dotenv, PyYAML, pytest; Streamlit, Plotly (dashboard, buổi 10) |
-| CSDL | **PostgreSQL 14 trở lên**, đang chạy (macOS: `brew services start postgresql@14`). Sprint 1 đã chạy trên 14 (MacBook) và 16; Sprint 2 mới chạy trên 16 (môi trường thử) | Cần CSDL `smartcrm` và một tài khoản có quyền tạo schema trong CSDL đó. Luồng chính tự tạo schema `ops`, `dwh` (DDL chạy lại an toàn). Kiểm thử tích hợp dùng CSDL riêng `smartcrm_test`. |
+| CSDL | **PostgreSQL 14 trở lên**, đang chạy (macOS: `brew services start postgresql@14`). Đã chạy trên 14 (MacBook của em) và 16 (môi trường thử) | Cần CSDL `smartcrm` và một tài khoản có quyền tạo schema trong CSDL đó. Luồng chính tự tạo schema `ops`, `dwh` (DDL chạy lại an toàn). Kiểm thử tích hợp dùng CSDL riêng `smartcrm_test`. |
 | Biến môi trường | `.env` (chép từ `.env.example`) | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`; `DASH_DB_USER` để trống thì dashboard dùng `DB_USER` ở chế độ chỉ đọc (TD-19). `.env` **không commit** (NFR-07). |
 | Dữ liệu | `data/raw/customers_raw.csv` | Lấy trong bộ "Dataset Smart CRM" trên LMS. **Không commit** vì có dữ liệu cá nhân. |
 | Cổng | 8501 còn trống | Dashboard Streamlit; đổi bằng `--server.port`. |
@@ -45,7 +45,7 @@ Mekong Mobile chưa có CRM. Dữ liệu khách hàng rải rác ở Excel từn
 
 ## 3. Các bước dựng hệ thống – mỗi bước một lệnh
 
-Các bước dưới đây đã được thử trên một bản clone mới ở môi trường thử (Linux) ngày 24/10/2026, nhật ký ở `docs/sprint2/thu-clone-moi.txt`. Lệnh viết cho macOS/Linux; Windows ghi chú bên cạnh. Trước bước 1, PostgreSQL phải đang chạy (README mục 2).
+Các bước dưới đây đã được thử trên bản clone mới ở môi trường thử (Linux, 24/10/2026 – nhật ký `docs/sprint2/thu-clone-moi.txt`) và trên MacBook của em (25/10/2026, clone từ GitHub); những chỗ chưa rõ tìm ra khi thử đã sửa (README mục 6.2, dòng 9). Lệnh viết cho macOS/Linux; Windows ghi chú bên cạnh. Trước bước 1, PostgreSQL phải đang chạy (README mục 2).
 
 | # | Việc | Lệnh |
 |---|---|---|
@@ -55,11 +55,11 @@ Các bước dưới đây đã được thử trên một bản clone mới ở
 | 4 | Kích hoạt môi trường ảo | `source .venv/bin/activate` (Windows: `.venv\Scripts\activate`) |
 | 5 | Cài thư viện | `pip install -r requirements.txt` |
 | 6 | Tạo tệp cấu hình kết nối, rồi mở `.env` điền `DB_USER`, `DB_PASSWORD` (PostgreSQL cài bằng Homebrew: `DB_USER` là tên tài khoản macOS, `DB_PASSWORD` để trống) | `cp .env.example .env` |
-| 7 | Tạo CSDL rỗng. Không có lệnh `createdb` thì dùng `psql -d postgres -c 'CREATE DATABASE smartcrm;'`. Báo "already exists" nghĩa là máy đã có CSDL từ lần chạy trước: nếu CSDL đó đã nạp `customers_raw.csv`, bước 9 sẽ bị từ chối vì tệp đã nạp (AC1.4) – chạy `dropdb smartcrm` rồi làm lại bước này | `createdb smartcrm` |
-| 8 | Chép dữ liệu nguồn vào `data/raw/` | `cp <thư mục Dataset>/customers_raw.csv data/raw/` |
+| 7 | Tạo CSDL rỗng. Không có lệnh `createdb` thì dùng `psql -d postgres -c 'CREATE DATABASE smartcrm;'`. Báo "already exists" nghĩa là máy đã có CSDL `smartcrm` từ lần chạy trước: dữ liệu cũ làm kết quả bước 9 khác với kết quả ghi bên dưới (hoặc bị từ chối nếu đã nạp đúng tệp này – AC1.4) – chạy `dropdb smartcrm` rồi làm lại bước này | `createdb smartcrm` |
+| 8 | Chép dữ liệu nguồn vào `data/raw/`. Đổi `~/Downloads/Dataset` thành thư mục em đã giải nén bộ "Dataset Smart CRM" (LMS) | `cp ~/Downloads/Dataset/customers_raw.csv data/raw/` |
 | 9 | **Chạy luồng chính end-to-end:** UC1 nạp – chuẩn hóa – đo – nạp kho, rồi UC3 phát hiện cặp – nạp kho | `python -m src.pipeline --tep data/raw/customers_raw.csv` |
-| 10 | Mở dashboard K1 – K3, rồi mở trình duyệt vào http://localhost:8501. Lệnh giữ cửa sổ Terminal (Ctrl+C để dừng); bước 11 – 12 làm ở một tab Terminal mới: `cd` vào thư mục repo rồi `source .venv/bin/activate` | `streamlit run dashboard/report.py` |
-| 11 | Tạo CSDL riêng cho kiểm thử (một lần) | `createdb smartcrm_test` |
+| 10 | Mở dashboard K1 – K3, rồi mở trình duyệt vào http://localhost:8501. Gõ đúng `python -m streamlit`: lệnh `streamlit` trần có thể chạy nhầm Python ngoài `.venv` (pyenv, conda) và báo `ModuleNotFoundError`. Lệnh giữ cửa sổ Terminal (Ctrl+C để dừng); bước 11 – 12 làm ở một tab Terminal mới: `cd` vào thư mục repo rồi `source .venv/bin/activate` | `python -m streamlit run dashboard/report.py` |
+| 11 | Tạo CSDL riêng cho kiểm thử (một lần; báo "already exists" là bình thường – mỗi test tự xóa và tạo lại schema) | `createdb smartcrm_test` |
 | 12 | Chạy kiểm thử – màn hình in số test pass | `python -m pytest -q` |
 
 **Kết quả đúng của bước 9** trên `customers_raw.csv` (5 bước in ra màn hình, mã thoát 0):
@@ -183,12 +183,12 @@ Fact không mất dòng nào khi nối dimension: `fact_dq_check` tìm phiên b�
 | 1 | Module mở rộng theo track đã hiện thực và chạy được | ✔ | `match.py`, `load_dwh.py`, `sql/002_dwh_schema.sql`, `dashboard/report.py` |
 | 2 | Luồng chính chạy end-to-end, không lỗi treo | ✔ | mục 3 bước 9, mã thoát 0; `docs/sprint2/ket-qua-toan-luong.png` |
 | 3 | Chạy trên dữ liệu mẫu thật | ✔ | `customers_raw.csv` (67.037 dòng) và mẫu `mau_cum_8000.csv` |
-| 4 | Ảnh kết quả toàn luồng trong `docs/` | ✔ | `docs/sprint2/ket-qua-toan-luong.png` và 8 ảnh khác, danh sách ở `docs/sprint2/README.md` (ảnh của môi trường thử – em thay bằng ảnh chụp trên MacBook) |
+| 4 | Ảnh kết quả toàn luồng trong `docs/` | ✔ | `docs/sprint2/ket-qua-toan-luong.png` và 8 ảnh khác, danh sách ở `docs/sprint2/README.md`. 4 ảnh dòng lệnh chụp trên MacBook của em (25/10/2026); 5 ảnh dashboard còn là của môi trường thử |
 | 5 | ≥ 5 unit test pass, lệnh test hiện số test | ✔ | `python -m pytest -q` → `94 passed` (bản clone mới chưa sinh mẫu: `93 passed, 1 skipped`); 43 test mới cho `match.py`, `load_dwh.py`, `doc_kho.py` và luồng UC1 → UC3 |
 | 6 | Có test cho trường hợp biên hoặc luồng ngoại lệ | ✔ | `test_diem_bang_dung_nguong_van_tao_cap_fuzzy`, `test_khoang_diem_k3_bien_thuoc_khoang_tren`, `test_cap_da_co_hoac_da_giu_rieng_khong_de_xuat_lai`, `test_scd2_cau_hinh_doi_ma_thoi_diem_khong_tien_len_bi_tu_choi`, `test_uc3_loi_thi_dot_nap_van_con_va_chi_lenh_chay_lai`, `test_duong_nguong_k3_dung_cho_khi_doi_nguong`, `test_ly_do_rong_dung_nguyen_nhan`, `test_sua_tay_quy_tac_khong_ghi_updated_at_van_nap_duoc` |
 | 7 | Ba trạng thái đang tải · rỗng · lỗi | ✔ | `dashboard/report.py`; ảnh `dashboard-rong.png`, `dashboard-loi.png` |
 | 8 | README mục 3 đủ các bước, mỗi bước một lệnh | ✔ | mục 3 |
-| 9 | Đã thử clone vào thư mục mới và chạy đúng README | ✔ môi trường thử | 24/10/2026: CSDL mới, làm đúng 12 bước mục 3; clone từ bản sao cục bộ vì commit chưa đẩy lên GitHub; nhật ký `docs/sprint2/thu-clone-moi.txt`. Lần thử đầu phát hiện bước 12 ghi sai kết quả mong đợi (ghi `passed` hết, thực tế có 1 test `skipped`) → đã sửa README. Em thử lại trên MacBook, clone từ GitHub (mục 6.3) |
+| 9 | Đã thử clone vào thư mục mới và chạy đúng README | ✔ | Môi trường thử, 24/10/2026: CSDL mới, làm đúng 12 bước; nhật ký `docs/sprint2/thu-clone-moi.txt`; phát hiện bước 12 ghi sai kết quả mong đợi (thực tế có 1 test `skipped`) → đã sửa. **MacBook của em, 25/10/2026:** clone từ GitHub vào thư mục mới, làm theo 12 bước; phát hiện thêm 3 chỗ README chưa rõ → đã sửa: bước 10 lệnh `streamlit` trần chạy nhầm Python 3.10 của pyenv (dashboard báo `ModuleNotFoundError`) nên đổi thành `python -m streamlit`; bước 7 phải xóa CSDL cũ để kết quả bước 9 đúng như README; bước 8 thay chỗ giữ chỗ `<thư mục Dataset>` bằng đường dẫn ví dụ |
 | 10 | Commit theo quy ước, tổng số commit ≥ 8 | ✔ | `git log --oneline` |
 
 **Yêu cầu riêng của track DA:**
@@ -207,14 +207,16 @@ Fact không mất dòng nào khi nối dimension: `fact_dq_check` tìm phiên b�
 | Môi trường đo | UC3 (match + nạp kho) | UC1 (phần 1) | Cả lệnh | Kết luận |
 |---|---|---|---|---|
 | Linux, Python 3.11, PostgreSQL 16 (môi trường thử, 24/10/2026) – bản clone mới | 0,7 s | 1,3 s | 2,9 s | Đạt |
+| MacBook của em (macOS, Python 3.11.16, PostgreSQL 14), 25/10/2026 – bản clone mới từ GitHub | 0,4 s | 0,9 s | 2,6 s | Đạt |
 
-Trên cả tệp 67.037 dòng (môi trường thử): UC3 7,4 s. Ảnh: `docs/sprint2/ket-qua-nfr01.png`.
+Trên cả tệp 67.037 dòng: UC3 7,4 s (môi trường thử), 4,4 s (MacBook của em). Ảnh: `docs/sprint2/ket-qua-nfr01.png` (MacBook).
 
 **NFR-06** – mỗi khung dashboard tải ≤ 5 giây với ≤ 24 đợt nạp. Đo trên môi trường thử, từ lúc mở trang tới khi đủ 4 biểu đồ K1 – K3, 3 lần, lấy giá trị lớn nhất: 4,1 s với 1 đợt; 4,1 s với 24 đợt mẫu 8.000 dòng (nạp vào một CSDL riêng để đo). Đạt, nhưng sát ngưỡng ở lần mở đầu tiên (bộ đệm rỗng) – đo lại trên MacBook.
 
 ### 6.3 Còn lại
 
-- [ ] Em chạy lại trên MacBook: đẩy repo lên GitHub, clone vào thư mục mới, làm đúng 12 bước mục 3, đo NFR-01 phần 2 ba lần, thay ảnh `docs/sprint2/` bằng ảnh chụp màn hình của em, đánh dấu các ô kiểm chứng ở `docs/ai-disclosure.md`.
+- [x] Em chạy lại trên MacBook (25/10/2026): đẩy repo lên GitHub, clone vào thư mục mới, làm theo 12 bước mục 3, đo NFR-01 phần 2 ba lần, chạy kiểm thử – ảnh dòng lệnh trong `docs/sprint2/` là ảnh chụp trên MacBook.
+- [ ] Chụp 5 ảnh dashboard trên MacBook thay ảnh của môi trường thử, đo NFR-06 trên MacBook, đánh dấu các ô kiểm chứng ở `docs/ai-disclosure.md`.
 - [ ] Peer review (buổi 10): bạn cùng lớp clone repo, chạy theo README và mở issue 3 dòng (mẫu `.github/ISSUE_TEMPLATE/peer-review.md`); em sửa README theo issue.
 - [ ] **NFR-03:** em tự gán nhãn 300 cặp, tính precision/recall ở ngưỡng 85 (chuyển sang Sprint 3 – TD-14).
 - [ ] NFR-02: tập 200 dòng gán nhãn tay đủ 5 dạng số.
@@ -282,7 +284,7 @@ Trên cả tệp 67.037 dòng (môi trường thử): UC3 7,4 s. Ảnh: `docs/sp
 |---|---|---|
 | Claude (Anthropic) – BT1 | Rà soát hồ sơ Buổi 4; script profiling; bản nháp mục 3, 4, 5; tệp `.drawio`, Markdown | Chạy lại script profiling với seed 42 và đối chiếu từng con số ở mục 4.1, 4.5; mở từng tệp `.drawio` để đối chiếu; tự giải thích được GRAIN, SCD loại 2 |
 | Claude (Anthropic) – buổi 8 | Rút gọn PDF BT1, nhật ký TD-01 – TD-12; bản nháp DDL, `extract.py`, `transform.py`, `dq_evaluate.py`, `pipeline.py`, test, README | Theo từng phần, có ô đánh dấu: `docs/ai-disclosure.md` |
-| Claude (Anthropic) – buổi 10 | Bản nháp `sql/002_dwh_schema.sql`, `match.py`, `load_dwh.py`, `doc_kho.py`, `dashboard/report.py`, `sql/003`, 43 test mới, README mục 3 và 6, TD-14 – TD-21; ảnh `docs/sprint2/` chụp trên môi trường thử | Theo từng phần, có ô đánh dấu: `docs/ai-disclosure.md` mục Sprint 2 |
+| Claude (Anthropic) – buổi 10 | Bản nháp `sql/002_dwh_schema.sql`, `match.py`, `load_dwh.py`, `doc_kho.py`, `dashboard/report.py`, `sql/003`, 43 test mới, README mục 3 và 6, TD-14 – TD-21; ảnh dashboard trong `docs/sprint2/` chụp trên môi trường thử (4 ảnh dòng lệnh là ảnh em chụp trên MacBook) | Theo từng phần, có ô đánh dấu: `docs/ai-disclosure.md` mục Sprint 2 |
 
 ## Tài liệu
 
