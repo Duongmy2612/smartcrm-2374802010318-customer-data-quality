@@ -69,7 +69,7 @@ Các bước dưới đây đã được thử trên bản clone mới ở môi 
 - `[5/5] match`: EXACT_PHONE 11.625 · FUZZY 12.
 - Đối soát staging ↔ kho: 6 dòng, tất cả ✔.
 
-**Bước 12:** làm đúng 12 bước trên một bản clone mới, kết quả là `93 passed, 1 skipped`. Test bị bỏ qua là test hồi quy trên mẫu 8.000 dòng: nó cần tệp `data/processed/mau_cum_8000.csv`, sinh bằng lệnh ở mục "Đo NFR-01" bên dưới. Sinh mẫu xong, chạy lại thì ra `94 passed`.
+**Bước 12:** làm đúng 12 bước trên một bản clone mới, kết quả là `94 passed, 1 skipped`. Test bị bỏ qua là test hồi quy trên mẫu 8.000 dòng: nó cần tệp `data/processed/mau_cum_8000.csv`, sinh bằng lệnh ở mục "Đo NFR-01" bên dưới. Sinh mẫu xong, chạy lại thì ra `95 passed`.
 
 Thiếu CSDL `smartcrm_test` thì 9 test tích hợp cũng tự bỏ qua (`skipped`), không báo lỗi.
 
@@ -102,7 +102,8 @@ src/db.py             mũi tên ② ↔ ③: SQLAlchemy + psycopg2, kết nối 
 src/config.py         đọc configs/config.yaml (người dùng, vai trò, ngưỡng – không có bí mật)
 sql/                  ③ LƯU TRỮ  001_ops_schema.sql (6 bảng) ✔ · 002_dwh_schema.sql (5 bảng + 2 view) ✔
                                  003_dq_rule_updated_at.sql (trigger giữ updated_at của quy tắc, TD-21) ✔
-tests/                94 test (pytest): 83 unit test, 2 test hồi quy cần dữ liệu, 9 test tích hợp cần PostgreSQL
+tests/                95 test (pytest): 84 unit test (có test_cua_em.py em tự viết), 2 test hồi quy cần dữ liệu,
+                      9 test tích hợp cần PostgreSQL
                       (fixture CSDL kiểm thử ở conftest.py)
 docs/                 srs.md, data-requirements.md, thay-doi-thiet-ke.md, ra-soat-bt1.md, ai-disclosure.md,
                       5 tệp .drawio + export/*.png, sprint1/, sprint2/ (ảnh kết quả chạy, báo cáo mẫu)
@@ -184,7 +185,7 @@ Fact không mất dòng nào khi nối dimension: `fact_dq_check` tìm phiên b�
 | 2 | Luồng chính chạy end-to-end, không lỗi treo | ✔ | mục 3 bước 9, mã thoát 0; `docs/sprint2/ket-qua-toan-luong.png` |
 | 3 | Chạy trên dữ liệu mẫu thật | ✔ | `customers_raw.csv` (67.037 dòng) và mẫu `mau_cum_8000.csv` |
 | 4 | Ảnh kết quả toàn luồng trong `docs/` | ✔ | `docs/sprint2/ket-qua-toan-luong.png` và 8 ảnh khác, danh sách ở `docs/sprint2/README.md`. cả 9 ảnh (4 ảnh dòng lệnh, 5 ảnh dashboard) chụp trên MacBook của em ngày 25/10/2026 |
-| 5 | ≥ 5 unit test pass, lệnh test hiện số test | ✔ | `python -m pytest -q` → `94 passed` (bản clone mới chưa sinh mẫu: `93 passed, 1 skipped`); 43 test mới cho `match.py`, `load_dwh.py`, `doc_kho.py` và luồng UC1 → UC3 |
+| 5 | ≥ 5 unit test pass, lệnh test hiện số test | ✔ | `python -m pytest -q` → `95 passed` (bản clone mới chưa sinh mẫu: `94 passed, 1 skipped`); 43 test mới cho `match.py`, `load_dwh.py`, `doc_kho.py` và luồng UC1 → UC3; 1 test em tự viết: `tests/test_cua_em.py` |
 | 6 | Có test cho trường hợp biên hoặc luồng ngoại lệ | ✔ | `test_diem_bang_dung_nguong_van_tao_cap_fuzzy`, `test_khoang_diem_k3_bien_thuoc_khoang_tren`, `test_cap_da_co_hoac_da_giu_rieng_khong_de_xuat_lai`, `test_scd2_cau_hinh_doi_ma_thoi_diem_khong_tien_len_bi_tu_choi`, `test_uc3_loi_thi_dot_nap_van_con_va_chi_lenh_chay_lai`, `test_duong_nguong_k3_dung_cho_khi_doi_nguong`, `test_ly_do_rong_dung_nguyen_nhan`, `test_sua_tay_quy_tac_khong_ghi_updated_at_van_nap_duoc` |
 | 7 | Ba trạng thái đang tải · rỗng · lỗi | ✔ | `dashboard/report.py`; ảnh `dashboard-rong.png`, `dashboard-loi.png` |
 | 8 | README mục 3 đủ các bước, mỗi bước một lệnh | ✔ | mục 3 |
@@ -217,6 +218,7 @@ Trên cả tệp 67.037 dòng: UC3 7,4 s (môi trường thử), 4,4 s (MacBook 
 
 - [x] Em chạy lại trên MacBook (25/10/2026): đẩy repo lên GitHub, clone vào thư mục mới, làm theo 12 bước mục 3, đo NFR-01 phần 2 ba lần, chạy kiểm thử – ảnh dòng lệnh trong `docs/sprint2/` là ảnh chụp trên MacBook.
 - [x] Chụp 5 ảnh dashboard trên MacBook (25/10/2026), gồm trạng thái rỗng (QT-14) và lỗi (tắt PostgreSQL).
+- [x] Em tự viết thêm 1 test (`tests/test_cua_em.py`, 25/10/2026): "Duong Diem My" và "DIEM MY DUONG" – đảo thứ tự, viết hoa – cùng số điện thoại thì điểm tương đồng là 100.
 - [ ] Đo NFR-06 trên MacBook.
 - [ ] Đánh dấu các ô kiểm chứng ở `docs/ai-disclosure.md` (mục Sprint 2).
 - [ ] Peer review (buổi 10): bạn cùng lớp clone repo, chạy theo README và mở issue 3 dòng (mẫu `.github/ISSUE_TEMPLATE/peer-review.md`); em sửa README theo issue.

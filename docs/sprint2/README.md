@@ -6,7 +6,7 @@
 |---|---|---|
 | `ket-qua-toan-luong.png` | Bước 9 trên MacBook: lần đầu báo `ThieuCauHinhCSDL` (chưa điền `DB_USER` ở bước 6), điền `.env` rồi chạy lại – 5 bước, đối soát staging ↔ kho 6/6 ✔ | Luồng chính end-to-end trên dữ liệu thật; đếm dòng staging và fact |
 | `ket-qua-nap-lai.png` | `python -m src.etl.load_dwh` sau luồng chính: mọi bảng `+0`, `lô ngày 0`, đối soát vẫn khớp | Nạp lần hai không nhân đôi dòng |
-| `ket-qua-pytest.png` | `python -m pytest -q` → `94 passed`; danh sách 48 test của Sprint 2 và test tích hợp | ≥ 5 unit test pass, có test biên và luồng ngoại lệ |
+| `ket-qua-pytest.png` | `python -m pytest -q` → `94 passed`; danh sách 48 test của Sprint 2 và test tích hợp. Ảnh chụp trước khi em thêm `tests/test_cua_em.py`; nay là `95 passed` | ≥ 5 unit test pass, có test biên và luồng ngoại lệ |
 | `ket-qua-nfr01.png` | 3 lần chạy mẫu 8.000 dòng trên MacBook, mỗi lần một CSDL mới, lọc các dòng có số đo; `time` đo cả lệnh | NFR-01 phần 2 |
 | `dashboard-k1.png` | K1 – đường chỉ số mức độ sạch TRƯỚC/SAU, mốc 90 · Tốt và 75 · Kém, dòng ghi nguồn | Biểu đồ gắn câu hỏi Q2, có mốc tham chiếu |
 | `dashboard-k2.png` | K2 – hai biểu đồ: tỉ lệ đạt theo quy tắc (vạch ngưỡng đạt) và điểm bị mất từng quy tắc (đường 10 điểm) | Biểu đồ gắn câu hỏi Q3 |
