@@ -1,6 +1,11 @@
 """① dashboard/report.py – Dashboard mức độ sạch dữ liệu khách hàng, khung K1 – K3 (UC8). Sprint 2 (buổi 10).
 
-Chạy (sau khi luồng chính đã nạp kho):   streamlit run dashboard/report.py
+Chạy từ thư mục gốc repo, đã kích hoạt .venv (sau khi luồng chính đã nạp kho):
+
+    python -m streamlit run dashboard/report.py
+
+Dùng `python -m streamlit` thay cho lệnh `streamlit` trần: máy có pyenv/conda hoặc Python khác đã cài streamlit thì lệnh
+trần có thể chạy nhầm Python ngoài .venv (thiếu thư viện → ModuleNotFoundError). Gặp trường hợp đó trang báo rõ cách sửa.
 
 - Chỉ hiển thị: truy vấn và quy tắc nằm ở src/doc_kho.py; kết nối CHỈ ĐỌC (src/db.tao_engine_chi_doc, TD-19).
 - Lọc theo đơn vị nguồn của người xem (QT-14) + khoảng ngày nạp + đợt nạp.
@@ -12,15 +17,38 @@ import pathlib
 import sys
 from datetime import date, datetime
 
-import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))   # để import src khi chạy streamlit
-from src import config, db, doc_kho                                         # noqa: E402
-
+GOC = pathlib.Path(__file__).resolve().parent.parent
 BO_DEM_GIAY = 60
 st.set_page_config(page_title='Smart CRM · Mức độ sạch dữ liệu khách hàng', layout='wide')
+
+
+def bao_sai_python(e=None):
+    """Python đang chạy dashboard không phải Python của .venv (pyenv, conda, Python hệ thống) hoặc .venv chưa cài đủ."""
+    ban = f'{sys.version_info.major}.{sys.version_info.minor}'
+    if isinstance(e, ModuleNotFoundError) and e.name:
+        ly_do = (f'Python đang chạy dashboard ({ban}) thiếu thư viện `{e.name}`. Thường do lệnh `streamlit` lấy nhầm Python '
+                 'ngoài .venv (pyenv, conda…) hoặc .venv chưa chạy `pip install -r requirements.txt`.')
+    else:
+        ly_do = (f'Dashboard đang chạy bằng Python {ban}, repo cần Python 3.11 trở lên – lệnh `streamlit` đã lấy nhầm '
+                 'Python ngoài .venv (pyenv, conda…).')
+    st.error(ly_do + ' Dừng lệnh (Ctrl+C), kích hoạt .venv (`source .venv/bin/activate`) rồi chạy: '
+             '`python -m streamlit run dashboard/report.py`')
+    st.caption(f'Python đang chạy dashboard: {sys.executable}')
+
+
+if sys.version_info < (3, 11):                     # repo cần Python 3.11+ (README mục 2)
+    bao_sai_python()
+    st.stop()
+sys.path.insert(0, str(GOC))                       # để import src khi chạy streamlit
+try:
+    import pandas as pd
+    import plotly.graph_objects as go
+    from src import config, db, doc_kho
+except ImportError as loi_import:
+    bao_sai_python(loi_import)
+    st.stop()
 
 
 @st.cache_resource
@@ -89,6 +117,9 @@ try:
         cap = tai('doc_cap', list(dot['batch_key'])) if len(dot) else pd.DataFrame()
 # ------------------------------------------------------------------ TRẠNG THÁI 3: lỗi
 except Exception as e:                                  # noqa: BLE001
+    if isinstance(e, ModuleNotFoundError):              # thường do chạy nhầm Python, không phải lỗi CSDL
+        bao_sai_python(e)
+        st.stop()
     st.error('Không đọc được dữ liệu từ kho dữ liệu. Kiểm tra PostgreSQL đang chạy, tệp .env đúng và luồng chính '
              'đã chạy ít nhất một lần, rồi bấm Thử lại.')
     st.caption(f'Loại lỗi: {type(e).__name__}')         # chỉ in loại lỗi – không in chuỗi kết nối, tên bảng, vết lỗi

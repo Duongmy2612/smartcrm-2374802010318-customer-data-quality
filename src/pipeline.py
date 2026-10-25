@@ -8,7 +8,7 @@ Chạy từ thư mục gốc repo (đã kích hoạt .venv):
     python -m src.pipeline --tep data/raw/customers_raw.csv
     python -m src.pipeline --tep data/raw/customers_raw.csv --khong-ghi-csdl   # chưa có PostgreSQL
 
-Dashboard đọc kho sau khi lệnh trên chạy xong: streamlit run dashboard/report.py
+Dashboard đọc kho sau khi lệnh trên chạy xong: python -m streamlit run dashboard/report.py
 
 Quyết định thiết kế:
   1. Cả UC1 nằm trong MỘT giao dịch (`with engine.begin()`): lỗi ở bất kỳ bước nào → ROLLBACK, không bao giờ
