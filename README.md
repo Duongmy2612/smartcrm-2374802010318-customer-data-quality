@@ -220,7 +220,7 @@ Trên cả tệp 67.037 dòng: UC3 7,4 s (môi trường thử), 4,4 s (MacBook 
 - [x] Chụp 5 ảnh dashboard trên MacBook (25/10/2026), gồm trạng thái rỗng (QT-14) và lỗi (tắt PostgreSQL).
 - [x] Em tự viết thêm 1 test (`tests/test_cua_em.py`, 25/10/2026): "Duong Diem My" và "DIEM MY DUONG" – đảo thứ tự, viết hoa – cùng số điện thoại thì điểm tương đồng là 100.
 - [ ] Đo NFR-06 trên MacBook.
-- [ ] Đánh dấu các ô kiểm chứng ở `docs/ai-disclosure.md` (mục Sprint 2).
+- [x] Đánh dấu các ô kiểm chứng ở `docs/ai-disclosure.md` (mục Sprint 2): 14/14 ô em đã tự làm.
 - [ ] Peer review (buổi 10): bạn cùng lớp clone repo, chạy theo README và mở issue 3 dòng (mẫu `.github/ISSUE_TEMPLATE/peer-review.md`); em sửa README theo issue.
 - [ ] **NFR-03:** em tự gán nhãn 300 cặp, tính precision/recall ở ngưỡng 85 (chuyển sang Sprint 3 – TD-14).
 - [ ] NFR-02: tập 200 dòng gán nhãn tay đủ 5 dạng số.
