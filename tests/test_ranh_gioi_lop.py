@@ -3,10 +3,12 @@
 Đọc mã nguồn bằng ast (không chạy mã), nên test chạy được trên mọi máy, không cần CSDL.
 
     pha E   src/etl/extract.py                                 – chỉ đọc tệp nguồn
-    pha T   src/etl/transform.py, dq_evaluate.py, match.py      – hàm thuần: không CSDL, không gọi pha E, pha L
+    pha T   src/etl/transform.py, dq_evaluate.py, match.py,
+            danh_gia_match.py (NFR-03 – TD-32)                  – hàm thuần: không CSDL, không gọi pha E, pha L
     dùng chung src/etl/tien_ich.py                             – hàm thuần không thuộc pha nào (TD-29)
     pha L   src/etl/load_ops.py, load_dwh.py                    – chỉ chạy lệnh SQL: không gọi pha E / T
     điều phối  src/pipeline.py                                  – nơi DUY NHẤT gọi cả ba pha
+               src/kiem_chung_nfr03.py                          – chỉ gọi pha E, T; không đọc/ghi CSDL (TD-32)
     lớp ①   dashboard/report.py                                 – chỉ đọc kho qua src/doc_kho.py (không gọi src/etl)
 """
 import ast
@@ -17,7 +19,7 @@ import pytest
 GOC = pathlib.Path(__file__).resolve().parent.parent
 THU_VIEN_CSDL = {'sqlalchemy', 'psycopg2', 'src.db'}
 PHA_E = ['src/etl/extract.py']
-PHA_T = ['src/etl/transform.py', 'src/etl/dq_evaluate.py', 'src/etl/match.py']
+PHA_T = ['src/etl/transform.py', 'src/etl/dq_evaluate.py', 'src/etl/match.py', 'src/etl/danh_gia_match.py']
 PHA_L = ['src/etl/load_ops.py', 'src/etl/load_dwh.py']
 
 
@@ -64,6 +66,13 @@ def test_pha_l_khong_goi_pha_e_t(tep):
 def test_chi_pipeline_goi_ca_ba_pha():
     imp = _import('src/pipeline.py')
     assert {'src.etl.extract', 'src.etl.transform', 'src.etl.load_ops', 'src.etl.load_dwh'} <= imp
+
+
+def test_kiem_chung_nfr03_khong_cham_csdl():
+    """Phép kiểm chứng NFR-03 dựng khung cặp từ tệp nguồn bằng hàm thuần: không kết nối CSDL, không gọi pha L,
+    nên chạy được trên máy chưa có PostgreSQL và không thay đổi dữ liệu đã nạp (TD-32)."""
+    cam = THU_VIEN_CSDL | {'src.etl.load_ops', 'src.etl.load_dwh', 'src.pipeline'}
+    assert not _cham(_import('src/kiem_chung_nfr03.py'), cam)
 
 
 def test_dashboard_chi_doc_kho():
