@@ -1,166 +1,115 @@
 # Nhật ký phép thử thư mục trống – làm đúng README mục 3 (BT2 đề mục 2.4, checklist C1)
-# Môi trường thử của Claude: Linux, Python 3.11.18, PostgreSQL 16.15 – ngày 31/10/2026. CSDL smartcrm và smartcrm_test
-# đã xóa trước khi thử. Khác máy thật ở hai điểm, ghi rõ để không hiểu nhầm:
-#   - Bước 1 clone từ bản sao cục bộ của repo (nhánh dev, cùng commit sẽ gắn tag v0.2) vì lúc thử commit chưa được đẩy;
-#     lần thử lại bằng đúng lệnh README (clone --branch v0.2 từ GitHub) làm sau khi đẩy tag, kết quả ghi ở báo cáo PDF BT2 mục 6.
-#   - createdb/psql dùng tài khoản PostgreSQL đặt qua biến PGHOST/PGUSER/PGPASSWORD; mật khẩu đã che (***).
+# Môi trường thử của Claude: Linux, Python 3.11.18, 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) – 31/10/2026 06:58 UTC.
+# CSDL smartcrm, smartcrm_test đã xóa trước khi thử. Khác máy thật ở hai điểm, ghi rõ để không hiểu nhầm:
+#   - Bước 1 clone nhánh main (cùng commit sẽ gắn tag v0.2) vì lúc thử tag chưa được gắn lại; lệnh README dùng --branch v0.2.
+#   - PostgreSQL của môi trường thử cần mật khẩu qua TCP nên sau bước 6 điền DB_PASSWORD vào .env (Homebrew: không cần).
+#   Ảnh minh chứng trong báo cáo PDF là ảnh chụp trên MacBook của em, không phải nhật ký này.
 
 ── Bước 1: Lấy mã nguồn
-$ git clone -q --branch dev /home/claude/repo smartcrm-2374802010318-customer-data-quality
+$ git clone --branch main https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality.git
+  Cloning into 'smartcrm-2374802010318-customer-data-quality'...
   → mã thoát 0
 
-── Bước 2: Vào thư mục repo
-$ cd smartcrm-2374802010318-customer-data-quality
+── Bước 2: cd smartcrm-2374802010318-customer-data-quality – commit đang thử
+$ git log --oneline -1
+  481bb31e docs(readme): bước 3 giữ python3.11 – trên macOS python3 có sẵn là 3.9; ghi cách thay bằng python3 khi máy chỉ có 3.12/3.13 (TD-31)
   → mã thoát 0
 
-── Bước 3: Tạo môi trường ảo
+── Bước 3 – 4: Tạo và kích hoạt môi trường ảo (source .venv/bin/activate chạy trước mỗi lệnh sau)
 $ python3.11 -m venv .venv
   → mã thoát 0
 
-── Bước 4: Kích hoạt môi trường ảo
-$ source .venv/bin/activate
-  → mã thoát 0
-
 ── Bước 5: Cài thư viện
-$ pip install -q -r requirements.txt 2>&1 | grep -v notice; pip list 2>/dev/null | grep -E -i '^(pandas|rapidfuzz|SQLAlchemy|streamlit|plotly|pytest) '
-pandas                    3.0.6
-plotly                    6.9.0
-pytest                    9.1.1
-RapidFuzz                 3.14.6
-SQLAlchemy                2.1.1
-streamlit                 1.64.0
+$ pip install -q -r requirements.txt 2>&1 | grep -v notice; pip list 2>/dev/null | grep -iE '^(pandas|rapidfuzz|SQLAlchemy|streamlit|plotly|pytest) '
+  pytest                    9.1.1
+  RapidFuzz                 3.14.6
+  SQLAlchemy                2.1.1
+  streamlit                 1.64.0
   → mã thoát 0
 
-── Bước 6: Tạo .env rồi điền DB_USER, DB_PASSWORD
+── Bước 6: Tạo tệp cấu hình
 $ cp .env.example .env
   → mã thoát 0
-
-  (đã điền DB_USER=smartcrm_app, DB_PASSWORD=*** vào .env)
 
 ── Bước 7: Tạo CSDL rỗng
 $ createdb smartcrm
   → mã thoát 0
 
-── Bước 8: Chạy luồng chính end-to-end trên dữ liệu mẫu
+── Bước 8: Chạy luồng chính
 $ python -m src.pipeline --tep data/mau/customers_mau.csv
-[1/5] extract    data/mau/customers_mau.csv: 414 dòng × 6 cột · SHA-256 56a2841ed7da…
-      Ô trống: record_id 0 (0,00%) · ho_ten 2 (0,48%) · so_dien_thoai 24 (5,80%) · email 227 (54,83%) · dia_chi 34 (8,21%) · ngay_tao 0 (0,00%)
-      → ops.load_batch: đợt 1 (TONG_HOP, my.marketing); ops.stg_customer +414 hồ sơ thô (LOADED)
-[2/5] transform  số điện thoại: 270 đúng dạng sẵn · 115 sai dạng đã chuẩn hóa · 5 không quy đổi được · 24 trống
-      họ tên: 25 hồ sơ được sửa cách viết (FR-03)
-      phân loại: CLEAN 343 · PENDING_DUP 40 · ERROR 31 (MISSING_PHONE 24, INVALID_PHONE 5, MISSING_NAME 2)
-      → ops.customer_clean: 0 → 343 hồ sơ đang hiệu lực (+343)
-      → hồ sơ lỗi kèm lý do: data/processed/ho_so_loi_dot_1.csv (31 dòng, FR-10) · bảng reject ops.v_reject
-[3/5] dq_evaluate 6 quy tắc × 2 giai đoạn → ops.dq_result +12 dòng
-      Hàm kiểm Trọng số   Ngưỡng   TRƯỚC             SAU               Dòng lỗi SAU (tỉ lệ lỗi)
-      DQ-01        0,25    ≥ 98%   94,20% chưa đạt   94,20% chưa đạt   24 (5,80%)
-      DQ-02        0,25    ≥ 95%   69,23% chưa đạt   98,72% đạt        5 (1,28%)
-      DQ-03        0,15    ≥ 99%   99,52% đạt        99,52% đạt        2 (0,48%)
-      DQ-04        0,10    ≥ 97%   100,00% đạt       100,00% đạt       0 (0,00%)
-      DQ-05        0,20    ≥ 98%   89,61% chưa đạt   89,61% chưa đạt   40 (10,39%)
-      DQ-06        0,05    ≥ 95%   94,12% chưa đạt   94,12% chưa đạt   11 (5,88%)
-      Chỉ số mức độ sạch (QL7-06): TRƯỚC 88,41 (Chấp nhận được) → SAU 95,79 (Tốt), +7,38 điểm
-[4/5] load_dwh    dim_date (thêm ngày) +0 · dim_batch +1 · dim_rule (phiên bản mới) +6 · dim_rule (đóng phiên bản) +0 · fact_dq_check +12 · fact_dup_pair (thêm/cập nhật) +0 · lô ngày 1
-[5/5] match       383 hồ sơ có số hợp lệ (343 số khác nhau) · blocking 5 số đầu/cuối: 53 cặp ứng viên · ngưỡng 85
-      EXACT_PHONE 40 · FUZZY 3 → ops.dup_candidate +43 cặp PENDING
-      load_dwh    dim_date (thêm ngày) +0 · dim_batch +0 · dim_rule (phiên bản mới) +0 · dim_rule (đóng phiên bản) +0 · fact_dq_check +0 · fact_dup_pair (thêm/cập nhật) +43 · lô ngày 1
-      Đối soát staging (ops) ↔ kho (dwh):
-      ✔ Đợt nạp: ops 1 · dwh 1 – cùng GRAIN: 1 dòng = 1 đợt
-      ✔ Kết quả đo: ops 12 · dwh 12 – cùng GRAIN: 1 dòng = 1 quy tắc × 1 đợt × 1 giai đoạn × 1 lần đo
-      ✔ Cặp nghi trùng: ops 43 · dwh 43 – cùng GRAIN: 1 dòng = 1 cặp
-      ✔ Hồ sơ thô ↔ mẫu số DQ-01 (lần đo mới nhất): ops 414 · dwh 414 – khác GRAIN: kho không lưu từng hồ sơ; mẫu số của DQ-01 là mọi hồ sơ của đợt nên phải bằng số hồ sơ thô
-      ✔ Hồ sơ lặp chờ quyết định ↔ cặp EXACT_PHONE chờ xử lý: ops 40 · dwh 40 – QL7-02: mỗi hồ sơ lặp sinh đúng một cặp EXACT_PHONE với hồ sơ nạp sớm nhất của cùng số
-      ✔ Lần đo trước phiên bản quy tắc đầu tiên (gán phiên bản sớm nhất): ops 0 · dwh 0 – phải bằng 0; khác 0 là đồng hồ hai máy lệch (TD-16)
-Số dòng: tệp 414 → bảng tạm 414 = sạch 343 + chờ quyết định 40 + lỗi 31
-Thời gian: extract 0,1 s · transform 0,0 s · dq_evaluate 0,0 s → 0,1 s (NFR-01 phần 1: nạp và chuẩn hóa 8.000 dòng ≤ 60 s)
-           UC3 phát hiện cặp + nạp kho 0,1 s (NFR-01 phần 2: ≤ 120 s trên 8.000 hồ sơ) · toàn luồng 0,2 s
-Số dòng bảng đích (trước → sau lần chạy này):
-  Bảng                          trước       sau    thêm
-  ops.load_batch                    0         1      +1
-  ops.stg_customer                  0       414    +414
-  ops.customer_clean                0       343    +343
-  ops.dq_result                     0        12     +12
-  ops.dup_candidate                 0        43     +43
-  dwh.dim_batch                     0         1      +1
-  dwh.fact_dq_check                 0        12     +12
-  dwh.fact_dup_pair                 0        43     +43
-Báo cáo: reports/uc1-dot-1-20261031_023208.md
+             UC3 phát hiện cặp + nạp kho 0,1 s (NFR-01 phần 2: ≤ 120 s trên 8.000 hồ sơ) · toàn luồng 0,2 s
+  Số dòng bảng đích (trước → sau lần chạy này):
+    Bảng                          trước       sau    thêm
+    ops.load_batch                    0         1      +1
+    ops.stg_customer                  0       414    +414
+    ops.customer_clean                0       343    +343
+    ops.dq_result                     0        12     +12
+    ops.dup_candidate                 0        43     +43
+    dwh.dim_batch                     0         1      +1
+    dwh.fact_dq_check                 0        12     +12
+    dwh.fact_dup_pair                 0        43     +43
+  Báo cáo: reports/uc1-dot-1-20261031_065841.md
   → mã thoát 0
 
-── Bước 9: Chạy lại lần hai – không lỗi, không nhân đôi
+── Bước 9: Chạy lại lần hai
 $ python -m src.pipeline --tep data/mau/customers_mau.csv
-[1/5] extract    data/mau/customers_mau.csv: 414 dòng × 6 cột · SHA-256 56a2841ed7da…
-      Ô trống: record_id 0 (0,00%) · ho_ten 2 (0,48%) · so_dien_thoai 24 (5,80%) · email 227 (54,83%) · dia_chi 34 (8,21%) · ngay_tao 0 (0,00%)
-      CẢNH BÁO (AC1.4): tệp này đã nạp ở đợt 1 (customers_mau.csv, 31/10/2026 09:32) → không tạo đợt mới, không ghi lại hồ sơ.
-      Muốn nạp thành một đợt mới (sẽ sinh hồ sơ lặp giữa hai đợt) thì chạy lại với --nap-lai.
-[2/5] transform  bỏ qua – hồ sơ của đợt 1 đã chuẩn hóa
-[3/5] dq_evaluate bỏ qua – đợt 1 đã đo
-[4/5] load_dwh    dim_date (thêm ngày) +0 · dim_batch +0 · dim_rule (phiên bản mới) +0 · dim_rule (đóng phiên bản) +0 · fact_dq_check +0 · fact_dup_pair (thêm/cập nhật) +0 · lô ngày 0
-[5/5] match       383 hồ sơ có số hợp lệ (343 số khác nhau) · blocking 5 số đầu/cuối: 53 cặp ứng viên · ngưỡng 85
-      EXACT_PHONE 0 · FUZZY 0 → ops.dup_candidate +0 cặp PENDING (43 cặp đã có không tạo lại)
-      load_dwh    dim_date (thêm ngày) +0 · dim_batch +0 · dim_rule (phiên bản mới) +0 · dim_rule (đóng phiên bản) +0 · fact_dq_check +0 · fact_dup_pair (thêm/cập nhật) +0 · lô ngày 0
-      Đối soát staging (ops) ↔ kho (dwh):
-      ✔ Đợt nạp: ops 1 · dwh 1 – cùng GRAIN: 1 dòng = 1 đợt
-      ✔ Kết quả đo: ops 12 · dwh 12 – cùng GRAIN: 1 dòng = 1 quy tắc × 1 đợt × 1 giai đoạn × 1 lần đo
-      ✔ Cặp nghi trùng: ops 43 · dwh 43 – cùng GRAIN: 1 dòng = 1 cặp
-      ✔ Hồ sơ thô ↔ mẫu số DQ-01 (lần đo mới nhất): ops 414 · dwh 414 – khác GRAIN: kho không lưu từng hồ sơ; mẫu số của DQ-01 là mọi hồ sơ của đợt nên phải bằng số hồ sơ thô
-      ✔ Hồ sơ lặp chờ quyết định ↔ cặp EXACT_PHONE chờ xử lý: ops 40 · dwh 40 – QL7-02: mỗi hồ sơ lặp sinh đúng một cặp EXACT_PHONE với hồ sơ nạp sớm nhất của cùng số
-      ✔ Lần đo trước phiên bản quy tắc đầu tiên (gán phiên bản sớm nhất): ops 0 · dwh 0 – phải bằng 0; khác 0 là đồng hồ hai máy lệch (TD-16)
-Số dòng bảng đích (trước → sau lần chạy này):
-  Bảng                          trước       sau    thêm
-  ops.load_batch                    1         1      +0
-  ops.stg_customer                414       414      +0
-  ops.customer_clean              343       343      +0
-  ops.dq_result                    12        12      +0
-  ops.dup_candidate                43        43      +0
-  dwh.dim_batch                     1         1      +0
-  dwh.fact_dq_check                12        12      +0
-  dwh.fact_dup_pair                43        43      +0
-Kết quả lần chạy lại: mọi bảng +0 – không nhân đôi dữ liệu.
-  → mã thoát 0
-
-── Bước 10: Mở dashboard (chạy nền trong phép thử, kiểm trang trả về HTTP 200)
-$ (python -m streamlit run dashboard/report.py > /tmp/claude-0/bt2/streamlit.log 2>&1 &) ; sleep 8; curl -s -o /dev/null -w 'HTTP %{http_code}\n' http://localhost:8501/ ; curl -s http://localhost:8501/_stcore/health; echo
-HTTP 200
-ok
+        ✔ Lần đo trước phiên bản quy tắc đầu tiên (gán phiên bản sớm nhất): ops 0 · dwh 0 – phải bằng 0; khác 0 là đồng hồ hai máy lệch (TD-16)
+  Số dòng bảng đích (trước → sau lần chạy này):
+    Bảng                          trước       sau    thêm
+    ops.load_batch                    1         1      +0
+    ops.stg_customer                414       414      +0
+    ops.customer_clean              343       343      +0
+    ops.dq_result                    12        12      +0
+    ops.dup_candidate                43        43      +0
+    dwh.dim_batch                     1         1      +0
+    dwh.fact_dq_check                12        12      +0
+    dwh.fact_dup_pair                43        43      +0
+  Kết quả lần chạy lại: mọi bảng +0 – không nhân đôi dữ liệu.
   → mã thoát 0
 
 ── Bước 11: Tạo CSDL kiểm thử
 $ createdb smartcrm_test
   → mã thoát 0
 
-── Bước 12: Chạy kiểm thử
-$ python -m pytest -q 2>&1 | tail -6
-.....................................................                    [100%]
-============= Ba loại kiểm thử của BT2 (đánh dấu trong pytest.ini) =============
-  1. luồng đúng      14 passed
-  2. giá trị biên    18 passed
-  3. dữ liệu sai     14 passed
-123 passed, 2 skipped in 3.31s
+── Bước 12: Chạy bộ kiểm thử
+$ python -m pytest -q
+  .....................................................................    [100%]
+  ============= Ba loại kiểm thử của BT2 (đánh dấu trong pytest.ini) =============
+    1. luồng đúng      14 passed
+    2. giá trị biên    24 passed
+    3. dữ liệu sai     20 passed
+  139 passed, 2 skipped in 4.33s
   → mã thoát 0
 
-── Bước thêm: Tệp thiếu cột (C7)
+── Thử thêm (README mục 5)
+
+── Thử thêm: tệp lỗi customers_thieu_cot
 $ python -m src.pipeline --tep data/mau/customers_thieu_cot.csv
-TỪ CHỐI: Thiếu cột bắt buộc: so_dien_thoai – từ chối cả đợt, bảng tạm không thay đổi
+  TỪ CHỐI: Thiếu cột bắt buộc: so_dien_thoai – từ chối cả đợt, bảng tạm không thay đổi
   → mã thoát 2
 
-── Bước thêm: Bảng reject
-$ psql -d smartcrm -c 'SELECT count(*) AS so_dong_reject FROM ops.v_reject'
- so_dong_reject 
-----------------
-             31
-(1 row)
+── Thử thêm: tệp lỗi customers_chi_tieu_de
+$ python -m src.pipeline --tep data/mau/customers_chi_tieu_de.csv
+  TỪ CHỐI: Tệp "customers_chi_tieu_de.csv" không có dòng dữ liệu nào (chỉ có dòng tiêu đề) – từ chối cả đợt, không tạo đợt nạp rỗng
+  → mã thoát 2
 
+── Thử thêm: tệp lỗi customers_sai_bang_ma
+$ python -m src.pipeline --tep data/mau/customers_sai_bang_ma.csv
+  TỪ CHỐI: Tệp "customers_sai_bang_ma.csv" không phải bảng mã UTF-8 (thường gặp khi lưu CSV bằng Excel trên Windows) – mở tệp, chọn "Lưu dưới dạng" CSV UTF-8 rồi nạp lại
+  → mã thoát 2
+
+── Thử thêm: bảng reject
+$ psql -d smartcrm -c "SELECT error_code, count(*) FROM ops.v_reject GROUP BY 1 ORDER BY 2 DESC"
+  ---------------+-------
+   MISSING_PHONE |    24
+   INVALID_PHONE |     5
+   MISSING_NAME  |     2
+  (3 rows)
+  
   → mã thoát 0
 
-── Bước thêm: Chạy lại riêng UC3
+── Thử thêm: chạy lại riêng UC3
 $ python -m src.pipeline --dot 1
-UC3 đợt 1: 383 hồ sơ · 53 cặp ứng viên · EXACT_PHONE +0 · FUZZY +0 · 0,0 s
-load_dwh: dim_date (thêm ngày) +0 · dim_batch +0 · dim_rule (phiên bản mới) +0 · dim_rule (đóng phiên bản) +0 · fact_dq_check +0 · fact_dup_pair (thêm/cập nhật) +0 · lô ngày 0
+  UC3 đợt 1: 383 hồ sơ · 53 cặp ứng viên · EXACT_PHONE +0 · FUZZY +0 · 0,1 s
+  load_dwh: dim_date (thêm ngày) +0 · dim_batch +0 · dim_rule (phiên bản mới) +0 · dim_rule (đóng phiên bản) +0 · fact_dq_check +0 · fact_dup_pair (thêm/cập nhật) +0 · lô ngày 0
   → mã thoát 0
-
-── Bước thêm: git status sạch, không có .env trong repo
-$ git status --short; echo "tệp .env được git theo dõi: $(git ls-files .env | wc -l)"
-tệp .env được git theo dõi: 0
-  → mã thoát 0
-
