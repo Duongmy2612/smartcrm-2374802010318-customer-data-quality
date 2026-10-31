@@ -13,17 +13,17 @@ reject kèm lý do viết thành câu. Hệ thống đo 6 quy tắc chất lư�
 nghi trùng. Mọi bước chạy bằng **một lệnh** (pipeline E → T → L) và nạp vào kho dữ liệu hình sao trên PostgreSQL.
 Dashboard Streamlit đọc kho (chỉ đọc) và vẽ 4 biểu đồ, mỗi biểu đồ trả lời một câu hỏi phân tích.
 
-Phạm vi và lý do: `docs/srs.md` (đặc tả), `docs/thay-doi-thiet-ke.md` (TD-01 – TD-27, mọi sai lệch so với BT1).
+Phạm vi và lý do: `docs/srs.md` (đặc tả), `docs/thay-doi-thiet-ke.md` (TD-01 – TD-31, mọi sai lệch so với BT1).
 
 ## 2. Yêu cầu môi trường
 
 | Thành phần | Phiên bản | Ghi chú |
 |---|---|---|
-| Python | **3.11 trở lên** | pandas 3 không chạy trên 3.10 trở xuống |
+| Python | **3.11 trở lên** (`python3 --version`) | pandas 3 không chạy trên 3.10 trở xuống. Đã chạy trên 3.11 (MacBook, Linux) và 3.13 (Linux) |
 | PostgreSQL | **14 trở lên**, đang chạy | macOS: `brew services start postgresql@14`. Đã chạy trên 14 (MacBook) và 16 (Linux) |
 | Thư viện | `requirements.txt` (mọi gói ghi `==`) | pandas, rapidfuzz, SQLAlchemy, psycopg2-binary, python-dotenv, PyYAML, openpyxl, pytest, streamlit, plotly |
-| Biến môi trường | `.env` chép từ `.env.example` | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_NAME_TEST`, `DASH_DB_USER`, `DASH_DB_PASSWORD`. `.env` không commit (NFR-07) |
-| Dữ liệu | **có sẵn trong repo**: `data/mau/` | Dữ liệu giả 414 dòng (seed 42), sinh bằng `scripts/sinh_du_lieu_mau.py`. Dữ liệu thật 67.037 dòng (LMS) là tùy chọn – mục 6 |
+| Biến môi trường | `.env` chép từ `.env.example` | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_NAME_TEST`, `DASH_DB_USER`, `DASH_DB_PASSWORD`. `DB_USER` để trống = tài khoản hệ điều hành (đúng mặc định PostgreSQL Homebrew – TD-31). `.env` không commit (NFR-07) |
+| Dữ liệu | **có sẵn trong repo**: `data/mau/` | Dữ liệu giả 414 dòng (seed 42) và 3 tệp lỗi để thử C7, sinh bằng `scripts/sinh_du_lieu_mau.py`. Dữ liệu thật 67.037 dòng (LMS) là tùy chọn – mục 6 |
 | Cổng | 8501 còn trống | dashboard (`.streamlit/config.toml`; đổi bằng `--server.port`) |
 
 ## 3. Cài đặt và chạy – mỗi bước một lệnh
@@ -34,10 +34,10 @@ Chạy từ thư mục trống, Terminal macOS/Linux (Windows: bước 4 là `.v
 |---|---|---|
 | 1 | Lấy mã nguồn đúng tag nộp bài | `git clone --branch v0.2 https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality.git` |
 | 2 | Vào thư mục repo | `cd smartcrm-2374802010318-customer-data-quality` |
-| 3 | Tạo môi trường ảo | `python3.11 -m venv .venv` |
+| 3 | Tạo môi trường ảo (`python3 --version` phải từ 3.11; máy có nhiều bản thì dùng `python3.11`) | `python3 -m venv .venv` |
 | 4 | Kích hoạt môi trường ảo | `source .venv/bin/activate` |
 | 5 | Cài thư viện | `pip install -r requirements.txt` |
-| 6 | Tạo tệp cấu hình, rồi mở `.env` điền `DB_USER`, `DB_PASSWORD` của PostgreSQL trên máy (Homebrew: `DB_USER` là tên tài khoản macOS, `DB_PASSWORD` để trống) | `cp .env.example .env` |
+| 6 | Tạo tệp cấu hình. PostgreSQL cài bằng Homebrew: **không cần sửa gì** (`DB_USER` trống = tài khoản macOS). PostgreSQL có tài khoản/mật khẩu riêng thì điền `DB_USER`, `DB_PASSWORD` trong `.env` | `cp .env.example .env` |
 | 7 | Tạo CSDL rỗng (báo "already exists" thì `dropdb smartcrm` rồi chạy lại bước này) | `createdb smartcrm` |
 | 8 | **Chạy luồng chính end-to-end** trên dữ liệu mẫu: extract → transform → đo chất lượng → load ops → nạp kho → phát hiện cặp → đối soát | `python -m src.pipeline --tep data/mau/customers_mau.csv` |
 | 9 | **Chạy lại lần hai** đúng lệnh trên – không lỗi, không nhân đôi | `python -m src.pipeline --tep data/mau/customers_mau.csv` |
@@ -62,9 +62,10 @@ Cuối kết quả có bảng số test PASS theo **ba loại của đề BT2** 
 | 2. Giá trị biên | `tests/test_match.py::test_diem_bang_dung_nguong_van_tao_cap_fuzzy` | điểm đúng bằng ngưỡng 85 vẫn tạo cặp, 84,99 thì không |
 | 3. Dữ liệu sai | `tests/test_pipeline_csdl.py::test_bang_reject_co_dong_va_ly_do_cho_nguoi_doc` | hồ sơ thiếu số vào bảng reject kèm lý do, không sập |
 
-Kết quả đúng trên bản clone mới: **`123 passed, 2 skipped`**. Hai test bỏ qua là test hồi quy trên dữ liệu thật
-của LMS (`data/raw/customers_raw.csv`, mẫu 8.000 dòng) – không có trong repo. Chưa làm bước 11 thì thêm 12 test
-tích hợp cần PostgreSQL tự bỏ qua (`111 passed, 14 skipped`), không báo lỗi. Kiểm thử tự dựng dữ liệu nó cần
+Kết quả đúng trên bản clone mới: **`139 passed, 2 skipped`** (luồng đúng 14 · giá trị biên 24 · dữ liệu sai 20).
+Hai test bỏ qua là test hồi quy trên dữ liệu thật của LMS (`data/raw/customers_raw.csv`, mẫu 8.000 dòng) – không
+có trong repo; có hai tệp đó thì `141 passed`. Chưa làm bước 11 thì thêm 12 test tích hợp cần PostgreSQL tự bỏ
+qua (`127 passed, 14 skipped`), không báo lỗi. Kiểm thử tự dựng dữ liệu nó cần
 (tệp 4 dòng trong `tmp_path`, CSDL `smartcrm_test` xóa và tạo lại schema ở mỗi test), không phụ thuộc dữ liệu
 có sẵn trên máy.
 
@@ -75,13 +76,15 @@ có sẵn trên máy.
 | 8 | 5 bước `[1/5]` … `[5/5]`, mã thoát 0. `[2/5] transform`: CLEAN 343 · PENDING_DUP 40 · ERROR 31 (MISSING_PHONE 24, INVALID_PHONE 5, MISSING_NAME 2). `[3/5]`: bảng 6 hàm kiểm có cột "Dòng lỗi SAU (tỉ lệ lỗi)"; chỉ số mức độ sạch TRƯỚC 88,41 → SAU 95,79 (Tốt). `[5/5]`: EXACT_PHONE 40 · FUZZY 3. Đối soát staging ↔ kho 6/6 ✔. Bảng số dòng bảng đích: `ops.stg_customer` +414, `dwh.fact_dq_check` +12, `dwh.fact_dup_pair` +43 |
 | 9 | `CẢNH BÁO (AC1.4): tệp này đã nạp ở đợt 1 …`; bảng số dòng bảng đích **+0 ở cả 8 bảng**; `Kết quả lần chạy lại: mọi bảng +0 – không nhân đôi dữ liệu.`; mã thoát 0 (TD-25) |
 | 10 | Tab K1 – K3, 4 biểu đồ, mỗi biểu đồ có mốc tham chiếu và dòng ghi nguồn. Người xem `ql.mm001` → trạng thái rỗng có câu giải thích; dừng PostgreSQL rồi bấm Làm mới → trạng thái lỗi có nút Thử lại, không in chuỗi kết nối |
-| 12 | `123 passed, 2 skipped` và bảng ba loại kiểm thử |
+| 12 | `139 passed, 2 skipped` và bảng ba loại kiểm thử: luồng đúng 14 · giá trị biên 24 · dữ liệu sai 20 |
 
 Thử thêm (giảng viên chấm C7 – dữ liệu sai, và suy giảm có kiểm soát):
 
 | Thử | Lệnh | Kết quả đúng |
 |---|---|---|
 | Tệp thiếu cột | `python -m src.pipeline --tep data/mau/customers_thieu_cot.csv` | `TỪ CHỐI: Thiếu cột bắt buộc: so_dien_thoai – từ chối cả đợt, bảng tạm không thay đổi`, mã thoát 2 |
+| Tệp chỉ có dòng tiêu đề | `python -m src.pipeline --tep data/mau/customers_chi_tieu_de.csv` | `TỪ CHỐI: Tệp "customers_chi_tieu_de.csv" không có dòng dữ liệu nào …`, mã thoát 2, không tạo đợt nạp (TD-28) |
+| Tệp lưu sai bảng mã (Excel Windows) | `python -m src.pipeline --tep data/mau/customers_sai_bang_ma.csv` | `TỪ CHỐI: Tệp "customers_sai_bang_ma.csv" không phải bảng mã UTF-8 … chọn "Lưu dưới dạng" CSV UTF-8 rồi nạp lại`, mã thoát 2 (TD-28) |
 | Bảng reject | `psql -d smartcrm -c "SELECT row_no, phone_raw, error_code, ly_do FROM ops.v_reject ORDER BY row_no LIMIT 8"` | 31 dòng tất cả; cột `ly_do` viết thành câu |
 | Tắt CSDL | `brew services stop postgresql@14` rồi chạy lại bước 8 | `LỖI: LoiKetNoiCSDL: Không kết nối được PostgreSQL ở localhost:5432 …` kèm cách sửa, mã thoát 1, không in mật khẩu |
 | Chạy lại riêng UC3 | `python -m src.pipeline --dot 1` | `EXACT_PHONE +0 · FUZZY +0` (cặp đã có không tạo lại) |
@@ -114,10 +117,11 @@ src/etl/dq_evaluate.py    ② pha T      6 hàm kiểm chất lượng DQ-01…0
 src/etl/match.py          ② pha T      name_key, blocking, điểm, tìm cặp                   (hàm thuần)
 src/etl/load_ops.py       ② pha L      mọi lệnh đọc/ghi schema ops, CSV hồ sơ lỗi, bảng reject
 src/etl/load_dwh.py       ② pha L      nạp kho dwh, SCD loại 2, đối soát
+src/etl/tien_ich.py       ② dùng chung la_trong (ô trống) – không thuộc pha nào, để pha T không import pha E (TD-29)
 src/db.py, src/config.py  ② ↔ ③        kết nối từ .env, chạy migration sql/0*.sql
 sql/001 – 004             ③ LƯU TRỮ    schema ops (6 bảng + view v_reject), dwh (5 bảng + 2 view), trigger
-data/mau/                 dữ liệu mẫu giả (commit) · data/raw, data/processed, reports/: không commit
-tests/                    125 test pytest (pytest.ini: ba loại kiểm thử)
+data/mau/                 dữ liệu mẫu giả + 3 tệp lỗi để thử C7 (commit) · data/raw, data/processed, reports/: không commit
+tests/                    141 test pytest (pytest.ini: ba loại kiểm thử)
 docs/                     srs.md, data-requirements.md, thay-doi-thiet-ke.md, ai-disclosure.md, bug-log.md,
                           architecture-thuc-te.html, *.drawio + export/, bt2/ (ảnh kết quả chạy BT2), sprint1/, sprint2/
 scripts/                  sinh_du_lieu_mau.py (seed 42), check_env.py
@@ -138,16 +142,16 @@ không tồn tại).
 | Mục | Đạt | Minh chứng |
 |---|---|---|
 | C1 · CỐT LÕI – chạy từ trạng thái ban đầu theo README | ✔ | Phép thử clone `--branch v0.2` vào thư mục trống, làm đúng 12 bước: `docs/bt2/thu-clone-moi.txt` |
-| C2 · CỐT LÕI – tách lớp đúng | ✔ | Bảng mục 7; `tests/test_ranh_gioi_lop.py` (11 test); TD-22 |
+| C2 · CỐT LÕI – tách lớp đúng | ✔ | Bảng mục 7; `tests/test_ranh_gioi_lop.py` (11 test: E/T không chạm CSDL, T không gọi E và L, L không gọi E/T); TD-22, TD-29 |
 | C3 – ≥ 2 quy tắc nghiệp vụ thật | ✔ | QT-02 chuẩn hóa số, QT-01 hồ sơ lặp không tạo mới, QL7-03 điểm tương đồng, QL7-04 hồ sơ lỗi ở lại bảng tạm, QL7-06 chỉ số |
-| C4 · CỐT LÕI – ≥ 3 test ba loại, PASS bằng một lệnh | ✔ | `python -m pytest -q` → 123 passed, 2 skipped; bảng ba loại in cuối kết quả |
+| C4 · CỐT LÕI – ≥ 3 test ba loại, PASS bằng một lệnh | ✔ | `python -m pytest -q` → 139 passed, 2 skipped (14 · 24 · 20); bảng ba loại in cuối kết quả |
 | C5 · CỐT LÕI – chạy lại không lỗi, không nhân đôi | ✔ | Bước 9: +0 ở 8 bảng đích, mã thoát 0 (TD-25) |
 | C6 – tệp khóa, `.env.example`, không có `.env` | ✔ | `requirements.txt` (==), `.env.example` đủ 8 biến, `.gitignore` chặn `.env` |
-| C7 – dữ liệu sai bị từ chối rõ ràng | ✔ | Mục 5 bảng "Thử thêm"; 14 test loại "dữ liệu sai" |
+| C7 – dữ liệu sai bị từ chối rõ ràng | ✔ | Mục 5 bảng "Thử thêm": thiếu cột, chỉ có tiêu đề, sai bảng mã → TỪ CHỐI mã 2 bằng câu tiếng Việt, không lộ lỗi thô của thư viện (TD-28); 20 test loại "dữ liệu sai" |
 | D1 – pipeline một lệnh, ba pha ở ba nơi | ✔ | Bước 8; E/T/L ở mục 7 |
 | D2 – ≥ 5 hàm kiểm chất lượng trả về số đo | ✔ | 6 hàm `kiem_dq01_…` – `kiem_dq06_…` trả về số dòng lỗi, tỉ lệ lỗi (TD-24) |
 | D3 – bảng reject có dòng, lý do cho người đọc | ✔ | `ops.v_reject`, 31 dòng trên dữ liệu mẫu (TD-23) |
-| D4 – ≥ 2 biểu đồ có mốc tham chiếu, ghi nguồn | ✔ | 4 biểu đồ K1 – K3 (mốc 90/75, ngưỡng đạt, 10 điểm, ngưỡng 85) |
+| D4 – ≥ 2 biểu đồ có mốc tham chiếu, ghi nguồn | ✔ | 4 biểu đồ K1 – K3 (mốc 90/75, ngưỡng đạt, 10 điểm, ngưỡng 85); mỗi thẻ số ở K1, K3 cũng có mốc (TD-30) |
 
 Ảnh kết quả chạy BT2: `docs/bt2/` (danh sách ở `docs/bt2/README.md`). Nhật ký lỗi đã gỡ: `docs/bug-log.md`.
 Phần chuyển sang Giai đoạn 3 (UC5 Gộp/Giữ riêng, K4, `dash_reader`, NFR-02, NFR-03, Docker): TD-27.
@@ -163,8 +167,8 @@ Theo từng phần, có cột "đã kiểm chứng thế nào": `docs/ai-disclos
 |---|---|
 | `docs/srs.md` | SRS 1.2: User Story, tiêu chí chấp nhận, đặc tả UC5, FR, NFR, quy tắc, truy vết |
 | `docs/data-requirements.md` | Nguồn dữ liệu, profiling, từ điển dữ liệu, quy tắc DQ, thuật toán so khớp |
-| `docs/thay-doi-thiet-ke.md` | TD-01 – TD-27: mọi thay đổi so với BT1 (BT2: TD-22 – TD-27) |
-| `docs/bug-log.md` | 8 lỗi đã gỡ, mỗi lỗi 7 dòng, kèm commit |
+| `docs/thay-doi-thiet-ke.md` | TD-01 – TD-31: mọi thay đổi so với BT1 (BT2: TD-22 – TD-31) |
+| `docs/bug-log.md` | 12 lỗi đã gỡ, mỗi lỗi 7 dòng, kèm commit |
 | `docs/ai-disclosure.md` | Khai báo AI theo từng phần |
 | `docs/architecture-thuc-te.html`, `docs/export/` | Sơ đồ kiến trúc đã hiện thực và sơ đồ BT1 |
 | `docs/bt2/`, `docs/sprint1/`, `docs/sprint2/` | Ảnh kết quả chạy từng giai đoạn |
