@@ -13,7 +13,9 @@ from sqlalchemy import URL, create_engine
 from src.config import GOC
 
 THU_MUC_SQL = GOC / 'sql'
-BIEN_BAT_BUOC = ('DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER')
+# DB_USER để trống thì thư viện libpq dùng tên tài khoản hệ điều hành – đúng mặc định của PostgreSQL cài bằng Homebrew
+# trên macOS, nên README bước 6 chỉ còn một lệnh `cp .env.example .env` (TD-31).
+BIEN_BAT_BUOC = ('DB_HOST', 'DB_PORT', 'DB_NAME')
 
 
 class ThieuCauHinhCSDL(RuntimeError):
@@ -29,7 +31,7 @@ def tao_engine():
             'kết nối PostgreSQL, hoặc chạy thử không ghi CSDL bằng --khong-ghi-csdl.')
     url = URL.create(
         'postgresql+psycopg2',
-        username=os.getenv('DB_USER'),
+        username=os.getenv('DB_USER') or None,         # trống → tài khoản hệ điều hành (TD-31)
         password=os.getenv('DB_PASSWORD') or None,   # URL.create tự mã hóa ký tự đặc biệt trong mật khẩu
         host=os.getenv('DB_HOST'),
         port=int(os.getenv('DB_PORT')),
@@ -52,7 +54,7 @@ def tao_engine_chi_doc():
     rieng = (os.getenv('DASH_DB_USER') or '').strip()
     url = URL.create(
         'postgresql+psycopg2',
-        username=rieng or os.getenv('DB_USER'),
+        username=rieng or os.getenv('DB_USER') or None,
         password=(os.getenv('DASH_DB_PASSWORD') if rieng else os.getenv('DB_PASSWORD')) or None,
         host=os.getenv('DB_HOST'), port=int(os.getenv('DB_PORT')), database=os.getenv('DB_NAME'),
     )

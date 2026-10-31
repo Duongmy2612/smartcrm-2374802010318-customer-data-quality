@@ -1,30 +1,23 @@
-import os
-import pandas as pd
-from dotenv import load_dotenv
+"""Kiểm nhanh môi trường (buổi 1): phiên bản Python, thư viện, và kết nối PostgreSQL theo .env.
 
-load_dotenv()
+    python scripts/check_env.py
 
-print("pandas:", pd.__version__)
+Dùng đúng hàm kết nối của hệ thống (src/db.tao_engine) nên kết quả giống khi chạy pipeline: DB_USER để trống
+thì dùng tài khoản hệ điều hành (TD-31). Lỗi chỉ in loại lỗi, không in chuỗi kết nối hay mật khẩu (NFR-07).
+"""
+import pathlib
+import sys
 
-# 1. Đọc dữ liệu mẫu
-df = pd.DataFrame({
-    "customer": ["A", "B", "C"],
-    "revenue": [120, 80, 150]
-})
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-print(df.describe())
+import pandas as pd                     # noqa: E402
+from sqlalchemy import text            # noqa: E402
 
-# 2. Kiểm tra kết nối PostgreSQL
+from src import db                      # noqa: E402
+
+print(f'Python {sys.version.split()[0]} · pandas {pd.__version__}')
 try:
-    from sqlalchemy import create_engine, text
-
-    url = (
-        f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
-        f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-    )
-
-    with create_engine(url).connect() as conn:
-        print("DB OK:", conn.execute(text("SELECT version()")).scalar())
-
-except Exception as e:
-    print("Chưa kết nối được CSDL:", e)
+    with db.tao_engine().connect() as conn:
+        print('CSDL OK:', conn.execute(text('SELECT version()')).scalar())
+except Exception as e:                  # noqa: BLE001
+    print(f'Chưa kết nối được CSDL ({type(e).__name__}) – kiểm tra PostgreSQL đang chạy, đã createdb smartcrm và .env')
