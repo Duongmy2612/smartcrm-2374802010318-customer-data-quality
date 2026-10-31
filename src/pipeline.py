@@ -19,9 +19,11 @@ Quyết định thiết kế:
   1. Cả UC1 nằm trong MỘT giao dịch (`with engine.begin()`): lỗi ở bất kỳ bước nào → ROLLBACK, không bao giờ
      còn lại một đợt nạp dở dang (TD-09). UC3 là giao dịch thứ hai: so khớp lỗi thì đợt nạp vẫn còn, chỉ cần
      chạy lại UC3 (TD-17).
-  2. Tệp bị từ chối (thiếu cột, đã nạp mà chưa xác nhận, người nạp sai vai trò, giá trị dài hơn cột của
-     customer_clean) được kiểm TRƯỚC khi ghi gì vào CSDL, nên load_batch và stg_customer không thay đổi (AC1.3, AC1.4).
-  3. Mã thoát: 0 thành công · 1 lỗi kỹ thuật (không đọc được tệp, mất kết nối) · 2 dữ liệu bị từ chối.
+  2. Tệp bị từ chối (thiếu cột, người nạp sai vai trò, giá trị dài hơn cột của customer_clean) được kiểm TRƯỚC
+     khi ghi gì vào CSDL, nên load_batch và stg_customer không thay đổi (AC1.3).
+  3. Chạy lại cùng tệp (cùng SHA-256) mà không có --nap-lai: CẢNH BÁO đợt đã nạp (AC1.4), không tạo đợt mới,
+     chỉ đồng bộ kho và UC3 cho đợt đó – mọi bảng +0, mã thoát 0 (TD-25). In số dòng bảng đích trước → sau.
+  4. Mã thoát: 0 thành công · 1 lỗi kỹ thuật (không đọc được tệp, mất kết nối) · 2 dữ liệu bị từ chối.
 """
 import argparse
 import pathlib
@@ -105,17 +107,16 @@ def chay_uc1(tep, don_vi: str, nguoi_nap: str, nap_lai: bool = False, ghi_csdl: 
         raise TuChoi(f'Giá trị dài hơn cột của customer_clean: {chi_tiet} – sửa tệp nguồn rồi nạp lại')
     t_tf = time.perf_counter() - t0
 
-    engine = None
+    engine, dem_truoc = None, None
     if ghi_csdl:
         engine = mo_ket_noi()
-        with engine.begin() as conn:              # DDL chạy lại an toàn
+        with engine.begin() as conn:              # DDL chạy lại an toàn; đếm bảng đích TRƯỚC lần chạy
             from src import db
             db.khoi_tao_csdl(conn)
             trung = load_ops.tim_dot_cung_tep(conn, file_hash)
-        if trung and not nap_lai:
-            ds = ', '.join(f'đợt {b} ({f}, {t:%d/%m/%Y %H:%M})' for b, f, t in trung)
-            raise TuChoi(f'Tệp này đã được nạp ở {ds}. Nạp lại sẽ tạo hồ sơ lặp giữa hai đợt; '
-                         'chỉ nạp khi chắc chắn bằng cách thêm --nap-lai (AC1.4)')
+            dem_truoc = load_ops.dem_dong_bang_dich(conn)
+        if trung and not nap_lai:                 # AC1.4: cảnh báo, không nạp lại khi chưa xác nhận (TD-25)
+            return _tep_da_nap(bc, trung, engine, cau_hinh, in_ra, dem_truoc)
     with (engine.begin() if engine else _khong_csdl()) as conn:
         t0 = time.perf_counter()
         if conn is not None:
@@ -212,6 +213,10 @@ def chay_uc1(tep, don_vi: str, nguoi_nap: str, nap_lai: bool = False, ghi_csdl: 
     if 'match' in tg:
         in_ra(f"           UC3 phát hiện cặp + nạp kho {giay(tg['match'])} (NFR-01 phần 2: ≤ 120 s trên 8.000 hồ sơ) · "
               f"toàn luồng {giay(sum(tg.values()))}")
+    if engine is not None:
+        with engine.connect() as conn:
+            bc['bang_dich'] = (dem_truoc, load_ops.dem_dong_bang_dich(conn))
+        _in_bang_dich(*bc['bang_dich'], in_ra)
     tep_bc = ghi_bao_cao(bc, hs, thu_muc_ra or config.duong_dan(cau_hinh, 'thu_muc_bao_cao'))
     bc['tep_bao_cao'] = _tuong_doi(tep_bc)
     in_ra(f"Báo cáo: {bc['tep_bao_cao']}")
@@ -231,6 +236,38 @@ def mo_ket_noi():
             f"({type(e).__name__}). Kiểm tra PostgreSQL đang chạy (macOS: brew services start postgresql@14), "
             "CSDL đã tạo (createdb smartcrm) và DB_USER/DB_PASSWORD trong .env.") from None
     return engine
+
+
+def _tep_da_nap(bc: dict, trung: list[tuple], engine, cau_hinh: dict, in_ra, dem_truoc: dict) -> dict:
+    """Chạy lại cùng tệp mà không có --nap-lai (AC1.4, TD-25): cảnh báo đợt đã nạp, KHÔNG tạo đợt mới, KHÔNG ghi
+    lại hồ sơ; chỉ đồng bộ kho và chạy lại UC3 cho đợt đó. Mọi lệnh ghi theo khóa nghiệp vụ (ON CONFLICT /
+    NOT EXISTS) nên lần chạy này cho +0 ở mọi bảng – hoặc chỉ bổ sung phần còn thiếu nếu lần trước UC3 lỗi."""
+    batch_id = trung[-1][0]
+    ds = ', '.join(f'đợt {b} ({f}, {t:%d/%m/%Y %H:%M})' for b, f, t in trung)
+    in_ra(f'      CẢNH BÁO (AC1.4): tệp này đã nạp ở {ds} → không tạo đợt mới, không ghi lại hồ sơ.')
+    in_ra('      Muốn nạp thành một đợt mới (sẽ sinh hồ sơ lặp giữa hai đợt) thì chạy lại với --nap-lai.')
+    in_ra(f'[2/5] transform  bỏ qua – hồ sơ của đợt {batch_id} đã chuẩn hóa')
+    in_ra(f'[3/5] dq_evaluate bỏ qua – đợt {batch_id} đã đo')
+    with engine.begin() as conn:
+        bc['nap_kho_uc1'] = load_dwh.nap_kho(conn)
+    in_ra('[4/5] load_dwh    ' + _dong_nap_kho(bc['nap_kho_uc1']))
+    bc.update(batch_id=batch_id, chay_lai=True)
+    _chay_uc3(bc, None, engine, cau_hinh, in_ra)
+    with engine.connect() as conn:
+        bc['bang_dich'] = (dem_truoc, load_ops.dem_dong_bang_dich(conn))
+    _in_bang_dich(*bc['bang_dich'], in_ra)
+    them = sum(bc['bang_dich'][1][b] - bc['bang_dich'][0][b] for b in load_ops.BANG_DICH)
+    in_ra('Kết quả lần chạy lại: mọi bảng +0 – không nhân đôi dữ liệu.' if them == 0 else
+          f'Kết quả lần chạy lại: không tạo đợt mới; chỉ bổ sung {so(them)} dòng còn thiếu của đợt {batch_id}.')
+    return bc
+
+
+def _in_bang_dich(truoc: dict, sau: dict, in_ra) -> None:
+    """Bảng số dòng của các bảng đích trước → sau lần chạy (kiểm chứng C5: chạy lại không nhân đôi)."""
+    in_ra(f"Số dòng bảng đích (trước → sau lần chạy này):")
+    in_ra(f"  {'Bảng':<26}{'trước':>9}{'sau':>10}{'thêm':>8}")
+    for b in load_ops.BANG_DICH:
+        in_ra(f'  {b:<26}{so(truoc[b]):>9}{so(sau[b]):>10}{"+" + so(sau[b] - truoc[b]):>8}')
 
 
 def chay_uc3(conn, batch_id: int, nguong: float = 85) -> dict:
@@ -377,7 +414,12 @@ def ghi_bao_cao(bc: dict, hs: dict, thu_muc: pathlib.Path) -> pathlib.Path:
         d += [f"| {r['muc']} | {so(r['nguon'])} | {so(r['kho'])} | {'có' if r['khop'] else 'KHÔNG'} | {r['giai_thich']} |"
               for r in bc['doi_soat']]
         d += ['']
-    d += ['## 6. Thời gian (NFR-01)', '', '| Bước | Giây |', '|---|---:|']
+    if bc.get('bang_dich'):
+        truoc, sau = bc['bang_dich']
+        d += ['## 6. Số dòng bảng đích trước → sau', '', '| Bảng | Trước | Sau | Thêm |', '|---|---:|---:|---:|']
+        d += [f'| {b} | {so(truoc[b])} | {so(sau[b])} | +{so(sau[b] - truoc[b])} |' for b in load_ops.BANG_DICH]
+        d += ['']
+    d += ['## 7. Thời gian (NFR-01)', '', '| Bước | Giây |', '|---|---:|']
     d += [f"| {k} | {v:.2f} |".replace('.', ',') for k, v in bc['thoi_gian'].items()]
     p = thu_muc / f"uc1-dot-{bc['batch_id']}-{datetime.now():%Y%m%d_%H%M%S}.md"
     p.write_text('\n'.join(d) + '\n', encoding='utf-8')

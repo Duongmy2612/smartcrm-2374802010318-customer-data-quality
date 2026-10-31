@@ -39,12 +39,20 @@ def test_nap_tep_ghi_dung_bang(csdl_test):
     assert _dem(engine, "SELECT clean_index FROM dwh.v_batch_score WHERE measure_stage = 'SAU'") > 0
 
 
-def test_ac14_nap_lai_bi_tu_choi_roi_xac_nhan(csdl_test):
+def test_ac14_chay_lai_cung_tep_canh_bao_va_khong_nhan_doi(csdl_test):
+    """AC1.4 + C5 (TD-25): chạy lại cùng tệp không có --nap-lai → cảnh báo đợt đã nạp, KHÔNG tạo đợt mới,
+    mọi bảng đích +0; có --nap-lai (người dùng xác nhận) → đợt 2. [luồng đúng – chạy lại]"""
     engine, p, tmp = csdl_test
+    in_lan_2 = []
     _chay(p, tmp)
-    with pytest.raises(pipeline.TuChoi, match='đã được nạp'):
-        _chay(p, tmp)
-    assert _dem(engine, 'SELECT count(*) FROM ops.load_batch') == 1          # bảng tạm không đổi
+    with engine.connect() as conn:
+        sau_lan_1 = load_ops.dem_dong_bang_dich(conn)
+    bc = pipeline.chay_uc1(p, 'TONG_HOP', 'my.marketing', in_ra=in_lan_2.append, thu_muc_ra=tmp)
+    assert bc['chay_lai'] and bc['batch_id'] == 1
+    truoc, sau = bc['bang_dich']
+    assert truoc == sau == sau_lan_1                                           # mọi bảng +0
+    assert any('CẢNH BÁO (AC1.4)' in d and 'đợt 1' in d for d in in_lan_2)
+    assert any('mọi bảng +0' in d for d in in_lan_2)
     _chay(p, tmp, nap_lai=True)                                               # có xác nhận → đợt 2
     assert _dem(engine, "SELECT count(*) FROM ops.stg_customer WHERE batch_id = 2 AND status = 'PENDING_DUP'") == 3
     assert _dem(engine, 'SELECT count(*) FROM ops.customer_clean') == 2      # QT-01: không tạo hồ sơ mới
@@ -103,6 +111,22 @@ def test_ddl_chay_lai_khong_loi(csdl_test):
         assert conn.execute(text(dem), {'s': 'ops', 't': 'VIEW'}).scalar_one() == 1       # v_reject (TD-23)
         assert conn.execute(text('SELECT count(*) FROM dwh.dim_date')).scalar_one() == 1461   # 2024 – 2027
         assert conn.execute(text("SELECT count(*) FROM pg_trigger WHERE tgname = 'trg_dq_rule_updated_at'")).scalar_one() == 1
+
+
+@pytest.mark.luong_dung
+def test_chay_lai_bang_lenh_tra_ma_0_va_khong_nhan_doi(csdl_test, capsys):
+    """C5: gõ đúng lệnh của README hai lần → cả hai lần mã thoát 0; lần hai in +0 cho mọi bảng đích.
+    [luồng đúng – chạy lại]"""
+    engine, p, tmp = csdl_test
+    assert pipeline.main(['--tep', str(p)]) == pipeline.MA_THANH_CONG
+    dem_1 = _dem(engine, 'SELECT count(*) FROM ops.stg_customer'), _dem(engine, 'SELECT count(*) FROM dwh.fact_dq_check')
+    capsys.readouterr()
+    assert pipeline.main(['--tep', str(p)]) == pipeline.MA_THANH_CONG
+    ra = capsys.readouterr().out
+    assert 'mọi bảng +0' in ra and 'CẢNH BÁO (AC1.4)' in ra
+    assert (_dem(engine, 'SELECT count(*) FROM ops.stg_customer'),
+            _dem(engine, 'SELECT count(*) FROM dwh.fact_dq_check')) == dem_1 == (4, 12)
+
 
 @pytest.mark.du_lieu_sai
 def test_bang_reject_co_dong_va_ly_do_cho_nguoi_doc(csdl_test):
