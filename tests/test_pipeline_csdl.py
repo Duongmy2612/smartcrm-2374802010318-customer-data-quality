@@ -100,6 +100,31 @@ def test_ddl_chay_lai_khong_loi(csdl_test):
         assert conn.execute(text(dem), {'s': 'ops', 't': 'BASE TABLE'}).scalar_one() == 6
         assert conn.execute(text(dem), {'s': 'dwh', 't': 'BASE TABLE'}).scalar_one() == 5
         assert conn.execute(text(dem), {'s': 'dwh', 't': 'VIEW'}).scalar_one() == 2
+        assert conn.execute(text(dem), {'s': 'ops', 't': 'VIEW'}).scalar_one() == 1       # v_reject (TD-23)
         assert conn.execute(text('SELECT count(*) FROM dwh.dim_date')).scalar_one() == 1461   # 2024 – 2027
         assert conn.execute(text("SELECT count(*) FROM pg_trigger WHERE tgname = 'trg_dq_rule_updated_at'")).scalar_one() == 1
 
+@pytest.mark.du_lieu_sai
+def test_bang_reject_co_dong_va_ly_do_cho_nguoi_doc(csdl_test):
+    """D3 (TD-23): hồ sơ thiếu số vào bảng reject ops.v_reject kèm lý do viết thành câu; ba câu lý do của view
+    khớp transform.LY_DO (câu trong CSV hồ sơ lỗi). [dữ liệu sai]"""
+    engine, p, tmp = csdl_test
+    _chay(p, tmp)
+    with engine.connect() as conn:
+        rj = load_ops.doc_reject(conn, 1)
+    assert list(rj['row_no']) == [3] and list(rj['error_code']) == ['MISSING_PHONE']
+    assert rj['ly_do'].iloc[0] == transform.LY_DO['MISSING_PHONE']
+
+
+def test_ly_do_trong_view_reject_khop_transform(csdl_test):
+    """Ba câu lý do viết ở hai nơi (sql/004 và transform.LY_DO) phải giống hệt nhau."""
+    engine, _, _ = csdl_test
+    with engine.begin() as conn:
+        db.khoi_tao_csdl(conn)
+        b = conn.execute(text("INSERT INTO ops.load_batch (file_name, file_hash, source_unit, row_count, loaded_by) "
+                              "VALUES ('x.csv', repeat('a', 64), 'TONG_HOP', 3, 'my.marketing') RETURNING batch_id")).scalar_one()
+        for i, ma in enumerate(transform.LY_DO, start=1):
+            conn.execute(text("INSERT INTO ops.stg_customer (batch_id, row_no, error_code, status) "
+                              "VALUES (:b, :i, :ma, 'ERROR')"), {'b': b, 'i': i, 'ma': ma})
+        rj = load_ops.doc_reject(conn, b)
+    assert dict(zip(rj['error_code'], rj['ly_do'])) == transform.LY_DO

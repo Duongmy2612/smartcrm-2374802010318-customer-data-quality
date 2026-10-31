@@ -155,7 +155,8 @@ def chay_uc1(tep, don_vi: str, nguoi_nap: str, nap_lai: bool = False, ghi_csdl: 
         tep_loi = thu_muc_xuat / f'ho_so_loi_dot_{batch_id}.csv'
         n_loi = load_ops.xuat_csv_ho_so_loi(transform.bang_ho_so_loi(df), tep_loi)
         bc['tep_ho_so_loi'] = _tuong_doi(tep_loi)
-        in_ra(f"      → hồ sơ lỗi kèm lý do: {bc['tep_ho_so_loi']} ({so(n_loi)} dòng, FR-10)")
+        in_ra(f"      → hồ sơ lỗi kèm lý do: {bc['tep_ho_so_loi']} ({so(n_loi)} dòng, FR-10)"
+              + (' · bảng reject ops.v_reject' if conn is not None else ''))
         bc['thoi_gian']['transform'] = t_tf + time.perf_counter() - t0
 
         # ---------------- [3] dq_evaluate (FR-08) – UC1 «include» UC7: đo TRƯỚC/SAU ngay trong giao dịch nạp
