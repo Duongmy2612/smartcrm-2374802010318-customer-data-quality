@@ -45,3 +45,28 @@ def test_tep_mau_thieu_cot_bi_tu_choi_ma_thoat_2():
     with pytest.raises(extract.TepBiTuChoi, match='so_dien_thoai'):
         extract.doc_tep(tep)
     assert pipeline.main(['--tep', str(tep), '--khong-ghi-csdl']) == pipeline.MA_TU_CHOI
+
+
+@pytest.mark.du_lieu_sai
+@pytest.mark.parametrize('ten_tep, cau', [('customers_chi_tieu_de.csv', 'không có dòng dữ liệu nào'),
+                                          ('customers_sai_bang_ma.csv', 'không phải bảng mã UTF-8')])
+def test_tep_mau_hong_bi_tu_choi_ma_thoat_2(ten_tep, cau, capsys):
+    """C7 (TD-28): tệp mẫu chỉ có tiêu đề / lưu sai bảng mã → TỪ CHỐI bằng câu tiếng Việt, mã thoát 2, không có
+    tên lỗi thô của thư viện (EmptyDataError, UnicodeDecodeError). Đây đúng là lệnh README mục 5 cho thử. [dữ liệu sai]"""
+    tep = GOC / 'data' / 'mau' / ten_tep
+    assert pipeline.main(['--tep', str(tep), '--khong-ghi-csdl']) == pipeline.MA_TU_CHOI
+    loi = capsys.readouterr().err
+    assert loi.startswith('TỪ CHỐI:') and cau in loi and 'Error' not in loi
+
+
+def test_tep_mau_hong_sinh_lai_dung_tung_byte(tmp_path, monkeypatch):
+    """NFR-05: ba tệp SAI của data/mau cũng sinh lại đúng từng byte bằng script."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('sinh', GOC / 'scripts' / 'sinh_du_lieu_mau.py')
+    sinh = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sinh)
+    monkeypatch.setattr(sinh, 'THU_MUC', tmp_path)
+    sinh.main()
+    for ten in ('customers_mau.csv', 'customers_thieu_cot.csv', 'customers_chi_tieu_de.csv',
+                'customers_sai_bang_ma.csv'):
+        assert (tmp_path / ten).read_bytes() == (GOC / 'data' / 'mau' / ten).read_bytes(), ten

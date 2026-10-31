@@ -18,8 +18,9 @@ import csv
 import datetime as dt
 import pathlib
 import random
+import unicodedata
 
-GOC = pathlib.Path(__file__).resolve().parent.parent
+GOC =pathlib.Path(__file__).resolve().parent.parent
 THU_MUC = GOC / 'data' / 'mau'
 SEED = 42
 
@@ -136,14 +137,42 @@ def ghi(dong: list[dict], duong_dan: pathlib.Path, cot=COT) -> None:
         w.writerows(dong)
 
 
+DAU_THANH = '̣̀́̃̉'          # huyền, sắc, ngã, hỏi, nặng (dạng dấu rời)
+
+
+def ma_hoa_windows_1258(chuoi: str) -> bytes:
+    """Mã hóa như Excel trên Windows lưu "CSV" tiếng Việt (bảng mã Windows-1258): chữ có dấu thanh được tách thành
+    chữ gốc + dấu thanh rời (ễ → ê + dấu ngã). Dùng để sinh tệp SAI bảng mã (C7, TD-28)."""
+    ra = bytearray()
+    for ch in chuoi:
+        try:
+            ra += ch.encode('cp1258')
+        except UnicodeEncodeError:
+            tach = unicodedata.normalize('NFD', ch)              # ặ → a + dấu nặng + dấu trăng
+            thanh = ''.join(c for c in tach if c in DAU_THANH)    # dấu thanh: viết rời
+            goc = unicodedata.normalize('NFC', ''.join(c for c in tach if c not in DAU_THANH))   # ă
+            ra += goc.encode('cp1258') + thanh.encode('cp1258')
+    return bytes(ra)
+
+
+def ghi_sai_bang_ma(dong: list[dict], duong_dan: pathlib.Path, cot=COT) -> None:
+    dong_csv = [','.join(cot)] + [','.join(f'"{d[c]}"' if ',' in d[c] else d[c] for c in cot) for d in dong]
+    duong_dan.write_bytes(ma_hoa_windows_1258('\n'.join(dong_csv) + '\n'))
+
+
 def main() -> None:
     dong, tk = sinh()
     ghi(dong, THU_MUC / 'customers_mau.csv')
-    # Tệp SAI để thử luồng ngoại lệ AC1.3: thiếu cột so_dien_thoai → từ chối cả đợt, mã thoát 2
+    # Ba tệp SAI để thử luồng ngoại lệ (C7) – mỗi tệp bị TỪ CHỐI cả đợt, mã thoát 2, không tạo đợt nạp:
+    #   thiếu cột so_dien_thoai (AC1.3) · chỉ có dòng tiêu đề · lưu bằng bảng mã Windows-1258 thay vì UTF-8 (TD-28)
     ghi(dong[:5], THU_MUC / 'customers_thieu_cot.csv', ['record_id', 'ho_ten', 'email', 'dia_chi', 'ngay_tao'])
+    ghi([], THU_MUC / 'customers_chi_tieu_de.csv')
+    ghi_sai_bang_ma(dong[:5], THU_MUC / 'customers_sai_bang_ma.csv')
     print(f"data/mau/customers_mau.csv: {len(dong)} dòng – {tk['khach']} khách, {tk['lap']} hồ sơ lặp cùng số, "
           f"{tk['fuzzy']} cặp số gần giống, {tk['thieu_so']} thiếu số, {tk['sai_so']} số sai, {tk['thieu_ten']} thiếu tên")
     print('data/mau/customers_thieu_cot.csv: 5 dòng, thiếu cột so_dien_thoai (thử AC1.3)')
+    print('data/mau/customers_chi_tieu_de.csv: chỉ có dòng tiêu đề, 0 dòng dữ liệu (thử C7)')
+    print('data/mau/customers_sai_bang_ma.csv: 5 dòng lưu bằng bảng mã Windows-1258 (thử C7)')
 
 
 if __name__ == '__main__':

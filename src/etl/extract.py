@@ -8,6 +8,7 @@ pandas tự đoán, số 0901234567 thành số nguyên 901234567 và mất số
 """
 import hashlib
 import pathlib
+import zipfile
 
 import pandas as pd
 
@@ -32,21 +33,41 @@ class TepBiTuChoi(ValueError):
 
 
 def doc_tep(duong_dan) -> pd.DataFrame:
-    """Đọc .csv (UTF-8) hoặc .xlsx thành DataFrame toàn chuỗi; kiểm hai cột bắt buộc (AC1.3)."""
+    """Đọc .csv (UTF-8) hoặc .xlsx thành DataFrame toàn chuỗi; kiểm hai cột bắt buộc (AC1.3) và tệp phải có
+    ít nhất một dòng dữ liệu. Tệp không đọc được (rỗng, sai bảng mã, hỏng cấu trúc) bị TỪ CHỐI bằng câu tiếng
+    Việt nói rõ cách sửa, không để lỗi thô của pandas lọt ra người dùng (C7 – TD-28)."""
     p = pathlib.Path(duong_dan)
     if not p.is_file():
         raise FileNotFoundError(f'Không tìm thấy tệp {p}')
     duoi = p.suffix.lower()
-    if duoi == '.csv':
-        # utf-8-sig: bỏ được ký tự BOM mà Excel hay chèn vào đầu tệp CSV
-        df = pd.read_csv(p, dtype=str, keep_default_na=False, encoding='utf-8-sig')
-    elif duoi == '.xlsx':
-        # Lưu ý: ô Excel định dạng Number đã mất số 0 đầu từ trong Excel → sẽ bị gắn INVALID_PHONE
-        df = pd.read_excel(p, dtype=str, keep_default_na=False)
-    else:
+    if duoi not in ('.csv', '.xlsx'):
         raise TepBiTuChoi(f'Chỉ nhận tệp .csv hoặc .xlsx, không nhận "{p.name}"')
+    try:
+        if duoi == '.csv':
+            # utf-8-sig: bỏ được ký tự BOM mà Excel hay chèn vào đầu tệp CSV
+            df = pd.read_csv(p, dtype=str, keep_default_na=False, encoding='utf-8-sig')
+        else:
+            # Lưu ý: ô Excel định dạng Number đã mất số 0 đầu từ trong Excel → sẽ bị gắn INVALID_PHONE
+            df = pd.read_excel(p, dtype=str, keep_default_na=False)
+    except pd.errors.EmptyDataError:
+        raise TepBiTuChoi(f'Tệp "{p.name}" trống (không có cả dòng tiêu đề) – từ chối cả đợt, '
+                          'bảng tạm không thay đổi') from None
+    except UnicodeDecodeError:
+        raise TepBiTuChoi(f'Tệp "{p.name}" không phải bảng mã UTF-8 (thường gặp khi lưu CSV bằng Excel trên '
+                          'Windows) – mở tệp, chọn "Lưu dưới dạng" CSV UTF-8 rồi nạp lại') from None
+    except pd.errors.ParserError:
+        raise TepBiTuChoi(f'Tệp "{p.name}" hỏng cấu trúc CSV (số cột không đều hoặc thiếu dấu ngoặc kép đóng) – '
+                          'mở tệp kiểm tra lại rồi nạp lại') from None
+    except (zipfile.BadZipFile, ValueError) as e:
+        if duoi == '.csv':                         # ValueError khác của pandas khi đọc CSV: để pipeline báo lỗi kỹ thuật
+            raise
+        raise TepBiTuChoi(f'Tệp "{p.name}" không mở được như tệp Excel .xlsx ({type(e).__name__}) – '
+                          'lưu lại bằng Excel rồi nạp lại') from None
     df.columns = [str(c).strip() for c in df.columns]
     kiem_cot_bat_buoc(df)
+    if df.empty:
+        raise TepBiTuChoi(f'Tệp "{p.name}" không có dòng dữ liệu nào (chỉ có dòng tiêu đề) – từ chối cả đợt, '
+                          'không tạo đợt nạp rỗng')
     return df
 
 
