@@ -215,7 +215,7 @@ không tồn tại).
 
 | Mục | Đạt | Minh chứng |
 |---|---|---|
-| C1 · CỐT LÕI – chạy từ trạng thái ban đầu theo README | ✔ | Phép thử clone `--branch v0.2` vào thư mục trống, làm đúng 13 bước: `docs/bt2/thu-clone-moi.txt` |
+| C1 · CỐT LÕI – chạy từ trạng thái ban đầu theo README | ✔ | Trên MacBook: clone `--branch v0.2` vào thư mục trống, CSDL mới, làm đúng 13 bước – ảnh `docs/bt2/` (nơi chụp từng ảnh ở `docs/bt2/README.md`); cùng phép thử trên Linux ghi mã thoát từng bước: `docs/bt2/thu-clone-moi.txt` |
 | C2 · CỐT LÕI – tách lớp đúng | ✔ | Bảng mục 7; `tests/test_ranh_gioi_lop.py` (14 test: E/T không chạm CSDL, T không gọi E và L, L không gọi E/T, lệnh NFR-03 không chạm CSDL); TD-22, TD-29, TD-32 |
 | C3 – ≥ 2 quy tắc nghiệp vụ thật | ✔ | QT-02 chuẩn hóa số, QT-01 hồ sơ lặp không tạo mới, QL7-03 điểm tương đồng, QL7-04 hồ sơ lỗi ở lại bảng tạm, QL7-06 chỉ số |
 | C4 · CỐT LÕI – ≥ 3 test ba loại, PASS bằng một lệnh | ✔ | `python -m pytest -q` → 155 passed, 3 skipped (18 · 28 · 25); bảng ba loại in cuối kết quả |

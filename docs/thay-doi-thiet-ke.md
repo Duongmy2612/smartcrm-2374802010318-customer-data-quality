@@ -572,12 +572,13 @@ ngưỡng, bốn câu lập luận, GRAIN, từ điển dữ liệu, bảng truy
   - Chữ chạy một cột (BT1 dàn chữ hai cột – TD-13); bảng dài (tự kiểm, thay đổi so với BT1, khai báo AI) cho phép
     sang trang thay vì nén cỡ chữ; sơ đồ kiến trúc vẽ lại với chữ to hơn.
   - Ảnh chèn nguyên độ phân giải, không nén (PDF xuất bằng LibreOffice, tắt giảm độ phân giải ảnh) – phóng to trong
-    trình xem PDF vẫn đọc được từng dòng lệnh. Ảnh K1 – K3 thay bằng ảnh đủ nét.
-  - Sáu ảnh dashboard xếp lưới hai cột trên một trang để báo cáo gọn (12 trang); mỗi ảnh vẫn có chú thích riêng.
+    trình xem PDF vẫn đọc được từng dòng lệnh.
+  - Sáu ảnh dashboard xếp lưới hai cột trên một trang để báo cáo gọn (11 trang); mỗi ảnh vẫn có chú thích riêng.
 - **Vì sao:**
   - Đúng nhận xét: TD-13 đặt hình và chữ hai cột để rút xuống 9 trang, đổi lại bản PDF khó đọc.
   - Bản PDF đầu tiên của BT2 xuất bằng Word for Mac bị hỏng chữ có dấu: "dữ liệu" thành "dfi liệu", "từ" thành "tfi",
     "Dương" thành "Dffơng" (BUG-14). Word còn nén ảnh xuống khoảng 200 điểm/inch, ảnh dòng lệnh in ra bị mờ.
-  - Ảnh K1 – K3 cũ chỉ rộng khoảng 600 điểm ảnh nên phóng lên là mờ, không sửa được bằng cách chèn lại.
-- **Ảnh hưởng:** Báo cáo 12 trang (đề gợi ý 6 – 9) vì thêm mục 3.4 NFR-03 theo nhận xét. Ảnh dashboard mới do Claude chụp
-  trên môi trường thử – ghi ở chú thích, ghi chú mục 5 và `docs/bt2/README.md`. Không đổi con số nào.
+- **Ảnh hưởng:** Báo cáo 11 trang (đề gợi ý 6 – 9) vì thêm mục 3.4 NFR-03 theo nhận xét. Ảnh dòng lệnh và dashboard
+  Hình 5.1 – 5.5 em chụp lại trên MacBook ở phép thử thư mục trống (tag `v0.2`, dữ liệu mẫu) nên số trên dashboard khớp
+  mục 3; chỉ Hình 5.6 do Claude chụp trên môi trường thử – ghi ở chú thích, Phụ lục và `docs/bt2/README.md`. Không đổi
+  con số nào.
