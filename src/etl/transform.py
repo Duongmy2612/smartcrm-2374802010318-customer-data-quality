@@ -1,4 +1,4 @@
-"""② transform.py – pha TRANSFORM, FR-02, FR-03, FR-10 (UC2, UC9). Chỉ có hàm THUẦN: không import sqlalchemy,
+"""② transform.py – pha TRANSFORM, FR-02, FR-03, FR-10 (UC2, UC9). Chỉ có hàm THUẦN: không đọc/ghi CSDL,
 không có câu SQL, không ghi tệp – ghi kết quả là việc của load_ops.py (TD-22).
 
 1. Chuẩn hóa số điện thoại về 0xxxxxxxxx (QT-02) và họ tên (FR-03) – hàm THUẦN, kiểm thử ở tests/.
