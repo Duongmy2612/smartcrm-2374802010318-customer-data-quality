@@ -358,11 +358,13 @@ kỹ thuật của BT2 (đề mục 4.2: C1 – C7, D1 – D4); TD-28 – TD-31 
 | TD-24 | Sáu hàm kiểm chất lượng riêng (DQ-01 … DQ-06), mỗi hàm trả về số dòng lỗi và tỉ lệ lỗi | D2 |
 | TD-25 | Chạy lại cùng tệp: cảnh báo AC1.4, không tạo đợt mới, mọi bảng +0, mã thoát 0 | C5 (CỐT LÕI) |
 | TD-26 | Dữ liệu mẫu giả `data/mau/` (414 dòng, seed 42) được commit; README chạy trên dữ liệu mẫu | C1 (CỐT LÕI), TP4 |
-| TD-27 | Phạm vi BT2: hoãn UC5 Gộp/Giữ riêng, K4, `dash_reader`, NFR-02, NFR-03, Docker sang Giai đoạn 3 | Phạm vi đề mục 1 |
+| TD-27 | Phạm vi BT2: hoãn UC5 Gộp/Giữ riêng, K4, `dash_reader`, NFR-02, NFR-03, Docker sang Giai đoạn 3 (NFR-03 làm lại ở BT2 – TD-32) | Phạm vi đề mục 1 |
 | TD-28 | Tệp rỗng, chỉ có tiêu đề, sai bảng mã, hỏng cấu trúc bị TỪ CHỐI bằng câu tiếng Việt, mã thoát 2 | C7 |
 | TD-29 | Hàm dùng chung `la_trong` chuyển sang `src/etl/tien_ich.py`: pha T không import pha E | C2 (CỐT LÕI), D1 |
 | TD-30 | Mỗi thẻ số ở K1, K3 có mốc so sánh; câu đọc K3 chỉ nói "sát ngưỡng" khi đúng là sát | TP3, D4 |
 | TD-31 | `DB_USER` để trống = tài khoản hệ điều hành; README bước 3 có cách thay khi không có `python3.11`, bước 6 không phải sửa tay | C1 (CỐT LÕI), TP4 |
+| TD-32 | NFR-03 kiểm chứng ngay ở BT2 (theo nhận xét BT1): khung cặp 5 tầng, phiếu gán nhãn mù 300 cặp, precision/recall, quét ngưỡng | Nhận xét BT1; TP1, C3 |
+| TD-33 | Báo cáo PDF BT2: một cột, chữ 13, ảnh hết chiều ngang, bảng dài sang trang riêng; xuất PDF bằng LibreOffice | Nhận xét BT1; tiêu chí 4 |
 
 ### TD-22  Tách pha load: `src/etl/load_ops.py` giữ mọi lệnh đọc/ghi schema ops
 
@@ -500,3 +502,62 @@ kỹ thuật của BT2 (đề mục 4.2: C1 – C7, D1 – D4); TD-28 – TD-31 
   được). Bước 6 cũ phải mở `.env` sửa tay. Đã thử Python 3.13: cài đủ thư viện và toàn bộ test PASS.
 - **Ảnh hưởng:** `src/db.py`, `.env.example`, `scripts/check_env.py`, README mục 2, 3. PostgreSQL có tài khoản/mật khẩu
   riêng vẫn điền `DB_USER`, `DB_PASSWORD` như trước; NFR-07 không đổi (mật khẩu vẫn chỉ ở `.env`).
+
+---
+
+## Sau nhận xét bản nộp lại BT1 (BT1: 10,0) – làm trong BT2, ngày 31/10/2026
+
+Nhận xét của giảng viên cho bản nộp lại 21/10/2026: luồng L7 theo track DA làm tốt; **điểm cần cải thiện là trình
+bày** (bố cục hai cột, chữ nhỏ làm bản PDF hơi khó đọc – tách bớt bảng sang trang riêng); **ở BT2 hiện thực pipeline
+nạp, tính chỉ số sạch và chạy kiểm chứng precision/recall của NFR-03**. Pipeline nạp và chỉ số sạch đã có từ Sprint
+1 – 2 (TD-04, TD-14). Hai mục dưới đây xử lý hai điểm còn lại. Phần được ghi nhận (số liệu profiling đo thật, NFR có
+ngưỡng, bốn câu lập luận, GRAIN, từ điển dữ liệu, bảng truy vết, tệp .drawio gốc) giữ nguyên.
+
+### TD-32  NFR-03: kiểm chứng precision/recall của phát hiện trùng ngay ở BT2 (thay phần NFR-03 của TD-14, TD-27)
+
+- **Phản hồi của GV:** "Ở BT2 em hãy … chạy kiểm chứng precision/recall của NFR-03" (TD-04 đã ghi gợi ý này từ lần
+  chấm đầu). TD-14 và TD-27 lại dời NFR-03 sang Giai đoạn 3 – đi ngược nhận xét, nên sửa.
+- **Thay đổi gì:**
+  - `src/etl/danh_gia_match.py` (pha T, hàm thuần): `khung_cap` lập khung cặp 5 tầng – T1 cùng số (EXACT_PHONE),
+    T2 khác số cùng khối điểm ≥ 85 (FUZZY), T3 cùng khối điểm 70 – dưới 85, T4 cùng họ tên nhưng một bên không có số
+    hợp lệ, T5 cùng họ tên nhưng hai số khác khối; `chon_mau` chọn 300 cặp (T2 lấy hết tới 50, T3 60, T4 60, T5 40,
+    T1 phần còn lại; seed 42; xáo thứ tự dòng); `tinh_chi_so` (TP/FP/FN/TN, precision, recall); `quet_nguong` (70 – 95).
+  - `src/kiem_chung_nfr03.py`: một lệnh, ba cách dùng – `--nhan-dung` (dữ liệu mẫu, nhãn đúng của script sinh),
+    `--tao-phieu` (phiếu .xlsx để em gán nhãn tay), `--nhan` (tính từ phiếu em đã gán). Không đọc/ghi CSDL.
+  - `scripts/sinh_du_lieu_mau.py` ghi thêm `data/mau/nhan_dung_mau.csv` (record_id → ma_khach); `customers_mau.csv`
+    không đổi byte nào. README thêm bước 13 (macOS và Windows), mục 5, mục 6.
+- **Vì sao:**
+  - Khung phải có cả cặp hệ thống KHÔNG ghép (T3 – T5). Chỉ lấy cặp hệ thống đã ghép thì đo được precision nhưng
+    recall luôn 100% – vô nghĩa. T4 là chỗ hệ thống chắc chắn bỏ sót (QL7-04: hồ sơ thiếu số không tham gia so khớp);
+    T5 là chỗ blocking không so (`test_blocking_khong_so_hai_so_khac_ca_nua_dau_lan_nua_cuoi`).
+  - Phiếu "mù": chỉ có giá trị gốc của hai hồ sơ, không có điểm, tầng hay quyết định của hệ thống, để nhãn là phán
+    đoán độc lập của người. Giữ đúng lý do ở TD-14: không giao việc gán nhãn cho AI.
+  - Lấy mẫu theo tầng: tệp thật có 11.625 cặp T1 nhưng chỉ 12 cặp T2; lấy ngẫu nhiên 300 cặp từ cả khung thì gần như
+    không có cặp FUZZY và cặp bỏ sót nào để đo. Mỗi cặp mang trọng số tầng để ước lượng thêm cho toàn khung.
+  - Dựng khung từ tệp nguồn bằng chính các hàm của luồng chính, không đọc CSDL: không phụ thuộc CSDL đang nạp gì,
+    chạy được trên máy chưa có PostgreSQL. T1 = 11.625 và T2 = 12 khớp đúng số cặp pipeline ghi (test hồi quy).
+  - Dữ liệu mẫu có nhãn đúng biết trước, nên giảng viên chạy lại được bằng một lệnh mà không cần phiếu của em.
+- **Ảnh hưởng:**
+  - Không đổi bảng, cột, công thức điểm, ngưỡng 85 hay số liệu nào của BT1 và Sprint 1 – 2.
+  - Test mới: `tests/test_danh_gia_match.py` (14 test, 1 test cần dữ liệu thật), 3 test ranh giới lớp → bản clone mới
+    `155 passed, 3 skipped`.
+  - TD-27 nay chỉ còn hoãn UC5, K4, `dash_reader`, NFR-02, Docker.
+  - Dữ liệu mẫu (63 cặp, cả khung): precision 100%, recall 100% – dữ liệu do script sinh nên dễ; giá trị của phép
+    chạy này là kiểm được bằng một lệnh, và quét ngưỡng cho thấy ở 95 recall giảm còn 93,02% (3 cặp số gõ nhầm có
+    điểm 94).
+  - Lỗi gặp khi dựng khung: BUG-13 trong `docs/bug-log.md`.
+
+### TD-33  Trình bày báo cáo PDF BT2
+
+- **Phản hồi của GV:** "trình bày rất dày đặc (dàn chữ hai cột, cỡ chữ nhỏ) nên hơi khó đọc; em có thể tách bớt bảng
+  sang trang riêng".
+- **Thay đổi gì:** Báo cáo BT2 một cột, chữ 13, chữ trong bảng 11; mỗi ảnh chụp đặt hết chiều ngang trang, không đặt
+  hai ảnh cạnh nhau; bảng dài (thay đổi so với BT1, khai báo AI) đặt ở trang riêng. Ảnh K1 – K3 chụp lại đủ độ phân
+  giải. PDF xuất bằng LibreOffice như bản BT1, buổi 8, buổi 10.
+- **Vì sao:**
+  - Đúng nhận xét: TD-13 đặt hình và chữ hai cột để rút xuống 9 trang, đổi lại bản PDF khó đọc.
+  - Bản PDF đầu tiên của BT2 xuất bằng Word for Mac bị hỏng chữ có dấu: "dữ liệu" thành "dfi liệu", "từ" thành "tfi",
+    "Dương" thành "Dffơng" (BUG-14).
+  - Ảnh K1 – K3 cũ chỉ rộng khoảng 600 điểm ảnh nên phóng lên là mờ, không sửa được bằng cách chèn lại.
+- **Ảnh hưởng:** Báo cáo dài hơn mức gợi ý 6 – 9 trang một chút (đã gộp bớt chữ, chỉ giữ ảnh mà đề bắt buộc). Không
+  đổi con số nào. `docs/bt2/README.md` cập nhật danh sách ảnh.
