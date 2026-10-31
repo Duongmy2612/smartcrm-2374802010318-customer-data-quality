@@ -10,7 +10,7 @@ import pytest
 from sqlalchemy import text
 
 from src import db, pipeline
-from src.etl import transform
+from src.etl import load_ops, transform
 
 
 def _chay(p, tmp_path, **kw):
@@ -22,6 +22,7 @@ def _dem(engine, sql):
         return conn.execute(text(sql)).scalar_one()
 
 
+@pytest.mark.luong_dung
 def test_nap_tep_ghi_dung_bang(csdl_test):
     engine, p, tmp = csdl_test
     _chay(p, tmp)
@@ -54,7 +55,7 @@ def test_loi_giua_chung_thi_rollback_ca_dot(csdl_test, monkeypatch):
 
     def hong(conn, batch_id):
         raise RuntimeError('giả lập mất kết nối khi ghi customer_clean')
-    monkeypatch.setattr(transform, 'ghi_customer_clean', hong)
+    monkeypatch.setattr(load_ops, 'ghi_customer_clean', hong)
     with pytest.raises(RuntimeError):
         _chay(p, tmp)
     with engine.connect() as conn:          # DDL cũng nằm trong giao dịch nên schema ops có thể chưa tồn tại
@@ -66,20 +67,20 @@ def test_uc3_loi_thi_dot_nap_van_con_va_chi_lenh_chay_lai(csdl_test, monkeypatch
     """TD-17: hai giao dịch. UC3 lỗi → đợt nạp và lần đo của UC1 vẫn còn, không có cặp dở dang; thông báo chỉ
     đúng lệnh chạy lại riêng UC3, chạy lệnh đó thì kho đủ và đối soát khớp. [luồng ngoại lệ]"""
     engine, p, tmp = csdl_test
-    from src.etl import match
-    that = match.phat_hien_cap
+    that = pipeline.chay_uc3
 
     def hong(conn, batch_id, nguong):
         raise RuntimeError('giả lập mất kết nối khi so khớp')
-    monkeypatch.setattr(match, 'phat_hien_cap', hong)
-    with pytest.raises(pipeline.LoiUC3, match='python -m src.etl.match --dot 1'):
+    monkeypatch.setattr(pipeline, 'chay_uc3', hong)
+    with pytest.raises(pipeline.LoiUC3, match='python -m src.pipeline --dot 1'):
         _chay(p, tmp)
     assert _dem(engine, 'SELECT count(*) FROM ops.load_batch') == 1
     assert _dem(engine, 'SELECT count(*) FROM dwh.fact_dq_check') == 12
     assert _dem(engine, 'SELECT count(*) FROM ops.dup_candidate') == 0
-    monkeypatch.setattr(match, 'phat_hien_cap', that)
-    assert match.main(['--dot', '1']) == 0
+    monkeypatch.setattr(pipeline, 'chay_uc3', that)
+    assert pipeline.main(['--dot', '1']) == 0
     assert _dem(engine, 'SELECT count(*) FROM dwh.fact_dup_pair') == 1
+    assert pipeline.main(['--dot', '9']) == pipeline.MA_TU_CHOI               # đợt không tồn tại
 
 
 def test_nfr04_so_dang_hieu_luc_dung_mau_va_khong_trung(csdl_test):
@@ -101,3 +102,4 @@ def test_ddl_chay_lai_khong_loi(csdl_test):
         assert conn.execute(text(dem), {'s': 'dwh', 't': 'VIEW'}).scalar_one() == 2
         assert conn.execute(text('SELECT count(*) FROM dwh.dim_date')).scalar_one() == 1461   # 2024 – 2027
         assert conn.execute(text("SELECT count(*) FROM pg_trigger WHERE tgname = 'trg_dq_rule_updated_at'")).scalar_one() == 1
+

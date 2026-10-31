@@ -1,11 +1,12 @@
-"""② transform.py – FR-02, FR-03, FR-10 (UC2, UC9).
+"""② transform.py – pha TRANSFORM, FR-02, FR-03, FR-10 (UC2, UC9). Chỉ có hàm THUẦN: không import sqlalchemy,
+không có câu SQL, không ghi tệp – ghi kết quả là việc của load_ops.py (TD-22).
 
 1. Chuẩn hóa số điện thoại về 0xxxxxxxxx (QT-02) và họ tên (FR-03) – hàm THUẦN, kiểm thử ở tests/.
 2. Gắn mã lỗi chính cho hồ sơ không dùng được (MISSING_PHONE / INVALID_PHONE / MISSING_NAME).
 3. Phân loại hồ sơ: ERROR (ở lại bảng tạm – QL7-04), CLEAN (vào customer_clean), PENDING_DUP (hồ sơ lặp,
    không tạo hồ sơ mới mà chờ quyết định ở UC5 – QT-01).
-4. Ghi kết quả vào CSDL bằng câu lệnh SQL theo tập (UPDATE … FROM, INSERT … SELECT) thay vì từng dòng.
-5. Xuất CSV hồ sơ lỗi kèm lý do (FR-10) để cửa hàng sửa tại nguồn.
+4. Lập bảng hồ sơ lỗi kèm lý do viết cho người đọc (FR-10) – load_ops ghi ra CSV, view ops.v_reject (sql/004)
+   cho xem cùng lý do đó trong CSDL.
 
 name_key KHÔNG tạo ở đây: theo thay đổi số 2 của SRS 1.1, khóa tên thuộc FR-04 (match.py – Sprint 2).
 """
@@ -13,7 +14,6 @@ import re
 import unicodedata
 
 import pandas as pd
-from sqlalchemy import text
 
 from src.etl.extract import la_trong
 
@@ -21,7 +21,8 @@ KY_TU_BO = re.compile(r'[\s.\-]')          # QT-02: bỏ dấu cách, dấu ch�
 MAU_SO_CHUAN = re.compile(r'0[0-9]{9}')    # 10 chữ số ASCII, bắt đầu bằng 0 – khớp CHECK '^0[0-9]{9}$' ở sql/001
 #   (không dùng \d: trong Python \d nhận cả chữ số Unicode như '９', CSDL sẽ từ chối)
 
-# Lý do dạng câu chữ được sinh từ error_code khi xuất CSV, KHÔNG lưu vào CSDL (tránh lưu giá trị tính được – TD-07)
+# Lý do dạng câu chữ suy ra từ error_code, KHÔNG lưu vào bảng (tránh lưu giá trị tính được – TD-07).
+# View ops.v_reject (sql/004) viết đúng ba câu này; test_ly_do_trong_view_reject_khop_transform giữ hai nơi khớp nhau.
 LY_DO = {
     'MISSING_PHONE': 'Thiếu số điện thoại – không sửa được bằng làm sạch, cửa hàng cần bổ sung tại nguồn',
     'INVALID_PHONE': 'Số điện thoại không quy về được dạng 0xxxxxxxxx (sau khi bỏ dấu cách, chấm, gạch và đổi +84/84 thành 0)',
@@ -146,48 +147,13 @@ def thong_ke_chuan_hoa(df: pd.DataFrame) -> dict:
     }
 
 
-def xuat_ho_so_loi(df: pd.DataFrame, duong_dan) -> int:
-    """FR-10 / UC9: CSV hồ sơ lỗi kèm mã lỗi và lý do; giá trị là giá trị GỐC để cửa hàng tìm và sửa tại nguồn.
-    utf-8-sig để Excel mở đúng tiếng Việt. Tệp có dữ liệu cá nhân → nằm trong data/processed (không commit)."""
+def bang_ho_so_loi(df: pd.DataFrame) -> pd.DataFrame:
+    """FR-10 / UC9: bảng hồ sơ lỗi kèm mã lỗi và lý do; giá trị là giá trị GỐC để cửa hàng tìm và sửa tại nguồn.
+    Ghi ra CSV ở load_ops.xuat_csv_ho_so_loi."""
     loi = df[df['error_code'].notna()]
-    out = pd.DataFrame({
+    return pd.DataFrame({
         'row_no': loi['row_no'], 'record_id': loi['source_record_id'], 'ho_ten': loi['full_name_raw'],
         'so_dien_thoai': loi['phone_raw'], 'email': loi['email_raw'], 'dia_chi': loi['address_raw'],
         'ngay_tao': loi['created_raw'], 'error_code': loi['error_code'],
         'ly_do': loi['error_code'].map(LY_DO),
     })
-    out.to_csv(duong_dan, index=False, encoding='utf-8-sig')
-    return len(out)
-
-
-# ------------------------------------------------------------------ đọc / ghi CSDL
-def lay_so_dang_hieu_luc(conn) -> set[str]:
-    """Số điện thoại của mọi hồ sơ đang hiệu lực (QT-01 so trên toàn bộ customer_clean, không chỉ đợt này)."""
-    return {r[0] for r in conn.execute(text('SELECT phone FROM ops.customer_clean WHERE is_active'))}
-
-
-def ghi_ket_qua_chuan_hoa(conn, batch_id: int, df: pd.DataFrame) -> int:
-    """Cập nhật phone_norm, name_norm, error_code, status của đợt bằng MỘT lệnh UPDATE … FROM bảng tạm thời."""
-    conn.exec_driver_sql(
-        'CREATE TEMP TABLE tmp_chuan_hoa (row_no INT PRIMARY KEY, phone_norm CHAR(10), '
-        'name_norm VARCHAR(120), error_code VARCHAR(20), status VARCHAR(12)) ON COMMIT DROP')
-    df[['row_no', 'phone_norm', 'name_norm', 'error_code', 'status']].to_sql(
-        'tmp_chuan_hoa', conn, if_exists='append', index=False, chunksize=5000)
-    return conn.execute(text(
-        'UPDATE ops.stg_customer s SET phone_norm = t.phone_norm, name_norm = t.name_norm, '
-        'error_code = t.error_code, status = t.status '
-        'FROM tmp_chuan_hoa t WHERE s.batch_id = :b AND s.row_no = t.row_no'), {'b': batch_id}).rowcount
-
-
-def ghi_customer_clean(conn, batch_id: int) -> int:
-    """FR-02: hồ sơ CLEAN của đợt → customer_clean, rồi gắn customer_id ngược lại cho hồ sơ thô (truy vết).
-    Chỉ mục duy nhất từng phần ux_customer_clean_phone_active là lưới an toàn cuối cùng cho QT-01:
-    nếu hai người nạp cùng lúc cùng một số, lệnh INSERT thứ hai lỗi và cả đợt ROLLBACK."""
-    n = conn.execute(text(
-        "INSERT INTO ops.customer_clean (full_name, phone, email, address) "
-        "SELECT name_norm, phone_norm, NULLIF(BTRIM(email_raw), ''), NULLIF(BTRIM(address_raw), '') "
-        "FROM ops.stg_customer WHERE batch_id = :b AND status = 'CLEAN' ORDER BY row_no"), {'b': batch_id}).rowcount
-    conn.execute(text(
-        "UPDATE ops.stg_customer s SET customer_id = c.customer_id FROM ops.customer_clean c "
-        "WHERE s.batch_id = :b AND s.status = 'CLEAN' AND c.phone = s.phone_norm AND c.is_active"), {'b': batch_id})
-    return n

@@ -1,5 +1,6 @@
-"""② extract.py – FR-01 (UC1): đọc tệp khách hàng thô, kiểm cột bắt buộc, băm SHA-256,
-ghi đợt nạp (ops.load_batch) và hồ sơ thô (ops.stg_customer, status = LOADED).
+"""② extract.py – pha EXTRACT, FR-01 (UC1): đọc tệp khách hàng thô, kiểm cột bắt buộc, băm SHA-256, đổi tên
+cột sang cột *_raw của bảng tạm. KHÔNG đọc/ghi CSDL: ghi đợt nạp và hồ sơ thô là việc của pha load
+(load_ops.ghi_dot_nap, ghi_ho_so_tho – TD-22).
 
 KHÔNG biến đổi giá trị. Mọi cột được đọc dạng chuỗi (dtype=str) để pandas không tự đoán kiểu – nếu để
 pandas tự đoán, số 0901234567 thành số nguyên 901234567 và mất số 0 đầu trước khi kịp kiểm tra.
@@ -9,7 +10,6 @@ import hashlib
 import pathlib
 
 import pandas as pd
-from sqlalchemy import text
 
 COT_BAT_BUOC = ('ho_ten', 'so_dien_thoai')                 # FR-01: thiếu một cột → từ chối cả đợt
 # Ánh xạ cột nguồn → cột của bảng tạm (Bảng 4.1 của BT1). Cột không bắt buộc mà tệp không có → để trống.
@@ -29,7 +29,6 @@ class TepBiTuChoi(ValueError):
     """Tệp không được nạp; bảng tạm và load_batch không thay đổi (AC1.3)."""
 
 
-# ------------------------------------------------------------------ hàm thuần (không CSDL)
 def doc_tep(duong_dan) -> pd.DataFrame:
     """Đọc .csv (UTF-8) hoặc .xlsx thành DataFrame toàn chuỗi; kiểm hai cột bắt buộc (AC1.3)."""
     p = pathlib.Path(duong_dan)
@@ -91,28 +90,3 @@ def sang_bang_tam(df: pd.DataFrame) -> pd.DataFrame:
     if qua_dai:
         raise TepBiTuChoi(f'Giá trị dài hơn cột của bảng tạm: {qua_dai} – kiểm tra lại tệp nguồn')
     return bt
-
-
-# ------------------------------------------------------------------ đọc / ghi CSDL
-def tim_dot_cung_tep(conn, file_hash: str) -> list[tuple]:
-    """Các đợt đã nạp có cùng giá trị băm (AC1.4: cảnh báo, chỉ nạp khi người dùng xác nhận)."""
-    rows = conn.execute(text('SELECT batch_id, file_name, loaded_at FROM ops.load_batch '
-                             'WHERE file_hash = :h ORDER BY batch_id'), {'h': file_hash})
-    return [tuple(r) for r in rows]
-
-
-def ghi_dot_nap(conn, file_name: str, file_hash: str, source_unit: str, row_count: int, loaded_by: str) -> int:
-    """Tạo một dòng ops.load_batch (FR-01) và trả về batch_id; loaded_at do CSDL ghi (DEFAULT now())."""
-    return conn.execute(text(
-        'INSERT INTO ops.load_batch (file_name, file_hash, source_unit, row_count, loaded_by) '
-        'VALUES (:f, :h, :u, :n, :by) RETURNING batch_id'),
-        {'f': file_name, 'h': file_hash, 'u': source_unit, 'n': row_count, 'by': loaded_by}).scalar_one()
-
-
-def ghi_ho_so_tho(conn, batch_id: int, bang_tam: pd.DataFrame) -> int:
-    """Ghi hồ sơ thô với status = LOADED; trả về số dòng đã ghi (phải bằng row_count)."""
-    df = bang_tam.assign(batch_id=batch_id, status='LOADED')
-    df.to_sql('stg_customer', conn, schema='ops', if_exists='append', index=False,
-              chunksize=5000)   # SQLAlchemy 2 gộp nhiều dòng vào một lệnh INSERT (insertmanyvalues)
-    return conn.execute(text('SELECT count(*) FROM ops.stg_customer WHERE batch_id = :b'),
-                        {'b': batch_id}).scalar_one()

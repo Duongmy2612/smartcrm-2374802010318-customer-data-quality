@@ -1,12 +1,17 @@
 """Điều phối lớp ② theo thứ tự gọi ở Bảng 3.1 của BT1 – luồng chính của L7 chạy end-to-end bằng MỘT lệnh:
 
-    UC1 Nạp tệp khách hàng thô : extract → transform → dq_evaluate → load_dwh     (giao dịch 1)
-    UC3 Phát hiện cặp nghi trùng: match → load_dwh                                (giao dịch 2)
+    UC1 Nạp tệp khách hàng thô : extract → transform → dq_evaluate → load_ops → load_dwh   (giao dịch 1)
+    UC3 Phát hiện cặp nghi trùng: load_ops (đọc) → match → load_ops (ghi) → load_dwh         (giao dịch 2)
+
+Ba pha tách ở ba nơi (TD-22): E = extract.py · T = transform.py, dq_evaluate.py, match.py (hàm thuần) ·
+L = load_ops.py, load_dwh.py. Chỉ tệp này gọi cả ba pha; các pha không gọi lẫn nhau.
 
 Chạy từ thư mục gốc repo (đã kích hoạt .venv):
 
-    python -m src.pipeline --tep data/raw/customers_raw.csv
-    python -m src.pipeline --tep data/raw/customers_raw.csv --khong-ghi-csdl   # chưa có PostgreSQL
+    python -m src.pipeline --tep data/mau/customers_mau.csv          # dữ liệu mẫu có sẵn trong repo
+    python -m src.pipeline --tep data/raw/customers_raw.csv          # dữ liệu thật (LMS, không commit)
+    python -m src.pipeline --tep data/mau/customers_mau.csv --khong-ghi-csdl   # chưa có PostgreSQL
+    python -m src.pipeline --dot 1                                   # chạy lại riêng UC3 cho đợt 1 (TD-17)
 
 Dashboard đọc kho sau khi lệnh trên chạy xong: python -m streamlit run dashboard/report.py
 
@@ -25,10 +30,9 @@ import time
 from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 
-from sqlalchemy import text
 
 from src import config
-from src.etl import dq_evaluate, extract, load_dwh, match, transform
+from src.etl import dq_evaluate, extract, load_dwh, load_ops, match, transform
 
 MA_THANH_CONG, MA_LOI_KY_THUAT, MA_TU_CHOI = 0, 1, 2
 
@@ -54,6 +58,10 @@ class TuChoi(Exception):
 
 class LoiUC3(RuntimeError):
     """UC3 lỗi sau khi UC1 đã lưu: đợt nạp vẫn còn, thông báo chỉ lệnh chạy lại riêng UC3 (mã thoát 1, TD-17)."""
+
+
+class LoiKetNoiCSDL(RuntimeError):
+    """Không mở được kết nối PostgreSQL – báo câu dễ hiểu, không in chuỗi kết nối (NFR-07)."""
 
 
 def kiem_nguoi_nap(cau_hinh: dict, ten: str) -> dict:
@@ -99,22 +107,23 @@ def chay_uc1(tep, don_vi: str, nguoi_nap: str, nap_lai: bool = False, ghi_csdl: 
 
     engine = None
     if ghi_csdl:
-        from src import db                        # chỉ cần thư viện CSDL khi thật sự ghi
-        engine = db.tao_engine()
+        engine = mo_ket_noi()
+        with engine.begin() as conn:              # DDL chạy lại an toàn
+            from src import db
+            db.khoi_tao_csdl(conn)
+            trung = load_ops.tim_dot_cung_tep(conn, file_hash)
+        if trung and not nap_lai:
+            ds = ', '.join(f'đợt {b} ({f}, {t:%d/%m/%Y %H:%M})' for b, f, t in trung)
+            raise TuChoi(f'Tệp này đã được nạp ở {ds}. Nạp lại sẽ tạo hồ sơ lặp giữa hai đợt; '
+                         'chỉ nạp khi chắc chắn bằng cách thêm --nap-lai (AC1.4)')
     with (engine.begin() if engine else _khong_csdl()) as conn:
         t0 = time.perf_counter()
         if conn is not None:
-            db.khoi_tao_csdl(conn)
-            trung = extract.tim_dot_cung_tep(conn, file_hash)
-            if trung and not nap_lai:
-                ds = ', '.join(f'đợt {b} ({f}, {t:%d/%m/%Y %H:%M})' for b, f, t in trung)
-                raise TuChoi(f'Tệp này đã được nạp ở {ds}. Nạp lại sẽ tạo hồ sơ lặp giữa hai đợt; '
-                             'chỉ nạp khi chắc chắn bằng cách thêm --nap-lai (AC1.4)')
-            batch_id = extract.ghi_dot_nap(conn, pathlib.Path(tep).name, file_hash, don_vi, hs['so_dong'], nguoi_nap)
-            n_ghi = extract.ghi_ho_so_tho(conn, batch_id, bang_tam)
+            batch_id = load_ops.ghi_dot_nap(conn, pathlib.Path(tep).name, file_hash, don_vi, hs['so_dong'], nguoi_nap)
+            n_ghi = load_ops.ghi_ho_so_tho(conn, batch_id, bang_tam)
             if n_ghi != hs['so_dong']:            # tổng kiểm soát row_count (docs/data-requirements.md mục 5.1)
                 raise RuntimeError(f'Ghi {n_ghi} hồ sơ thô nhưng tệp có {hs["so_dong"]} dòng')
-            so_dang_hieu_luc = transform.lay_so_dang_hieu_luc(conn)
+            so_dang_hieu_luc = load_ops.lay_so_dang_hieu_luc(conn)
             in_ra(f'      → ops.load_batch: đợt {batch_id} ({don_vi}, {nguoi_nap}); '
                   f'ops.stg_customer +{so(n_ghi)} hồ sơ thô (LOADED)')
         else:
@@ -137,14 +146,14 @@ def chay_uc1(tep, don_vi: str, nguoi_nap: str, nap_lai: bool = False, ghi_csdl: 
               f"(MISSING_PHONE {so(ml['MISSING_PHONE'])}, INVALID_PHONE {so(ml['INVALID_PHONE'])}, "
               f"MISSING_NAME {so(ml['MISSING_NAME'])})")
         if conn is not None:
-            transform.ghi_ket_qua_chuan_hoa(conn, batch_id, df)
+            load_ops.ghi_ket_qua_chuan_hoa(conn, batch_id, df)
             truoc = len(so_dang_hieu_luc)
-            them = transform.ghi_customer_clean(conn, batch_id)
+            them = load_ops.ghi_customer_clean(conn, batch_id)
             bc['customer_clean'] = (truoc, truoc + them)
             in_ra(f'      → ops.customer_clean: {so(truoc)} → {so(truoc + them)} hồ sơ đang hiệu lực (+{so(them)})')
         thu_muc_xuat = thu_muc_ra or config.duong_dan(cau_hinh, 'thu_muc_xuat')
         tep_loi = thu_muc_xuat / f'ho_so_loi_dot_{batch_id}.csv'
-        n_loi = transform.xuat_ho_so_loi(df, tep_loi)
+        n_loi = load_ops.xuat_csv_ho_so_loi(transform.bang_ho_so_loi(df), tep_loi)
         bc['tep_ho_so_loi'] = _tuong_doi(tep_loi)
         in_ra(f"      → hồ sơ lỗi kèm lý do: {bc['tep_ho_so_loi']} ({so(n_loi)} dòng, FR-10)")
         bc['thoi_gian']['transform'] = t_tf + time.perf_counter() - t0
@@ -152,17 +161,16 @@ def chay_uc1(tep, don_vi: str, nguoi_nap: str, nap_lai: bool = False, ghi_csdl: 
         # ---------------- [3] dq_evaluate (FR-08) – UC1 «include» UC7: đo TRƯỚC/SAU ngay trong giao dịch nạp
         t0 = time.perf_counter()
         if conn is not None:
-            dq_evaluate.khoi_tao_quy_tac(conn, 'he_thong')
-            quy_tac = dq_evaluate.doc_quy_tac_dang_bat(conn)
+            load_ops.khoi_tao_quy_tac(conn, dq_evaluate.QUY_TAC_MAC_DINH, 'he_thong')
+            quy_tac = load_ops.doc_quy_tac_dang_bat(conn)
         else:
             quy_tac = dq_evaluate.QUY_TAC_MAC_DINH
         ket_qua = dq_evaluate.do_mot_lan(df, quy_tac)
         # Thời điểm đo lấy từ ĐỒNG HỒ CSDL – cùng đồng hồ với dq_rule.updated_at (= valid_from của dim_rule),
         # để load_dwh tìm đúng phiên bản quy tắc kể cả khi máy chạy Python và máy CSDL lệch giờ (TD-16).
-        do_luc = (conn.execute(text('SELECT clock_timestamp()::timestamp')).scalar_one()
-                  if conn is not None else datetime.now())
+        do_luc = load_ops.thoi_diem_csdl(conn) if conn is not None else datetime.now()
         if conn is not None:
-            n_kq = dq_evaluate.ghi_ket_qua(conn, batch_id, ket_qua, quy_tac, do_luc)
+            n_kq = load_ops.ghi_ket_qua_do(conn, batch_id, ket_qua, quy_tac, do_luc)
             ghi = f'→ ops.dq_result +{n_kq} dòng'
         else:
             ghi = '(không ghi CSDL)'
@@ -171,9 +179,9 @@ def chay_uc1(tep, don_vi: str, nguoi_nap: str, nap_lai: bool = False, ghi_csdl: 
         sau = dq_evaluate.chi_so_muc_do_sach(ket_qua, quy_tac, 'SAU')
         bc['chi_so'] = {'TRUOC': round(truoc, 2), 'SAU': round(sau, 2)}
         in_ra(f'[3/5] dq_evaluate {len(quy_tac)} quy tắc × 2 giai đoạn {ghi}')
-        in_ra(f"      {'Quy tắc':<8}{'Trọng số':>9}{'Ngưỡng':>9}   {'TRƯỚC':<18}{'SAU':<18}")
+        in_ra(f"      {'Hàm kiểm':<8}{'Trọng số':>9}{'Ngưỡng':>9}   {'TRƯỚC':<18}{'SAU':<18}{'Dòng lỗi SAU (tỉ lệ lỗi)'}")
         for d in bc['chat_luong']:
-            in_ra(f"      {d['ma']:<8}{d['trong_so']:>9}{d['nguong']:>9}   {d['truoc']:<18}{d['sau']:<18}")
+            in_ra(f"      {d['ma']:<8}{d['trong_so']:>9}{d['nguong']:>9}   {d['truoc']:<18}{d['sau']:<18}{d['loi_sau']}")
         t, s_ = bc['chi_so']['TRUOC'], bc['chi_so']['SAU']      # chênh lệch tính trên số đã làm tròn, như BT1
         in_ra(f'      Chỉ số mức độ sạch (QL7-06): TRƯỚC {diem(t)} ({dq_evaluate.xep_loai(t)}) → '
               f'SAU {diem(s_)} ({dq_evaluate.xep_loai(s_)}), {diem(s_ - t, dau=True)} điểm')
@@ -209,6 +217,46 @@ def chay_uc1(tep, don_vi: str, nguoi_nap: str, nap_lai: bool = False, ghi_csdl: 
     return bc
 
 
+def mo_ket_noi():
+    """Tạo engine và thử kết nối ngay, để lỗi kết nối được báo bằng câu dễ hiểu trước khi làm gì khác."""
+    from src import db                            # chỉ cần thư viện CSDL khi thật sự ghi
+    engine = db.tao_engine()
+    try:
+        with engine.connect():
+            pass
+    except Exception as e:                        # noqa: BLE001 – không in chuỗi kết nối (NFR-07)
+        raise LoiKetNoiCSDL(
+            f"Không kết nối được PostgreSQL ở {engine.url.host}:{engine.url.port}, CSDL {engine.url.database} "
+            f"({type(e).__name__}). Kiểm tra PostgreSQL đang chạy (macOS: brew services start postgresql@14), "
+            "CSDL đã tạo (createdb smartcrm) và DB_USER/DB_PASSWORD trong .env.") from None
+    return engine
+
+
+def chay_uc3(conn, batch_id: int, nguong: float = 85) -> dict:
+    """UC3 cho một đợt (FR-04): load_ops đọc hồ sơ → match (hàm thuần) tìm cặp → load_ops ghi name_key và cặp
+    mới (PENDING). Cặp đã có không tạo lại (QL7-05), nên chạy lại cho cùng đợt thì +0 cặp."""
+    t0 = time.perf_counter()
+    dot = load_ops.doc_ho_so_hop_le_cua_dot(conn, batch_id)
+    dot['name_key'] = dot['name_norm'].map(match.tao_name_key)
+    load_ops.ghi_name_key(conn, dot)
+    ho_so = load_ops.doc_ho_so_so_khop(conn, batch_id)
+    ho_so['name_key'] = ho_so['name_norm'].map(match.tao_name_key)   # cả đợt nạp trước Sprint 2 (chưa có name_key)
+    cap_da_co = load_ops.doc_cap_da_co(conn)
+    t1 = time.perf_counter()
+    tk = {'cap_ung_vien': 0, 'so_khac_nhau': 0}
+    cap = match.tim_cap(ho_so, set(dot['stg_id']), nguong, cap_da_co, tk)
+    t_so_khop = time.perf_counter() - t1
+    load_ops.ghi_cap(conn, cap)
+    return {
+        'ho_so_dot': len(dot), 'ho_so_so_khop': len(ho_so), 'so_khac_nhau': tk['so_khac_nhau'],
+        'cap_ung_vien': tk['cap_ung_vien'],
+        'exact': int((cap['match_type'] == 'EXACT_PHONE').sum()),
+        'fuzzy': int((cap['match_type'] == 'FUZZY').sum()),
+        'bo_qua_da_co': len(cap_da_co), 'nguong': nguong,
+        'thoi_gian_so_khop': t_so_khop, 'thoi_gian': time.perf_counter() - t0,
+    }
+
+
 def _dong_nap_kho(ra: dict) -> str:
     return load_dwh.dong_nap_kho(ra, so)
 
@@ -229,13 +277,15 @@ def _chay_uc3(bc: dict, df, engine, cau_hinh: dict, in_ra) -> None:
     else:
         try:
             with engine.begin() as conn:
-                kq = match.phat_hien_cap(conn, bc['batch_id'], nguong)
+                kq = chay_uc3(conn, bc['batch_id'], nguong)
                 bc['nap_kho_uc3'] = load_dwh.nap_kho(conn)
                 bc['doi_soat'] = load_dwh.doi_soat(conn)
         except Exception as e:                      # giao dịch 2 đã ROLLBACK; giao dịch 1 (UC1) đã lưu
             raise LoiUC3(f"UC3 lỗi ({type(e).__name__}: {e}). Đợt {bc['batch_id']} đã nạp và đo xong (UC1 đã lưu); "
-                         f"sửa lỗi rồi chạy lại riêng UC3: python -m src.etl.match --dot {bc['batch_id']}") from e
+                         f"sửa lỗi rồi chạy lại riêng UC3: python -m src.pipeline --dot {bc['batch_id']}") from e
         ghi = f"→ ops.dup_candidate +{so(kq['exact'] + kq['fuzzy'])} cặp PENDING"
+        if kq['bo_qua_da_co']:
+            ghi += f" ({so(kq['bo_qua_da_co'])} cặp đã có không tạo lại)"
     bc['thoi_gian']['match'] = time.perf_counter() - t0
     bc['so_khop'] = kq
     in_ra(f"[5/5] match       {_pham_vi_so_khop(kq)} ({so(kq['so_khac_nhau'])} số khác nhau) · "
@@ -279,6 +329,7 @@ def _bang_chat_luong(ket_qua, quy_tac) -> list[dict]:
             dat = k.ti_le * 100 >= float(q['pass_threshold'])
             o[khoa] = f"{pt(k.ti_le)} {'đạt' if dat else 'chưa đạt'}"
             o[khoa + '_so'] = f'{so(k.pass_count)}/{so(k.total_records)}'
+            o['loi_' + khoa] = f'{so(k.so_loi)} ({pt(k.ti_le_loi)})'
         dong.append(o)
     return dong
 
@@ -305,9 +356,10 @@ def ghi_bao_cao(bc: dict, hs: dict, thu_muc: pathlib.Path) -> pathlib.Path:
     d += [f'| &nbsp;&nbsp;{k} | {so(v)} |' for k, v in tk['ma_loi'].items()]
     d += ['', f"Tệp hồ sơ lỗi kèm lý do: `{bc['tep_ho_so_loi']}` (có dữ liệu cá nhân, không commit).", '',
           '## 3. Chất lượng TRƯỚC / SAU (FR-08, QL7-06)', '',
-          '| Quy tắc | Tên | Trọng số | Ngưỡng | TRƯỚC (đạt/kiểm) | SAU (đạt/kiểm) |', '|---|---|---:|---:|---|---|']
+          '| Quy tắc | Tên | Trọng số | Ngưỡng | TRƯỚC (đạt/kiểm) | SAU (đạt/kiểm) | Dòng lỗi SAU (tỉ lệ) |',
+          '|---|---|---:|---:|---|---|---:|']
     d += [f"| {o['ma']} | {o['ten']} | {o['trong_so']} | {o['nguong']} | {o['truoc']} ({o['truoc_so']}) | "
-          f"{o['sau']} ({o['sau_so']}) |" for o in bc['chat_luong']]
+          f"{o['sau']} ({o['sau_so']}) | {o['loi_sau']} |" for o in bc['chat_luong']]
     t, s = bc['chi_so']['TRUOC'], bc['chi_so']['SAU']
     d += ['', f"**Chỉ số mức độ sạch:** TRƯỚC {diem(t)} ({dq_evaluate.xep_loai(t)}) → SAU {diem(s)} "
               f"({dq_evaluate.xep_loai(s)}), {diem(s - t, dau=True)} điểm.", '']
@@ -340,10 +392,28 @@ class _khong_csdl:
         return False
 
 
+def chay_lai_uc3(batch_id: int, in_ra=print) -> int:
+    """python -m src.pipeline --dot <n>: chạy lại riêng UC3 cho một đợt đã nạp (ví dụ khi bước [5/5] lỗi – TD-17).
+    Mã thoát: 0 thành công · 1 lỗi kỹ thuật · 2 đợt không tồn tại."""
+    engine = mo_ket_noi()
+    with engine.begin() as conn:
+        if not load_ops.co_dot(conn, batch_id):
+            raise TuChoi(f'không có đợt nạp {batch_id} trong ops.load_batch')
+        kq = chay_uc3(conn, batch_id, float(config.doc_cau_hinh()['nguong_fuzzy']))
+        nap = load_dwh.nap_kho(conn)
+    giay_ = f"{kq['thoi_gian']:.1f}".replace('.', ',')
+    in_ra(f"UC3 đợt {batch_id}: {so(kq['ho_so_so_khop'])} hồ sơ · {so(kq['cap_ung_vien'])} cặp ứng viên · "
+          f"EXACT_PHONE +{so(kq['exact'])} · FUZZY +{so(kq['fuzzy'])} · {giay_} s")
+    in_ra('load_dwh: ' + load_dwh.dong_nap_kho(nap, so))
+    return MA_THANH_CONG
+
+
 def main(argv=None) -> int:
     cau_hinh = config.doc_cau_hinh()
     ap = argparse.ArgumentParser(description='Luồng chính L7: UC1 Nạp tệp khách hàng thô → UC3 Phát hiện cặp → kho')
-    ap.add_argument('--tep', required=True, help='Tệp .csv hoặc .xlsx, cột bắt buộc ho_ten, so_dien_thoai')
+    nguon = ap.add_mutually_exclusive_group(required=True)
+    nguon.add_argument('--tep', help='Tệp .csv hoặc .xlsx, cột bắt buộc ho_ten, so_dien_thoai')
+    nguon.add_argument('--dot', type=int, help='Chỉ chạy lại UC3 (phát hiện cặp → nạp kho) cho đợt đã nạp (TD-17)')
     ap.add_argument('--don-vi', default=cau_hinh['don_vi_nguon_mac_dinh'], help='Đơn vị nguồn (QT-14)')
     ap.add_argument('--nguoi-nap', default=config.nguoi_dung_mac_dinh(cau_hinh, 'MARKETING'),
                     help='Tên đăng nhập trong configs/config.yaml, vai trò MARKETING')
@@ -352,6 +422,8 @@ def main(argv=None) -> int:
     ap.add_argument('--khong-phat-hien-cap', action='store_true', help='Chỉ chạy UC1, không chạy UC3 (match)')
     a = ap.parse_args(argv)
     try:
+        if a.dot is not None:
+            return chay_lai_uc3(a.dot)
         chay_uc1(a.tep, a.don_vi, a.nguoi_nap, a.nap_lai, ghi_csdl=not a.khong_ghi_csdl,
                  phat_hien_cap=not a.khong_phat_hien_cap)
         return MA_THANH_CONG

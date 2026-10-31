@@ -39,6 +39,7 @@ def test_dq04_truoc_do_tren_gia_tri_tho_sau_tren_name_norm():
     assert _do(df, 'DQ-03', 'TRUOC') == (2, 2)
 
 
+@pytest.mark.gia_tri_bien
 def test_khong_co_email_thi_ti_le_bang_1():
     k = dq.do_quy_tac(_dot(['0901234567'], ['An']), 'DQ-06', 'SAU')
     assert (k.total_records, k.ti_le) == (0, 1.0)      # QL7-06: mẫu số 0 → tỉ lệ đạt = 1
@@ -71,3 +72,36 @@ def test_hoi_quy_khop_so_lieu_bt1(tep, truoc, sau):
     kq = dq.do_mot_lan(df, dq.QUY_TAC_MAC_DINH)
     assert round(dq.chi_so_muc_do_sach(kq, dq.QUY_TAC_MAC_DINH, 'TRUOC'), 2) == truoc
     assert round(dq.chi_so_muc_do_sach(kq, dq.QUY_TAC_MAC_DINH, 'SAU'), 2) == sau
+
+
+@pytest.mark.luong_dung
+def test_sau_ham_kiem_tra_ve_so_dong_loi_va_ti_le_loi():
+    """D2: ≥ 5 hàm kiểm chất lượng, mỗi hàm trả về số đo được – số dòng lỗi và tỉ lệ lỗi. [luồng đúng]"""
+    assert len(dq.HAM_KIEM) == 6 and all(callable(h) for h in dq.HAM_KIEM.values())
+    df = _dot(['0901234567', '84901234567', '', 'abc'], ['An', 'Bình', 'Chi', 'Dũng'])
+    k = dq.kiem_dq01_so_dien_thoai_khong_trong(df, 'TRUOC')
+    assert (k.so_loi, k.total_records, round(k.ti_le_loi, 4)) == (1, 4, 0.25)        # 1 hồ sơ thiếu số
+    k = dq.kiem_dq02_so_dien_thoai_dung_mau(df, 'SAU')
+    assert (k.so_loi, k.total_records) == (1, 3)                                    # 'abc' không quy đổi được
+    k = dq.kiem_dq05_so_dien_thoai_khong_trung(df, 'SAU')
+    assert (k.so_loi, k.total_records) == (1, 2)                                    # 84901234567 lặp 0901234567
+    for ma, ham in dq.HAM_KIEM.items():
+        k = ham(df, 'SAU')
+        assert k.rule_code == ma and k.so_loi == k.total_records - k.pass_count
+        assert 0 <= k.ti_le_loi <= 1
+
+
+@pytest.mark.du_lieu_sai
+def test_quy_tac_chua_co_ham_kiem_la_loi_cau_hinh():
+    """Quy tắc đang bật mà chưa có hàm kiểm → lỗi cấu hình rõ ràng, không đo bừa. [dữ liệu sai]"""
+    with pytest.raises(ValueError, match='DQ-99.*chưa có hàm kiểm'):
+        dq.do_quy_tac(_dot(['0901234567'], ['An']), 'DQ-99', 'SAU')
+
+
+@pytest.mark.gia_tri_bien
+@pytest.mark.parametrize('ten, dat', [('An', 1), ('A', 0), ('A' * 120, 1), ('A' * 121, 0)],
+                         ids=['2-ky-tu', '1-ky-tu', '120-ky-tu', '121-ky-tu'])
+def test_dq04_bien_2_va_120_ky_tu(ten, dat):
+    """DQ-04: họ tên 2–120 ký tự là đạt – kiểm đúng hai đầu mút và ngay ngoài mút. [giá trị biên]"""
+    k = dq.kiem_dq04_ho_ten_hop_le(_dot(['0901234567'], [ten]), 'TRUOC')
+    assert (k.pass_count, k.so_loi) == (dat, 1 - dat)

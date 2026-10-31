@@ -1,4 +1,7 @@
-"""② dq_evaluate.py – FR-07, FR-08 (UC6, UC7): đo chất lượng từng đợt nạp ở hai giai đoạn.
+"""② dq_evaluate.py – pha QUALITY, FR-07, FR-08 (UC6, UC7): đo chất lượng từng đợt nạp ở hai giai đoạn.
+
+Sáu HÀM KIỂM, mỗi hàm một quy tắc DQ-01 … DQ-06, đều trả về KetQua có số dòng lỗi (so_loi) và tỉ lệ lỗi
+(ti_le_loi) đo được. Chỉ có hàm THUẦN – ghi ops.dq_result là việc của load_ops.ghi_ket_qua_do (TD-22, TD-24).
 
 TRƯỚC = đo trên giá trị thô (*_raw); SAU = đo sau chuẩn hóa (phone_norm, name_norm). Mỗi quy tắc có MẪU SỐ
 riêng là phạm vi áp dụng của nó (docs/data-requirements.md mục 6), để hồ sơ thiếu số chỉ bị trừ điểm một lần ở DQ-01, không bị
@@ -11,7 +14,6 @@ view v_rule_rate, v_batch_score (Sprint 2).
 from dataclasses import dataclass
 
 import pandas as pd
-from sqlalchemy import text
 
 from src.etl.extract import la_trong
 
@@ -39,48 +41,99 @@ GIAI_DOAN = ('TRUOC', 'SAU')
 
 @dataclass
 class KetQua:
+    """Kết quả của MỘT hàm kiểm trên MỘT đợt ở MỘT giai đoạn. Số đo được: số kiểm, số đạt, số dòng lỗi, tỉ lệ."""
     rule_code: str
     measure_stage: str
     total_records: int      # mẫu số: số hồ sơ thuộc phạm vi áp dụng
     pass_count: int         # số hồ sơ đạt
 
     @property
+    def so_loi(self) -> int:
+        """Số dòng lỗi = số hồ sơ thuộc phạm vi mà không đạt."""
+        return self.total_records - self.pass_count
+
+    @property
     def ti_le(self) -> float:
-        """QL7-06: mẫu số bằng 0 (ví dụ tệp không có email) → tỉ lệ đạt = 1."""
+        """Tỉ lệ đạt. QL7-06: mẫu số bằng 0 (ví dụ tệp không có email) → tỉ lệ đạt = 1."""
         return self.pass_count / self.total_records if self.total_records else 1.0
 
+    @property
+    def ti_le_loi(self) -> float:
+        """Tỉ lệ lỗi = số dòng lỗi / số kiểm (= 1 − tỉ lệ đạt; mẫu số 0 → 0)."""
+        return 1.0 - self.ti_le
 
-# ------------------------------------------------------------------ hàm thuần
-def do_quy_tac(df: pd.DataFrame, rule_code: str, giai_doan: str) -> KetQua:
-    """Đo một quy tắc trên bảng tạm của một đợt (cột *_raw, phone_norm, name_norm, status)."""
-    sau = giai_doan == 'SAU'
-    co_so = ~la_trong(df['phone_raw'])
-    co_ten = ~la_trong(df['full_name_raw'])
-    if rule_code == 'DQ-01':                       # mọi hồ sơ; cả hai giai đoạn như nhau (chuẩn hóa không bù được số thiếu)
-        pham_vi, dat = pd.Series(True, index=df.index), co_so
-    elif rule_code == 'DQ-02':                     # hồ sơ có số điện thoại
-        pham_vi = co_so
-        dat = df['phone_norm'].notna() if sau else df['phone_raw'].str.strip().str.fullmatch(MAU_SO_CHUAN)
-    elif rule_code == 'DQ-03':                     # mọi hồ sơ
-        pham_vi, dat = pd.Series(True, index=df.index), co_ten
-    elif rule_code == 'DQ-04':                     # hồ sơ có họ tên
-        ten = df['name_norm'].fillna('') if sau else df['full_name_raw']
-        pham_vi = co_ten
-        dat = ten.str.len().between(2, 120) & ~ten.str.contains(r'\d', regex=True)
-    elif rule_code == 'DQ-05':
-        # Hồ sơ có số hợp lệ; so theo phone_norm ở CẢ HAI giai đoạn (giá trị thô của cùng một số có thể
-        # viết khác nhau nên không so được). Đạt = không phải hồ sơ lặp đang chờ quyết định: hồ sơ nạp sớm
-        # nhất của mỗi số là CLEAN; hồ sơ lặp chỉ đạt khi cặp của nó đã Gộp/Giữ riêng (Sprint 3) – TD-08.
-        pham_vi = df['phone_norm'].notna()
-        dat = df['status'] != 'PENDING_DUP'
-    elif rule_code == 'DQ-06':                     # hồ sơ có email
-        email = df['email_raw'].fillna('').str.strip()
-        pham_vi, dat = email != '', email.str.fullmatch(MAU_EMAIL)
-    else:
-        # Lỗi CẤU HÌNH (lỗi kỹ thuật, khác với 'dưới ngưỡng'): UC6 ở Sprint 3 chỉ cho thêm quy tắc đã có cách đo ở đây
-        raise ValueError(f'Quy tắc {rule_code} đang bật nhưng chưa có cách đo trong dq_evaluate.py')
+
+# ------------------------------------------------------------------ 6 hàm kiểm chất lượng (hàm thuần)
+# Mỗi hàm: nhận bảng tạm của một đợt (cột *_raw, phone_norm, name_norm, status) và giai đoạn TRUOC/SAU,
+# trả về KetQua. Mẫu số là PHẠM VI ÁP DỤNG của quy tắc (docs/data-requirements.md mục 6).
+def _ket_qua(ma: str, giai_doan: str, pham_vi: pd.Series, dat: pd.Series) -> KetQua:
     dat = dat.fillna(False).astype(bool)
-    return KetQua(rule_code, giai_doan, int(pham_vi.sum()), int((pham_vi & dat).sum()))
+    return KetQua(ma, giai_doan, int(pham_vi.sum()), int((pham_vi & dat).sum()))
+
+
+def _moi_ho_so(df: pd.DataFrame) -> pd.Series:
+    return pd.Series(True, index=df.index)
+
+
+def kiem_dq01_so_dien_thoai_khong_trong(df: pd.DataFrame, giai_doan: str) -> KetQua:
+    """DQ-01 (COMPLETENESS) – phạm vi: mọi hồ sơ. Hai giai đoạn như nhau: chuẩn hóa không bù được số thiếu."""
+    return _ket_qua('DQ-01', giai_doan, _moi_ho_so(df), ~la_trong(df['phone_raw']))
+
+
+def kiem_dq02_so_dien_thoai_dung_mau(df: pd.DataFrame, giai_doan: str) -> KetQua:
+    """DQ-02 (VALIDITY) – phạm vi: hồ sơ CÓ số (thiếu số đã bị trừ ở DQ-01, không phạt lần hai).
+    TRƯỚC: giá trị thô khớp 0xxxxxxxxx; SAU: chuẩn hóa được (phone_norm khác rỗng)."""
+    co_so = ~la_trong(df['phone_raw'])
+    if giai_doan == 'SAU':
+        dat = df['phone_norm'].notna()
+    else:
+        dat = df['phone_raw'].str.strip().str.fullmatch(MAU_SO_CHUAN)
+    return _ket_qua('DQ-02', giai_doan, co_so, dat)
+
+
+def kiem_dq03_ho_ten_khong_trong(df: pd.DataFrame, giai_doan: str) -> KetQua:
+    """DQ-03 (COMPLETENESS) – phạm vi: mọi hồ sơ."""
+    return _ket_qua('DQ-03', giai_doan, _moi_ho_so(df), ~la_trong(df['full_name_raw']))
+
+
+def kiem_dq04_ho_ten_hop_le(df: pd.DataFrame, giai_doan: str) -> KetQua:
+    """DQ-04 (VALIDITY) – phạm vi: hồ sơ có họ tên. Đạt: 2–120 ký tự, không chứa chữ số.
+    TRƯỚC đo trên giá trị thô, SAU đo trên name_norm."""
+    ten = df['name_norm'].fillna('') if giai_doan == 'SAU' else df['full_name_raw']
+    dat = ten.str.len().between(2, 120) & ~ten.str.contains(r'\d', regex=True)
+    return _ket_qua('DQ-04', giai_doan, ~la_trong(df['full_name_raw']), dat)
+
+
+def kiem_dq05_so_dien_thoai_khong_trung(df: pd.DataFrame, giai_doan: str) -> KetQua:
+    """DQ-05 (UNIQUENESS) – phạm vi: hồ sơ có số hợp lệ; so theo phone_norm ở CẢ HAI giai đoạn (giá trị thô của
+    cùng một số có thể viết khác nhau nên không so được). Đạt = không phải hồ sơ lặp đang chờ quyết định: hồ sơ
+    nạp sớm nhất của mỗi số là CLEAN; hồ sơ lặp chỉ đạt khi cặp của nó đã Gộp/Giữ riêng (UC5) – TD-08."""
+    return _ket_qua('DQ-05', giai_doan, df['phone_norm'].notna(), df['status'] != 'PENDING_DUP')
+
+
+def kiem_dq06_email_dung_mau(df: pd.DataFrame, giai_doan: str) -> KetQua:
+    """DQ-06 (VALIDITY) – phạm vi: hồ sơ có email. Email không chuẩn hóa nên hai giai đoạn như nhau."""
+    email = df['email_raw'].fillna('').str.strip()
+    return _ket_qua('DQ-06', giai_doan, email != '', email.str.fullmatch(MAU_EMAIL))
+
+
+HAM_KIEM = {
+    'DQ-01': kiem_dq01_so_dien_thoai_khong_trong,
+    'DQ-02': kiem_dq02_so_dien_thoai_dung_mau,
+    'DQ-03': kiem_dq03_ho_ten_khong_trong,
+    'DQ-04': kiem_dq04_ho_ten_hop_le,
+    'DQ-05': kiem_dq05_so_dien_thoai_khong_trung,
+    'DQ-06': kiem_dq06_email_dung_mau,
+}
+
+
+def do_quy_tac(df: pd.DataFrame, rule_code: str, giai_doan: str) -> KetQua:
+    """Gọi hàm kiểm của một quy tắc. Quy tắc đang bật mà chưa có hàm kiểm là lỗi CẤU HÌNH (lỗi kỹ thuật, khác
+    với 'dưới ngưỡng'): UC6 chỉ cho thêm quy tắc đã có hàm kiểm trong HAM_KIEM."""
+    ham = HAM_KIEM.get(rule_code)
+    if ham is None:
+        raise ValueError(f'Quy tắc {rule_code} đang bật nhưng chưa có hàm kiểm trong dq_evaluate.HAM_KIEM')
+    return ham(df, giai_doan)
 
 
 def kiem_trong_so(quy_tac: list[dict]) -> None:
@@ -105,33 +158,3 @@ def chi_so_muc_do_sach(ket_qua: list[KetQua], quy_tac: list[dict], giai_doan: st
 def xep_loai(chi_so: float) -> str:
     """QL7-06: ≥ 90 Tốt; 75 – < 90 Chấp nhận được; < 75 Kém."""
     return 'Tốt' if chi_so >= 90 else 'Chấp nhận được' if chi_so >= 75 else 'Kém'
-
-
-# ------------------------------------------------------------------ đọc / ghi CSDL
-def khoi_tao_quy_tac(conn, nguoi: str) -> int:
-    """Ghi bộ quy tắc mặc định nếu chưa có (ON CONFLICT DO NOTHING: không ghi đè cấu hình Quản lý đã sửa)."""
-    n = 0
-    for q in QUY_TAC_MAC_DINH:
-        n += conn.execute(text(
-            'INSERT INTO ops.dq_rule (rule_code, rule_name, rule_type, field_name, weight, pass_threshold, updated_by) '
-            'VALUES (:rule_code, :rule_name, :rule_type, :field_name, :weight, :pass_threshold, :nguoi) '
-            'ON CONFLICT (rule_code) DO NOTHING'), {**q, 'nguoi': nguoi}).rowcount
-    return n
-
-
-def doc_quy_tac_dang_bat(conn) -> list[dict]:
-    """Cấu hình HIỆN HÀNH của các quy tắc đang bật – lần đo dùng đúng trọng số lúc đo (lập luận 3, NFR-05)."""
-    rows = conn.execute(text('SELECT rule_id, rule_code, rule_name, rule_type, field_name, weight, pass_threshold '
-                             'FROM ops.dq_rule WHERE is_active ORDER BY rule_code'))
-    return [dict(r._mapping) for r in rows]
-
-
-def ghi_ket_qua(conn, batch_id: int, ket_qua: list[KetQua], quy_tac: list[dict], measured_at) -> int:
-    """Ghi mỗi (quy tắc × giai đoạn) một dòng ops.dq_result, cùng một measured_at cho cả lần đo (GRAIN)."""
-    ma_id = {q['rule_code']: q['rule_id'] for q in quy_tac}
-    conn.execute(text(
-        'INSERT INTO ops.dq_result (batch_id, rule_id, measure_stage, measured_at, total_records, pass_count) '
-        'VALUES (:b, :rule_id, :stage, :t, :total, :pass)'),
-        [{'b': batch_id, 'rule_id': ma_id[k.rule_code], 'stage': k.measure_stage, 't': measured_at,
-          'total': k.total_records, 'pass': k.pass_count} for k in ket_qua])
-    return len(ket_qua)

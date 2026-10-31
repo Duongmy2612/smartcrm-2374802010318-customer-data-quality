@@ -1,4 +1,5 @@
-"""② match.py – FR-04 (UC3): phát hiện cặp nghi trùng.  Sprint 2 (buổi 10), TD-14.
+"""② match.py – pha TRANSFORM của UC3, FR-04: phát hiện cặp nghi trùng.  Sprint 2 (buổi 10), TD-14.
+Chỉ có hàm THUẦN; đọc hồ sơ và ghi cặp là việc của load_ops.py, thứ tự gọi ở src/pipeline.chay_uc3 (TD-22).
 
 Hợp đồng dữ liệu (chốt ở BT1, docs/data-requirements.md mục 7):
     Đầu vào : hồ sơ thô có số hợp lệ (phone_norm, không có mã lỗi – QL7-04) của đợt vừa nạp, so với chính nó
@@ -12,15 +13,14 @@ Hợp đồng dữ liệu (chốt ở BT1, docs/data-requirements.md mục 7):
               Điểm (QL7-03) = 0,6 × độ giống số (100 nếu bằng nhau, ngược lại fuzz.ratio) +
                               0,4 × fuzz.token_sort_ratio(name_key).
               Cặp đã có trong dup_candidate (kể cả đã Giữ riêng – QL7-05) không tạo lại.
-    Đầu ra  : ops.dup_candidate (status PENDING), ops.stg_customer.name_key.
+    Đầu ra  : bảng cặp [stg_id_a, stg_id_b, match_type, score] – load_ops.ghi_cap ghi vào ops.dup_candidate
+              (status PENDING); name_key – load_ops.ghi_name_key ghi vào ops.stg_customer.
     Đo      : NFR-01 phần 2 (≤ 120 giây trên mẫu 8.000 dòng) – pipeline in thời gian của bước này.
 """
-import time
 import unicodedata
 
 import pandas as pd
 from rapidfuzz import fuzz
-from sqlalchemy import text
 
 DO_DAI_KHOI = 5                                  # blocking: 5 số đầu / 5 số cuối
 
@@ -100,86 +100,3 @@ def tim_cap(ho_so: pd.DataFrame, ho_so_moi: set[int] | None = None, nguong: floa
         if la_cap_fuzzy(d, nguong):
             dong.append((a, b, 'FUZZY', d))
     return pd.DataFrame(dong, columns=cot).sort_values(['stg_id_a', 'stg_id_b'], ignore_index=True)
-
-
-# ------------------------------------------------------------------ đọc / ghi CSDL
-def phat_hien_cap(conn, batch_id: int, nguong: float = 85) -> dict:
-    """UC3 cho một đợt: ghi name_key, ghi cặp mới vào ops.dup_candidate (PENDING); trả về số đếm và thời gian."""
-    t0 = time.perf_counter()
-    # 1. name_key cho hồ sơ hợp lệ của đợt (UPDATE theo tập qua bảng tạm thời)
-    dot = pd.DataFrame(conn.execute(text(
-        'SELECT stg_id, name_norm FROM ops.stg_customer '
-        'WHERE batch_id = :b AND error_code IS NULL AND phone_norm IS NOT NULL'), {'b': batch_id}).fetchall(),
-        columns=['stg_id', 'name_norm'])
-    dot['name_key'] = dot['name_norm'].map(tao_name_key)
-    conn.exec_driver_sql('CREATE TEMP TABLE tmp_name_key (stg_id BIGINT PRIMARY KEY, name_key VARCHAR(120)) '
-                         'ON COMMIT DROP')
-    dot[['stg_id', 'name_key']].to_sql('tmp_name_key', conn, if_exists='append', index=False, chunksize=5000)
-    conn.execute(text('UPDATE ops.stg_customer s SET name_key = t.name_key FROM tmp_name_key t '
-                      'WHERE s.stg_id = t.stg_id'))
-    conn.exec_driver_sql('DROP TABLE tmp_name_key')
-
-    # 2. hồ sơ hợp lệ của đợt này và các đợt trước; cặp đã có
-    ho_so = pd.DataFrame(conn.execute(text(
-        'SELECT stg_id, phone_norm, name_norm FROM ops.stg_customer '
-        'WHERE batch_id <= :b AND error_code IS NULL AND phone_norm IS NOT NULL'), {'b': batch_id}).fetchall(),
-        columns=['stg_id', 'phone_norm', 'name_norm'])
-    ho_so['name_key'] = ho_so['name_norm'].map(tao_name_key)      # cả đợt nạp trước Sprint 2 (chưa có name_key)
-    cap_da_co = {tuple(r) for r in conn.execute(text('SELECT stg_id_a, stg_id_b FROM ops.dup_candidate'))}
-
-    # 3. so khớp và ghi
-    t1 = time.perf_counter()
-    tk = {'cap_ung_vien': 0, 'so_khac_nhau': 0}
-    cap = tim_cap(ho_so, set(dot['stg_id']), nguong, cap_da_co, tk)
-    t_so_khop = time.perf_counter() - t1
-    if len(cap):
-        conn.execute(text(
-            'INSERT INTO ops.dup_candidate (stg_id_a, stg_id_b, match_type, score) '
-            'VALUES (:stg_id_a, :stg_id_b, :match_type, :score) ON CONFLICT (stg_id_a, stg_id_b) DO NOTHING'),
-            [{k: (int(v) if k.startswith('stg') else v) for k, v in r.items()} for r in cap.to_dict('records')])
-    return {
-        'ho_so_dot': len(dot), 'ho_so_so_khop': len(ho_so), 'so_khac_nhau': tk['so_khac_nhau'],
-        'cap_ung_vien': tk['cap_ung_vien'],
-        'exact': int((cap['match_type'] == 'EXACT_PHONE').sum()),
-        'fuzzy': int((cap['match_type'] == 'FUZZY').sum()),
-        'bo_qua_da_co': len(cap_da_co), 'nguong': nguong,
-        'thoi_gian_so_khop': t_so_khop, 'thoi_gian': time.perf_counter() - t0,
-    }
-
-
-def main(argv=None) -> int:
-    """Chạy lại riêng UC3 cho một đợt đã nạp (ví dụ khi bước [5/5] của luồng chính lỗi – TD-17):
-
-        python -m src.etl.match --dot 1
-
-    Mã thoát: 0 thành công · 1 lỗi kỹ thuật · 2 đợt không tồn tại.
-    """
-    import argparse
-    import sys
-
-    from src import config, db
-    from src.etl import load_dwh
-    ap = argparse.ArgumentParser(description='UC3 – Phát hiện cặp nghi trùng cho một đợt nạp, rồi nạp kho')
-    ap.add_argument('--dot', type=int, required=True, help='batch_id trong ops.load_batch')
-    a = ap.parse_args(argv)
-    try:
-        engine = db.tao_engine()
-        with engine.begin() as conn:
-            if not conn.execute(text('SELECT 1 FROM ops.load_batch WHERE batch_id = :b'), {'b': a.dot}).first():
-                print(f'TỪ CHỐI: không có đợt nạp {a.dot}', file=sys.stderr)
-                return 2
-            kq = phat_hien_cap(conn, a.dot, float(config.doc_cau_hinh()['nguong_fuzzy']))
-            nap = load_dwh.nap_kho(conn)
-        so = lambda n: f'{n:,}'.replace(',', '.')        # noqa: E731
-        giay = f"{kq['thoi_gian']:.1f}".replace('.', ',')
-        print(f"UC3 đợt {a.dot}: {so(kq['ho_so_so_khop'])} hồ sơ · {so(kq['cap_ung_vien'])} cặp ứng viên · "
-              f"EXACT_PHONE +{so(kq['exact'])} · FUZZY +{so(kq['fuzzy'])} · {giay} s")
-        print('load_dwh: ' + load_dwh.dong_nap_kho(nap, so))
-        return 0
-    except Exception as e:                            # noqa: BLE001
-        print(f'LỖI: {type(e).__name__}: {e}', file=sys.stderr)
-        return 1
-
-
-if __name__ == '__main__':
-    raise SystemExit(main())
