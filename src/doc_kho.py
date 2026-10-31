@@ -57,6 +57,29 @@ def loc_don_vi(pham_vi: list[str] | None, don_vi_chon: list[str]) -> list[str] |
     return [d for d in (don_vi_chon or pham_vi) if d in pham_vi]
 
 
+def _diem(x: float) -> str:
+    return f'{float(x):.2f}'.replace('.', ',')
+
+
+SAT_NGUONG = 5          # cặp FUZZY cách ngưỡng < 5 điểm (khoảng '85 – <90' khi ngưỡng 85) mới gọi là "sát ngưỡng"
+
+
+def cau_fuzzy_thap_nhat(diem_thap_nhat: float, nguong: float) -> str:
+    """Câu đọc biểu đồ K3 về cặp FUZZY có điểm thấp nhất. Chỉ gọi là "sát ngưỡng" khi cách ngưỡng dưới
+    SAT_NGUONG điểm – trước BT2 câu này viết cứng "sát ngưỡng" nên dữ liệu mẫu (94 điểm) bị mô tả sai (TD-30)."""
+    cach = float(diem_thap_nhat) - float(nguong)
+    if cach < SAT_NGUONG:
+        return (f'thấp nhất {_diem(diem_thap_nhat)} điểm – sát ngưỡng {float(nguong):g} (chỉ cao hơn {_diem(cach)} '
+                'điểm), nên đây là các cặp cần xem kỹ nhất khi chỉnh ngưỡng (NFR-03)')
+    return (f'thấp nhất {_diem(diem_thap_nhat)} điểm – cao hơn ngưỡng {float(nguong):g} tới {_diem(cach)} điểm, '
+            'chưa có cặp FUZZY nào sát ngưỡng')
+
+
+def moc_ti_le_loi(pass_threshold: float) -> str:
+    """Mốc của thẻ tỉ lệ lỗi ở K1: quy tắc đạt khi tỉ lệ đạt ≥ ngưỡng, tức tỉ lệ lỗi ≤ 100 − ngưỡng (TD-30)."""
+    return f'mốc ≤ {100 - float(pass_threshold):g}%'.replace('.', ',')
+
+
 def _ngay(d) -> str:
     return d.strftime('%d/%m/%Y') if d else '…'
 
@@ -86,8 +109,8 @@ def cau_giai_thich_rong(ly_do: str, pham_vi: list[str] | None, tu: date | None, 
     khoang = f'{_ngay(tu)} – {_ngay(den)}'
     pv = ', '.join(pham_vi) if pham_vi else ''
     return {
-        'kho_rong': 'Kho dữ liệu chưa có đợt nạp nào. Chạy luồng chính trước: '
-                    '`python -m src.pipeline --tep data/raw/customers_raw.csv`, rồi bấm "Làm mới dữ liệu".',
+        'kho_rong': 'Kho dữ liệu chưa có đợt nạp nào. Chạy luồng chính trước (README bước 8): '
+                    '`python -m src.pipeline --tep data/mau/customers_mau.csv`, rồi bấm "Làm mới dữ liệu".',
         'khong_quyen': 'Tài khoản này không có trong configs/config.yaml nên không được xem dữ liệu đơn vị nào (QT-14).',
         'qt14': f'Trong khoảng {khoang} có đợt nạp, nhưng đều thuộc đơn vị khác. Theo QT-14, tài khoản này chỉ xem '
                 f'được đơn vị {pv}. Thử mở rộng khoảng ngày nạp; muốn xem toàn công ty thì dùng tài khoản Nhân viên '

@@ -6,7 +6,8 @@ from datetime import date
 
 import pytest
 
-from src.doc_kho import cau_giai_thich_rong, don_vi_duoc_xem, khoang_diem, loc_don_vi, ly_do_rong, vi_tri_nguong
+from src.doc_kho import (cau_fuzzy_thap_nhat, cau_giai_thich_rong, don_vi_duoc_xem, khoang_diem, loc_don_vi,
+                         ly_do_rong, moc_ti_le_loi, vi_tri_nguong)
 
 CAU_HINH = {'nguoi_dung': [{'ten_dang_nhap': 'my.marketing', 'vai_tro': 'MARKETING', 'don_vi': 'VAN_PHONG'},
                            {'ten_dang_nhap': 'ql.mm001', 'vai_tro': 'QUAN_LY_CUA_HANG', 'don_vi': 'MM001'}]}
@@ -68,4 +69,23 @@ def test_bo_loc_rong_noi_ro_vi_sao_va_nen_lam_gi():
 
 def test_kho_chua_co_du_lieu_chi_lenh_chay_luong_chinh():
     """Kho rỗng thì hướng dẫn chạy luồng chính trước, không nói chung chung 'không có dữ liệu'. [trạng thái rỗng]"""
-    assert 'python -m src.pipeline' in cau_giai_thich_rong('kho_rong', None, None, None)
+    cau = cau_giai_thich_rong('kho_rong', None, None, None)
+    assert 'python -m src.pipeline' in cau
+    assert 'data/mau/customers_mau.csv' in cau                  # tệp CÓ trong repo (trước BT2 chỉ data/raw – TD-30)
+
+
+@pytest.mark.gia_tri_bien
+@pytest.mark.parametrize('thap_nhat, sat', [(85, True), (89.99, True), (90, False), (94, False)],
+                         ids=['85-dung-nguong', '89.99', '90', '94-du-lieu-mau'])
+def test_cau_k3_chi_noi_sat_nguong_khi_cach_duoi_5_diem(thap_nhat, sat):
+    """K3: cặp FUZZY thấp nhất cách ngưỡng 85 dưới 5 điểm mới là "sát ngưỡng". Trước BT2 câu này viết cứng nên
+    dữ liệu mẫu (94 điểm) bị mô tả sai là sát ngưỡng (TD-30). [giá trị biên]"""
+    cau = cau_fuzzy_thap_nhat(thap_nhat, 85)
+    assert ('sát ngưỡng 85' in cau) is sat
+    assert 'chưa có cặp FUZZY nào sát ngưỡng' in cau or sat
+
+
+@pytest.mark.parametrize('nguong, moc', [(98, 'mốc ≤ 2%'), (95, 'mốc ≤ 5%'), (97.5, 'mốc ≤ 2,5%')])
+def test_moc_cua_the_ti_le_loi_bang_100_tru_nguong(nguong, moc):
+    """Thẻ tỉ lệ lỗi ở K1 có mốc so sánh (đề BT2 mục 2.3): đạt khi tỉ lệ lỗi ≤ 100 − ngưỡng đạt (TD-30)."""
+    assert moc_ti_le_loi(nguong) == moc

@@ -145,22 +145,33 @@ with k1:
     the = quy_tac[(quy_tac['batch_key'] == moi['batch_key']) & (quy_tac['measure_stage'] == 'SAU')].set_index('rule_code')
 
     def chi_so(ma):
-        """Thẻ chỉ số từ một quy tắc; quy tắc đã tắt (UC6) thì hiện '–' thay vì lỗi."""
+        """Thẻ tỉ lệ lỗi của một quy tắc kèm mốc = ngưỡng của chính quy tắc đó (đề BT2 mục 2.3: mỗi con số có
+        một mốc so sánh – TD-30); quy tắc đã tắt (UC6) thì hiện '–' thay vì lỗi."""
         if ma not in the.index:
             return '–', f'{ma} không đo ở lần này'
         r = the.loc[ma]
-        return pt(1 - float(r['pass_rate'])), f"{so(r['fail_count'])} hồ sơ ({ma})"
+        return (pt(1 - float(r['pass_rate'])),
+                f"{so(r['fail_count'])} hồ sơ · {doc_kho.moc_ti_le_loi(r['pass_threshold'])}")
+
+    # Mốc của thẻ "Số hồ sơ được đánh giá": đợt liền trước (kỳ trước) nếu đang xem từ hai đợt trở lên
+    so_ho_so = (quy_tac[(quy_tac['rule_code'] == 'DQ-01') & (quy_tac['measure_stage'] == 'SAU')]
+                .set_index('batch_key')['total_records'])
+    if len(dot) >= 2 and dot.iloc[-2]['batch_key'] in so_ho_so.index:
+        moc_ho_so = f"kỳ trước (#{dot.iloc[-2]['batch_id']}): {so(so_ho_so[dot.iloc[-2]['batch_key']])}"
+    else:
+        moc_ho_so = 'kỳ trước: chưa có'
 
     c = st.columns(5)
-    c[0].metric('Chỉ số SAU (đợt mới nhất)', diem(moi['sau']), moi['xep_loai'], delta_color='off',
-                delta_arrow='off', border=True)
+    c[0].metric('Chỉ số SAU (đợt mới nhất)', diem(moi['sau']), f"{moi['xep_loai']} · mốc ≥ 90",
+                delta_color='off', delta_arrow='off', border=True)
     c[1].metric('Chỉ số TRƯỚC làm sạch', diem(moi['truoc']),
-                f"chênh lệch {float(moi['sau']) - float(moi['truoc']):+.2f} điểm".replace('.', ','),
+                # mốc: mục tiêu chung "SAU cao hơn TRƯỚC ít nhất 10 điểm" (docs/data-requirements.md mục 6)
+                f"SAU {float(moi['sau']) - float(moi['truoc']):+.2f} · cần ≥ +10".replace('.', ','),
                 delta_color='off', delta_arrow='off', border=True)
-    c[2].metric('Số hồ sơ được đánh giá', so(the['total_records'].max()) if len(the) else '–', 'của đợt nạp mới nhất',
+    c[2].metric('Số hồ sơ được đánh giá', so(the['total_records'].max()) if len(the) else '–', moc_ho_so,
                 delta_color='off', delta_arrow='off', border=True)
-    c[3].metric('Thiếu số điện thoại', *chi_so('DQ-01'), delta_color='off', delta_arrow='off', border=True)
-    c[4].metric('Hồ sơ lặp có cặp Chờ xử lý', *chi_so('DQ-05'), delta_color='off', delta_arrow='off',
+    c[3].metric('Thiếu số điện thoại (DQ-01)', *chi_so('DQ-01'), delta_color='off', delta_arrow='off', border=True)
+    c[4].metric('Hồ sơ lặp chờ xử lý (DQ-05)', *chi_so('DQ-05'), delta_color='off', delta_arrow='off',
                 border=True)
 
     # Đường theo đợt nạp như wireframe K1 (BT1 Hình 5.1): SAU nét liền, TRƯỚC nét đứt; mốc 90 (Tốt) và 75 (Kém)
@@ -253,13 +264,21 @@ with k3:
         tong = int(cap['so_cap'].sum())
         theo_tt = cap.groupby('status')['so_cap'].sum()
         da_xu_ly = int(theo_tt.get('MERGED', 0) + theo_tt.get('KEEP_SEPARATE', 0))
+        # Mốc của từng thẻ (đề BT2 mục 2.3, TD-30): tổng cặp so với số hồ sơ được đánh giá của các đợt đang xem;
+        # mỗi trạng thái so với tổng cặp; tỉ lệ đã xử lý so với mục tiêu xử lý hết cặp (US4, data-requirements mục 6)
+        ho_so_xem = int(quy_tac[(quy_tac['rule_code'] == 'DQ-01') & (quy_tac['measure_stage'] == 'SAU')]
+                        ['total_records'].sum()) if len(quy_tac) else 0
+        def phan(n):
+            return f'{pt(n / tong)} tổng cặp'
         c = st.columns(5)
-        for o, (nhan_the, gia_tri) in zip(c, [('Tổng cặp nghi trùng', so(tong)),       # Q4: thẻ theo trạng thái
-                                              ('Chờ xử lý', so(theo_tt.get('PENDING', 0))),
-                                              ('Gộp', so(theo_tt.get('MERGED', 0))),
-                                              ('Giữ riêng', so(theo_tt.get('KEEP_SEPARATE', 0))),
-                                              ('Tỉ lệ đã xử lý', pt(da_xu_ly / tong))]):
-            o.metric(nhan_the, gia_tri, border=True)
+        for o, (nhan_the, gia_tri, moc) in zip(c, [                                     # Q4: thẻ theo trạng thái
+                ('Tổng cặp nghi trùng', so(tong),
+                 f'trên {so(ho_so_xem)} hồ sơ' if ho_so_xem else 'các đợt đang xem'),
+                ('Chờ xử lý', so(theo_tt.get('PENDING', 0)), phan(theo_tt.get('PENDING', 0))),
+                ('Gộp', so(theo_tt.get('MERGED', 0)), phan(theo_tt.get('MERGED', 0))),
+                ('Giữ riêng', so(theo_tt.get('KEEP_SEPARATE', 0)), phan(theo_tt.get('KEEP_SEPARATE', 0))),
+                ('Tỉ lệ đã xử lý', pt(da_xu_ly / tong), 'mục tiêu 100%')]):
+            o.metric(nhan_the, gia_tri, moc, delta_color='off', delta_arrow='off', border=True)
         # Q5: phân bố điểm theo khoảng, tách loại so khớp – ngưỡng chỉ áp cho FUZZY (khác số)
         bang = (cap.groupby(['khoang_diem', 'match_type'])['so_cap'].sum().unstack(fill_value=0)
                 .reindex(index=doc_kho.KHOANG_DIEM, fill_value=0))
@@ -281,8 +300,7 @@ with k3:
         ex_thap = int(cap[(cap['match_type'] == 'EXACT_PHONE') & (cap['score'].astype(float) < nguong)]['so_cap'].sum())
         st.markdown(f"**Đọc biểu đồ:** {so(theo_tt.get('PENDING', 0))}/{so(tong)} cặp còn chờ Nhân viên Marketing "
                     f"quyết định (UC5 – Sprint 3). FUZZY {so(theo_loai.get('FUZZY', 0))} cặp, "
-                    + (f"thấp nhất {diem(fz['score'].astype(float).min())} điểm – sát ngưỡng {nguong:g}, nên đây là các "
-                       f"cặp cần xem kỹ nhất khi chỉnh ngưỡng (NFR-03). " if len(fz) else '')
+                    + (doc_kho.cau_fuzzy_thap_nhat(fz['score'].astype(float).min(), nguong) + '. ' if len(fz) else '')
                     + f"EXACT_PHONE {so(theo_loai.get('EXACT_PHONE', 0))} cặp (cùng số, không xét ngưỡng); "
                     f"{so(ex_thap)} cặp trong số đó có điểm < {nguong:g} là cùng số nhưng họ tên khác xa – nên xem kỹ "
                     f"trước khi Gộp (QL7-01).")
