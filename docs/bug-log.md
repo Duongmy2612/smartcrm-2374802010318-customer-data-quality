@@ -21,6 +21,8 @@ Repo: https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-qualit
 | BUG-10 | Tệp rỗng / sai bảng mã / hỏng cấu trúc lộ lỗi thô của pandas, mã thoát 1 | Dữ liệu sai (C7) | `b6b289c` |
 | BUG-11 | Câu đọc K3 luôn nói "sát ngưỡng"; thẻ số K1, K3 không có mốc so sánh | Trình bày (TP3) | `41492c3` |
 | BUG-12 | Pha T import hàm từ pha E dù tài liệu ghi "các pha không gọi lẫn nhau" | Kiến trúc (C2) | `5db967b` |
+| BUG-13 | Khung cặp NFR-03 đếm 16 cặp FUZZY trong khi pipeline ghi 12 | Logic (NFR-03) | `37eb1260` |
+| BUG-14 | Báo cáo PDF xuất bằng Word for Mac hỏng chữ có dấu ("dfi liệu") | Tài liệu / trình bày | báo cáo PDF |
 
 ---
 
@@ -143,3 +145,23 @@ Repo: https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-qualit
 5. **Nguyên nhân gốc:** `tests/test_ranh_gioi_lop.py` chỉ kiểm pha T không gọi pha L, chưa kiểm chiều T → E nên không phát hiện.
 6. **Sửa:** chuyển `la_trong` sang `src/etl/tien_ich.py` (không thuộc pha nào); test ranh giới kiểm thêm chiều T → E (TD-29) – [5db967b](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/5db967b).
 7. **Xác nhận:** `test_pha_t_khong_goi_pha_e_va_l` (3 tệp pha T) PASS; lệnh grep ở bước 3 không còn kết quả.
+
+### BUG-13  Khung cặp NFR-03 đếm thừa cặp FUZZY
+
+1. **Ngày · nơi phát hiện:** 31/10/2026 · lần chạy đầu `python -m src.kiem_chung_nfr03 --tep data/raw/customers_raw.csv --tao-phieu …` (TD-32).
+2. **Triệu chứng:** tầng T2 (khác số, cùng khối, điểm ≥ 85) có 16 cặp, trong khi pipeline ghi FUZZY 12 – phép kiểm chứng đo một tập cặp khác với tập hệ thống thật sự tạo.
+3. **Tái lập:** dựng khung với nguồn "cặp cùng họ tên" lấy MỌI cặp hai số khác nhau, kể cả hai số cùng khối → T2 = 16.
+4. **Khoanh vùng:** so 16 cặp với tập cặp tính theo hồ sơ đại diện: 4 cặp thừa, cả 4 đều có một hồ sơ KHÔNG phải hồ sơ đại diện (nạp sớm nhất) của số điện thoại của nó.
+5. **Nguyên nhân gốc:** `match.tim_cap` chỉ so hồ sơ đại diện của hai số (TD-18); nguồn cặp cùng họ tên trong khung lại so cả hồ sơ thứ hai, thứ ba của cùng một số – cùng một mối nối giữa hai số bị đếm nhiều lần.
+6. **Sửa:** nguồn cặp cùng họ tên bỏ cặp hai số cùng số hoặc cùng khối (đã xét ở nguồn hồ sơ đại diện); hồ sơ có mã lỗi để trống `phone_norm` trong khung như QL7-04 – sửa trước khi commit, trong [37eb1260](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/37eb1260).
+7. **Xác nhận:** `test_khung_du_lieu_that_khop_so_cap_cua_pipeline`: T1 = 11.625, T2 = 12 – khớp đúng EXACT_PHONE, FUZZY của pipeline; trên dữ liệu mẫu T1 = 40, T2 = 3 (`test_kiem_chung_nfr03_tren_du_lieu_mau`).
+
+### BUG-14  Báo cáo PDF hỏng chữ có dấu khi xuất bằng Word for Mac
+
+1. **Ngày · nơi phát hiện:** 31/10/2026 · rà soát bản PDF BT2 trước khi nộp.
+2. **Triệu chứng:** trong PDF, "dữ liệu" hiện thành "dfi liệu", "từ chối" thành "tfi chối", "Dương" thành "Dffơng", "được" thành "đffợc".
+3. **Tái lập:** `pdftotext BT2_….pdf - | grep -c "dfi liệu"` → 24 chỗ, chỉ 3 chỗ "dữ liệu" đúng.
+4. **Khoanh vùng:** chỉ bản xuất bằng Microsoft Word for Mac bị; bản BT1, buổi 8, buổi 10 xuất bằng LibreOffice đọc ra đúng chữ.
+5. **Nguyên nhân gốc:** phông Times New Roman do Word for Mac nhúng vào PDF ánh xạ chữ "ư", "ữ" sang ký tự ghép "ff", "fi" – cả lớp chữ (pdftotext) lẫn hình hiển thị (trình xem dùng phông nhúng) đều ra chữ sai; trình xem trên máy em có thể vẫn hiện đúng nên khó thấy.
+6. **Sửa:** xuất PDF bằng LibreOffice (TD-33); trước khi nộp chạy lệnh ở bước 3.
+7. **Xác nhận:** bản PDF mới: `grep -c "dfi"` = 0.
