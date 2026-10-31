@@ -3,28 +3,28 @@
      ở các điểm ghi trong docs/thay-doi-thiet-ke.md TD-22 – TD-32. Mở bằng trình duyệt; ảnh: docs/export/architecture-thuc-te.png -->
 <html lang="vi"><head><meta charset="utf-8"><title>Kiến trúc đã hiện thực – v0.2</title>
 <style>
-  body{margin:0;background:#fff;font:14px/1.35 "DejaVu Sans",Arial,sans-serif;color:#1f2a36}
+  body{margin:0;background:#fff;font:15px/1.35 "DejaVu Sans",Arial,sans-serif;color:#1f2a36}
   .khung{width:1180px;padding:18px 22px}
-  h1{font-size:17px;margin:0 0 10px;text-align:center}
+  h1{font-size:19px;margin:0 0 10px;text-align:center}
   .bang{border-radius:12px;padding:10px 14px 12px;margin:0}
-  .bang>.nhan{font-weight:700;font-size:14px;margin-bottom:8px}
+  .bang>.nhan{font-weight:700;font-size:15.5px;margin-bottom:8px}
   .nhan small{font-weight:400;color:#4a5a6a}
   .b2{background:#EAF2FB;border:1.5px solid #9DB9D9}.b3{background:#EEF7EE;border:1.5px solid #A7CDA7}
   .b1{background:#FDF3E6;border:1.5px solid #E3BE8A}.b0{background:#F4F6F8;border:1.5px solid #C9D1D9}
   .o{background:#fff;border:1.3px solid #5B6B7A;border-radius:8px;padding:6px 10px;text-align:center}
-  .o b{font-family:"DejaVu Sans Mono",monospace;font-size:13px}
-  .o div{font-size:12.5px;color:#34424f}
+  .o b{font-family:"DejaVu Sans Mono",monospace;font-size:15px}
+  .o div{font-size:14.5px;color:#34424f}
   .cho{border-style:dashed;color:#8A949E;background:#fbfcfd}.cho b,.cho div{color:#8A949E}
   .hang{display:flex;gap:12px;align-items:stretch}
   .pha{flex:1;border:1.3px solid #7FA3CC;border-radius:10px;padding:6px 8px 8px;background:#F6FAFE}
-  .pha .t{font-weight:700;font-size:12.5px;color:#2F5D8F;margin-bottom:6px;text-align:center}
+  .pha .t{font-weight:700;font-size:14.5px;color:#2F5D8F;margin-bottom:6px;text-align:center}
   .pha .o{margin-top:6px}
   .mui{display:flex;align-items:center;justify-content:center;font-size:22px;color:#5B6B7A;min-width:36px;flex-direction:column}
-  .mui span{font-size:11px;color:#4a5a6a}
-  .xuong{text-align:center;color:#5B6B7A;font-size:12px;margin:5px 0}
+  .mui span{font-size:12.5px;color:#4a5a6a}
+  .xuong{text-align:center;color:#5B6B7A;font-size:13.5px;margin:5px 0}
   .xuong .m{font-size:20px;line-height:1}
   .chinh{background:#DCE9F8;border:2px solid #5B6B7A}
-  .ghi{font-size:12px;color:#4a5a6a;margin-top:10px;text-align:center}
+  .ghi{font-size:13.5px;color:#4a5a6a;margin-top:10px;text-align:center}
 </style></head><body><div class="khung" id="so-do">
 <h1>Kiến trúc đã hiện thực – tag v0.2 (L7 · track DA)</h1>
 
@@ -55,7 +55,7 @@
   <div class="hang" style="margin-top:8px">
     <div class="o" style="flex:1"><b>src/db.py · src/config.py</b><div>.env → kết nối (NFR-07) · chạy sql/0*.sql · configs/config.yaml</div></div>
     <div class="o" style="flex:.8"><b>etl/tien_ich.py</b><div>la_trong – hàm dùng chung, không thuộc pha nào (TD-29)</div></div>
-    <div class="o" style="flex:1"><b>src/kiem_chung_nfr03.py</b><div>lệnh kiểm chứng NFR-03: gọi pha E + T, không chạm CSDL · phiếu gán nhãn tay data/nhan/</div></div>
+    <div class="o" style="flex:1"><b>src/kiem_chung_nfr03.py</b><div>lệnh kiểm chứng NFR-03: gọi pha E + T, không chạm CSDL · phiếu nhãn data/nhan/ (không có dữ liệu cá nhân trong repo)</div></div>
     <div class="o cho" style="flex:1"><b>etl/merge_service.py</b><div>UC5 Gộp / Giữ riêng – Giai đoạn 3 (TD-27)</div></div>
   </div>
 </div>
