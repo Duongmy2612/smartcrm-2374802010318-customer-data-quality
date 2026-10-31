@@ -7,6 +7,7 @@
     pha L  load_ops.py       FR-01, 02, 08, 10   –     mọi lệnh đọc/ghi schema ops, CSV hồ sơ lỗi, bảng reject
            load_dwh.py       FR-09               –     nạp kho dwh, SCD loại 2 cho dim_rule, đối soát
            merge_service.py  FR-05, FR-06, FR-11 UC4/5 Gộp / Giữ riêng trong một giao dịch                (Giai đoạn 3)
+    chung  tien_ich.py       –                   –     hàm thuần dùng chung (la_trong), không thuộc pha nào (TD-29)
 
 Quy ước: pha E/T chỉ có hàm THUẦN (nhận/trả DataFrame hoặc giá trị) để kiểm thử được không cần CSDL; pha L chỉ chạy
 lệnh SQL trên `conn` do src/pipeline.py mở, không tự tính nghiệp vụ. tests/test_ranh_gioi_lop.py giữ quy ước này.

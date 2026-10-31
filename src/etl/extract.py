@@ -11,6 +11,8 @@ import pathlib
 
 import pandas as pd
 
+from src.etl.tien_ich import la_trong
+
 COT_BAT_BUOC = ('ho_ten', 'so_dien_thoai')                 # FR-01: thiếu một cột → từ chối cả đợt
 # Ánh xạ cột nguồn → cột của bảng tạm (Bảng 4.1 của BT1). Cột không bắt buộc mà tệp không có → để trống.
 ANH_XA_COT = {
@@ -53,11 +55,6 @@ def kiem_cot_bat_buoc(df: pd.DataFrame) -> None:
     thieu = [c for c in COT_BAT_BUOC if c not in df.columns]
     if thieu:
         raise TepBiTuChoi(f"Thiếu cột bắt buộc: {', '.join(thieu)} – từ chối cả đợt, bảng tạm không thay đổi")
-
-
-def la_trong(s: pd.Series) -> pd.Series:
-    """Ô trống = chuỗi rỗng hoặc chỉ có khoảng trắng."""
-    return s.fillna('').str.strip() == ''
 
 
 def ho_so_tep(df: pd.DataFrame) -> dict:

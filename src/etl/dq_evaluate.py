@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from src.etl.extract import la_trong
+from src.etl.tien_ich import la_trong
 
 MAU_SO_CHUAN = r'0[0-9]{9}'                                      # chữ số ASCII, như CHECK ở sql/001
 MAU_EMAIL = r'[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}'   # giống notebooks/profiling_customers.py

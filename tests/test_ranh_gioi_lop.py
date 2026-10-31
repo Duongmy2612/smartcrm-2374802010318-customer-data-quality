@@ -3,7 +3,8 @@
 Đọc mã nguồn bằng ast (không chạy mã), nên test chạy được trên mọi máy, không cần CSDL.
 
     pha E   src/etl/extract.py                                 – chỉ đọc tệp nguồn
-    pha T   src/etl/transform.py, dq_evaluate.py, match.py      – hàm thuần: không CSDL, không gọi pha L
+    pha T   src/etl/transform.py, dq_evaluate.py, match.py      – hàm thuần: không CSDL, không gọi pha E, pha L
+    dùng chung src/etl/tien_ich.py                             – hàm thuần không thuộc pha nào (TD-29)
     pha L   src/etl/load_ops.py, load_dwh.py                    – chỉ chạy lệnh SQL: không gọi pha E / T
     điều phối  src/pipeline.py                                  – nơi DUY NHẤT gọi cả ba pha
     lớp ①   dashboard/report.py                                 – chỉ đọc kho qua src/doc_kho.py (không gọi src/etl)
@@ -47,8 +48,10 @@ def test_pha_e_va_t_khong_cham_csdl(tep):
 
 
 @pytest.mark.parametrize('tep', PHA_T)
-def test_pha_t_khong_goi_pha_l(tep):
-    assert not _cham(_import(tep), {'src.etl.load_ops', 'src.etl.load_dwh', 'src.pipeline'})
+def test_pha_t_khong_goi_pha_e_va_l(tep):
+    """Pha T không gọi pha E (đọc tệp) và pha L (ghi CSDL); hàm dùng chung lấy từ src/etl/tien_ich.py (TD-29)."""
+    cam = {'src.etl.extract', 'src.etl.load_ops', 'src.etl.load_dwh', 'src.pipeline'}
+    assert not _cham(_import(tep), cam), f'{tep} gọi sang pha khác – chỉ src/pipeline.py được nối các pha'
 
 
 @pytest.mark.parametrize('tep', PHA_L)

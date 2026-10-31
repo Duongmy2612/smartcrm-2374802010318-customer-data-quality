@@ -15,7 +15,7 @@ import unicodedata
 
 import pandas as pd
 
-from src.etl.extract import la_trong
+from src.etl.tien_ich import la_trong
 
 KY_TU_BO = re.compile(r'[\s.\-]')          # QT-02: bỏ dấu cách, dấu chấm, dấu gạch
 MAU_SO_CHUAN = re.compile(r'0[0-9]{9}')    # 10 chữ số ASCII, bắt đầu bằng 0 – khớp CHECK '^0[0-9]{9}$' ở sql/001
