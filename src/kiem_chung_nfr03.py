@@ -201,7 +201,7 @@ def chay(tep, nguong: float, seed: int, tao_phieu=None, nhan=None, nhan_dung=Non
         nguon = f'nhãn đúng của script sinh mẫu ({pathlib.Path(nhan_dung).name})'
         bang_nhan = nhan_tu_tep_dung(mau, ho_so, pathlib.Path(nhan_dung))
     else:
-        nguon = f'nhãn gán tay ({pathlib.Path(nhan).name})'
+        nguon = f'nhãn trên phiếu ({pathlib.Path(nhan).name})'
         bang_nhan = dg.kiem_phieu_nhan(doc_phieu(pathlib.Path(nhan)))
     bang = dg.gan_nhan_vao_khung(khung, bang_nhan, mau)
     in_ra(f'[2/3] nhãn       {len(bang)} cặp – {nguon}: {int(bang["nhan"].sum())} cùng một khách · '
