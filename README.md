@@ -13,7 +13,8 @@ reject kèm lý do viết thành câu. Hệ thống đo 6 quy tắc chất lư�
 nghi trùng. Mọi bước chạy bằng **một lệnh** (pipeline E → T → L) và nạp vào kho dữ liệu hình sao trên PostgreSQL.
 Dashboard Streamlit đọc kho (chỉ đọc) và vẽ 4 biểu đồ, mỗi biểu đồ trả lời một câu hỏi phân tích.
 Chất lượng phát hiện trùng được kiểm chứng bằng precision/recall theo NFR-03 (`src/kiem_chung_nfr03.py`, TD-32):
-trên dữ liệu mẫu với nhãn đúng của script sinh, và trên 300 cặp dữ liệu thật em gán nhãn tay.
+trên dữ liệu mẫu với nhãn đúng của script sinh, và trên 300 cặp dữ liệu thật có nhãn của người (Claude gợi ý nhãn,
+em rà lại từng cặp – `docs/ai-disclosure.md`).
 
 Phạm vi và lý do: `docs/srs.md` (đặc tả), `docs/thay-doi-thiet-ke.md` (TD-01 – TD-33, mọi sai lệch so với BT1).
 
@@ -149,11 +150,11 @@ python -m src.pipeline --tep data/raw/customers_raw.csv
 Kết quả đúng (giống buổi 8 – 10): CLEAN 51.279 · PENDING_DUP 11.625 · ERROR 4.133; chỉ số 87,20 → 94,76;
 EXACT_PHONE 11.625 · FUZZY 12; đối soát 6/6 ✔. Khi có tệp này, hai test hồi quy ở mục 4 cũng chạy.
 
-**NFR-03 trên dữ liệu thật – 300 cặp em gán nhãn tay** (TD-32; không cần CSDL):
+**NFR-03 trên dữ liệu thật – 300 cặp gán nhãn** (TD-32; không cần CSDL):
 
 ```
 python -m src.kiem_chung_nfr03 --tep data/raw/customers_raw.csv --tao-phieu data/nhan/nfr03_phieu_gan_nhan.xlsx
-# mở phiếu, điền cột nhan: 1 = cùng một khách · 0 = hai khách khác nhau (đã làm – phiếu có trong repo)
+# mở phiếu, điền cột nhan: 1 = cùng một khách · 0 = hai khách khác nhau
 python -m src.kiem_chung_nfr03 --tep data/raw/customers_raw.csv --nhan data/nhan/nfr03_phieu_gan_nhan.xlsx
 ```
 
@@ -181,7 +182,7 @@ src/etl/tien_ich.py       ② dùng chung la_trong (ô trống) – không thu�
 src/db.py, src/config.py  ② ↔ ③        kết nối từ .env, chạy migration sql/0*.sql
 sql/001 – 004             ③ LƯU TRỮ    schema ops (6 bảng + view v_reject), dwh (5 bảng + 2 view), trigger
 data/mau/                 dữ liệu mẫu giả + 3 tệp lỗi để thử C7 + nhãn đúng NFR-03 (commit) · data/raw, data/processed, reports/: không commit
-data/nhan/                phiếu 300 cặp em gán nhãn tay cho NFR-03 (dữ liệu thật)
+data/nhan/                nhãn 300 cặp NFR-03 (dữ liệu thật); phiếu .xlsx có họ tên, số điện thoại nên không commit
 tests/                    158 test pytest (pytest.ini: ba loại kiểm thử)
 docs/                     srs.md, data-requirements.md, thay-doi-thiet-ke.md, ai-disclosure.md, bug-log.md,
                           architecture-thuc-te.html, *.drawio + export/, bt2/ (ảnh kết quả chạy BT2), sprint1/, sprint2/
@@ -213,7 +214,7 @@ không tồn tại).
 | D2 – ≥ 5 hàm kiểm chất lượng trả về số đo | ✔ | 6 hàm `kiem_dq01_…` – `kiem_dq06_…` trả về số dòng lỗi, tỉ lệ lỗi (TD-24) |
 | D3 – bảng reject có dòng, lý do cho người đọc | ✔ | `ops.v_reject`, 31 dòng trên dữ liệu mẫu (TD-23) |
 | D4 – ≥ 2 biểu đồ có mốc tham chiếu, ghi nguồn | ✔ | 4 biểu đồ K1 – K3 (mốc 90/75, ngưỡng đạt, 10 điểm, ngưỡng 85); mỗi thẻ số ở K1, K3 cũng có mốc (TD-30) |
-| NFR-03 – nhận xét BT1: "chạy kiểm chứng precision/recall" | ✔ | Bước 13 (dữ liệu mẫu, nhãn đúng của script sinh) và mục 6 (300 cặp dữ liệu thật em gán nhãn tay); TD-32 |
+| NFR-03 – nhận xét BT1: "chạy kiểm chứng precision/recall" | ✔ | Bước 13 (dữ liệu mẫu, nhãn đúng của script sinh) và mục 6 (300 cặp dữ liệu thật có nhãn); TD-32 |
 
 Ảnh kết quả chạy BT2: `docs/bt2/` (danh sách ở `docs/bt2/README.md`). Nhật ký lỗi đã gỡ: `docs/bug-log.md`.
 Phần chuyển sang Giai đoạn 3 (UC5 Gộp/Giữ riêng, K4, `dash_reader`, NFR-02, Docker): TD-27. NFR-03 làm ở BT2 theo

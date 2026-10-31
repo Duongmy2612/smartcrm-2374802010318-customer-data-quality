@@ -530,8 +530,15 @@ ngưỡng, bốn câu lập luận, GRAIN, từ điển dữ liệu, bảng truy
   - Khung phải có cả cặp hệ thống KHÔNG ghép (T3 – T5). Chỉ lấy cặp hệ thống đã ghép thì đo được precision nhưng
     recall luôn 100% – vô nghĩa. T4 là chỗ hệ thống chắc chắn bỏ sót (QL7-04: hồ sơ thiếu số không tham gia so khớp);
     T5 là chỗ blocking không so (`test_blocking_khong_so_hai_so_khac_ca_nua_dau_lan_nua_cuoi`).
-  - Phiếu "mù": chỉ có giá trị gốc của hai hồ sơ, không có điểm, tầng hay quyết định của hệ thống, để nhãn là phán
-    đoán độc lập của người. Giữ đúng lý do ở TD-14: không giao việc gán nhãn cho AI.
+  - Phiếu "mù": chỉ có giá trị gốc của hai hồ sơ, không có điểm, tầng hay quyết định của hệ thống, để nhãn không bị
+    điểm số dẫn dắt.
+  - **Thực tế làm khác dự định ở TD-14:** nhãn ban đầu của 300 cặp do Claude gợi ý (phiên chat riêng, chỉ thấy phiếu
+    mù), em rà lại từng cặp và chịu trách nhiệm nhãn cuối – khai báo ở `docs/ai-disclosure.md`. Hạn chế: nhãn này
+    không độc lập hoàn toàn như nhãn tay, nên kết quả trên dữ liệu thật đọc là ước lượng; phép kiểm độc lập là bước 13
+    trên dữ liệu mẫu, nơi nhãn đúng do script sinh ghi lại.
+  - Phiếu `.xlsx` có họ tên, số điện thoại, email của dữ liệu LMS nên không commit (`.gitignore`, cùng lý do với
+    `data/raw/`); repo chỉ giữ `data/nhan/nfr03_nhan_300_cap.csv` gồm mã cặp, số dòng hai hồ sơ và nhãn – đủ để chạy
+    lại `--nhan` khi có `customers_raw.csv` của LMS.
   - Lấy mẫu theo tầng: tệp thật có 11.625 cặp T1 nhưng chỉ 12 cặp T2; lấy ngẫu nhiên 300 cặp từ cả khung thì gần như
     không có cặp FUZZY và cặp bỏ sót nào để đo. Mỗi cặp mang trọng số tầng để ước lượng thêm cho toàn khung.
   - Dựng khung từ tệp nguồn bằng chính các hàm của luồng chính, không đọc CSDL: không phụ thuộc CSDL đang nạp gì,
