@@ -341,3 +341,115 @@ Buổi 10 yêu cầu track DA nạp kho dữ liệu và dựng dashboard ≥ 2 b
   - Không đổi bảng hay cột.
   - `CREATE OR REPLACE TRIGGER` cần PostgreSQL 14 trở lên, đúng yêu cầu ở README mục 2.
   - Test `test_sua_tay_quy_tac_khong_ghi_updated_at_van_nap_duoc` (không có trigger thì test này lỗi); test DDL kiểm có trigger.
+
+---
+
+## Bài tập 2 (buổi 12, ngày 31/10/2026) – hiện thực so với thiết kế BT1
+
+Đề BT2 yêu cầu ghi **mọi sai lệch so với thiết kế BT1, mỗi thay đổi ba dòng: thay đổi gì · vì sao · ảnh hưởng tới
+thành phần nào**. TD-01 – TD-21 ở trên vẫn đúng. Các mục dưới đây phát sinh khi đối chiếu repo với bảng tiêu chí
+kỹ thuật của BT2 (đề mục 4.2: C1 – C7, D1 – D4).
+
+| Mã | Tóm tắt | Mục BT2 liên quan |
+|---|---|---|
+| TD-22 | Tách mọi lệnh đọc/ghi CSDL ra pha load `src/etl/load_ops.py`; E / T / quality chỉ còn hàm thuần | C2 (CỐT LÕI), D1 |
+| TD-23 | Bảng reject là view `ops.v_reject` có cột `ly_do` viết thành câu | D3 |
+| TD-24 | Sáu hàm kiểm chất lượng riêng (DQ-01 … DQ-06), mỗi hàm trả về số dòng lỗi và tỉ lệ lỗi | D2 |
+| TD-25 | Chạy lại cùng tệp: cảnh báo AC1.4, không tạo đợt mới, mọi bảng +0, mã thoát 0 | C5 (CỐT LÕI) |
+| TD-26 | Dữ liệu mẫu giả `data/mau/` (414 dòng, seed 42) được commit; README chạy trên dữ liệu mẫu | C1 (CỐT LÕI), TP4 |
+| TD-27 | Phạm vi BT2: hoãn UC5 Gộp/Giữ riêng, K4, `dash_reader`, NFR-02, NFR-03, Docker sang Giai đoạn 3 | Phạm vi đề mục 1 |
+
+### TD-22  Tách pha load: `src/etl/load_ops.py` giữ mọi lệnh đọc/ghi schema ops
+
+- **Thay đổi gì:** Các hàm có `conn` trong `extract.py` (`tim_dot_cung_tep`, `ghi_dot_nap`, `ghi_ho_so_tho`),
+  `transform.py` (`lay_so_dang_hieu_luc`, `ghi_ket_qua_chuan_hoa`, `ghi_customer_clean`), `dq_evaluate.py`
+  (`khoi_tao_quy_tac`, `doc_quy_tac_dang_bat`, `ghi_ket_qua`) và phần CSDL của `match.phat_hien_cap` chuyển sang
+  `src/etl/load_ops.py`. `transform.xuat_ho_so_loi` tách hai: `transform.bang_ho_so_loi` (lập bảng, thuần) và
+  `load_ops.xuat_csv_ho_so_loi` (ghi tệp). Thứ tự gọi UC3 chuyển vào `src/pipeline.chay_uc3`; lệnh chạy lại riêng
+  UC3 đổi từ `python -m src.etl.match --dot 1` thành `python -m src.pipeline --dot 1`.
+- **Vì sao:** Đề BT2 kiểm C2 bằng cách "mở tệp transform và kiểm tra ranh giới lớp – không có dấu vết của lớp khác
+  lẫn vào", và D1 "ba pha tách ở ba nơi". Ở Sprint 1 – 2, mỗi mô-đun có một phần "đọc / ghi CSDL" ở cuối tệp
+  (quy ước ghi ở `src/etl/__init__.py`), nên `transform.py` vẫn `import sqlalchemy` và có câu `INSERT INTO
+  ops.customer_clean`. Theo cách chấm của BT2, đó là lớp load lẫn vào pha transform.
+- **Ảnh hưởng:**
+  - Pha E = `extract.py`; pha T = `transform.py`, `dq_evaluate.py`, `match.py`; pha L = `load_ops.py`,
+    `load_dwh.py`. Chỉ `src/pipeline.py` gọi cả ba pha.
+  - `tests/test_ranh_gioi_lop.py` (12 test, đọc mã bằng `ast`) giữ ranh giới: E/T không import `sqlalchemy`,
+    `src.db` và không có câu SQL; L không gọi E/T; dashboard không gọi `src/etl`.
+  - Không đổi bảng, cột, quy tắc hay con số nào: 95 test cũ vẫn PASS sau khi đổi tên hàm trong test.
+  - TD-06 (giữ `src/etl/`, mỗi mô-đun một nhóm FR) vẫn đúng: thêm một mô-đun, không đổi thư mục.
+
+### TD-23  Bảng reject: view `ops.v_reject` (bổ sung TD-07)
+
+- **Thay đổi gì:** Migration `sql/004_v_reject.sql` tạo view `ops.v_reject`: hồ sơ `status = 'ERROR'` của
+  `ops.stg_customer` kèm `row_no`, giá trị gốc, `error_code` và cột `ly_do` viết thành câu cho cửa hàng đọc.
+  Hàm đọc: `load_ops.doc_reject`.
+- **Vì sao:** D3 yêu cầu "có bảng reject và có dòng trong đó, lý do viết cho người đọc". TD-07 đã quyết định
+  không lưu bảng thứ hai (tránh trùng dữ liệu, tránh lưu giá trị tính được), nên lý do trước đây chỉ có trong
+  tệp CSV. View giữ đúng TD-07 (không lưu thêm gì) mà vẫn cho xem bảng reject ngay trong CSDL.
+- **Ảnh hưởng:** ERD không đổi (view không phải bảng). Ba câu lý do viết ở hai nơi (`transform.LY_DO` cho CSV và
+  `sql/004`), `test_ly_do_trong_view_reject_khop_transform` giữ hai nơi khớp nhau.
+  `test_ddl_chay_lai_khong_loi` kiểm thêm schema `ops` có 1 view.
+
+### TD-24  Sáu hàm kiểm chất lượng thay cho một hàm nhiều nhánh
+
+- **Thay đổi gì:** `dq_evaluate.do_quy_tac` (một hàm, 6 nhánh `if/elif`) tách thành 6 hàm
+  `kiem_dq01_so_dien_thoai_khong_trong` … `kiem_dq06_email_dung_mau`, đăng ký trong `HAM_KIEM`; `do_quy_tac`
+  chỉ tra bảng `HAM_KIEM`. `KetQua` có thêm `so_loi` (số dòng lỗi) và `ti_le_loi`. Pipeline in thêm cột
+  "Dòng lỗi SAU (tỉ lệ lỗi)"; báo cáo `reports/` có thêm cột này.
+- **Vì sao:** D2 yêu cầu "≥ 5 hàm kiểm chất lượng, mỗi hàm trả về số đo được" và ví dụ ở đề mục 2.1 nói rõ "mỗi
+  hàm trả về số dòng lỗi và tỉ lệ lỗi". Công thức, phạm vi áp dụng (mẫu số) và ngưỡng của từng quy tắc giữ
+  nguyên như `docs/data-requirements.md` mục 6.
+- **Ảnh hưởng:** `src/etl/dq_evaluate.py`, `src/pipeline.py` (in bảng). Quy tắc mới ở UC6 phải có hàm kiểm trong
+  `HAM_KIEM` (thay câu "đã có cách đo trong dq_evaluate.py"). Test mới:
+  `test_sau_ham_kiem_tra_ve_so_dong_loi_va_ti_le_loi`, `test_dq04_bien_2_va_120_ky_tu`.
+
+### TD-25  Chạy lại cùng tệp: cảnh báo AC1.4, mọi bảng +0, mã thoát 0 (thay "từ chối, mã thoát 2")
+
+- **Thay đổi gì:** Trước đây chạy lại `python -m src.pipeline --tep <cùng tệp>` thì in `TỪ CHỐI: Tệp này đã được nạp…`
+  và trả mã thoát 2. Nay lệnh in `CẢNH BÁO (AC1.4): tệp này đã nạp ở đợt n → không tạo đợt mới, không ghi lại hồ sơ`,
+  bỏ qua bước 2 – 3, vẫn chạy nạp kho và UC3 cho đợt n (đều theo khóa nghiệp vụ nên +0), in bảng số dòng 8 bảng
+  đích trước → sau, rồi trả mã thoát 0. Muốn nạp thành đợt mới vẫn dùng `--nap-lai` như cũ. Mọi lần chạy đều in
+  bảng số dòng bảng đích.
+- **Vì sao:**
+  - C5 (CỐT LÕI) kiểm "chạy lại lần thứ hai **không lỗi** và không nhân đôi dữ liệu". Mã thoát 2 kèm chữ "TỪ CHỐI"
+    dễ bị đọc là lỗi, dù dữ liệu không nhân đôi.
+  - AC1.4 chỉ yêu cầu "cảnh báo tệp đã được nạp ở đợt nào và chỉ nạp khi người dùng xác nhận", không yêu cầu báo
+    lỗi. Cách mới vẫn cảnh báo, vẫn không nạp khi chưa xác nhận.
+  - Nếu lần trước UC3 lỗi (TD-17), lần chạy lại tự làm nốt phần còn thiếu thay vì bắt người dùng nhớ lệnh khác.
+- **Ảnh hưởng:** `src/pipeline.py` (`_tep_da_nap`, `_in_bang_dich`), `src/etl/load_ops.py`
+  (`dem_dong_bang_dich`). Mã thoát 2 nay chỉ còn cho dữ liệu sai thật (thiếu cột, người nạp sai vai trò, giá trị
+  quá dài, đợt không tồn tại). Test: `test_ac14_chay_lai_cung_tep_canh_bao_va_khong_nhan_doi` (thay
+  `test_ac14_nap_lai_bi_tu_choi_roi_xac_nhan`), `test_chay_lai_bang_lenh_tra_ma_0_va_khong_nhan_doi`.
+
+### TD-26  Dữ liệu mẫu giả trong repo: `data/mau/`
+
+- **Thay đổi gì:** `scripts/sinh_du_lieu_mau.py` (chỉ dùng thư viện chuẩn, `random.Random(42)`) sinh
+  `data/mau/customers_mau.csv` – 414 dòng giả cùng 6 cột với `customers_raw.csv`, có đủ 5 dạng ghi số, hồ sơ lặp,
+  cặp số gần giống, thiếu số, số sai, thiếu tên, email sai – và `data/mau/customers_thieu_cot.csv` (thiếu cột
+  `so_dien_thoai`) để thử AC1.3. Hai tệp được commit. README mục 3 chạy trên dữ liệu mẫu; dữ liệu thật 67.037 dòng
+  là bước tùy chọn.
+- **Vì sao:** C1 (CỐT LÕI) và TP4 yêu cầu người khác dựng lại được "từ trạng thái ban đầu theo đúng README, không
+  cần can thiệp ngoài hướng dẫn" và "có dữ liệu mẫu để hệ thống không lên trống trơn". `customers_raw.csv` lấy từ
+  LMS và không commit (`.gitignore`), nên trước đây bước 8 cần một tệp nằm ngoài repo. Dữ liệu mẫu là dữ liệu giả,
+  không có dữ liệu cá nhân nên commit được.
+- **Ảnh hưởng:** README mục 3, 5; `test_du_lieu_mau_ra_dung_so_lieu_readme` kiểm đúng các số README ghi;
+  `test_tep_mau_sinh_lai_dung_tung_byte` kiểm script sinh lại đúng tệp đã commit (NFR-05). Mọi số đo của BT1 và
+  Sprint 1 – 2 trên dữ liệu thật giữ nguyên.
+
+### TD-27  Phạm vi BT2 và phần chuyển sang Giai đoạn 3
+
+- **Thay đổi gì:** Không làm trong BT2, chuyển sang Giai đoạn 3 (BT3, buổi 13 – 16):
+  - `merge_service.py` (UC5 Gộp/Giữ riêng) và `dashboard/app.py` (K4, UC6, UC9) – TD-14 xếp vào Sprint 3;
+  - tài khoản `dash_reader` và bỏ quyền DELETE của tài khoản ứng dụng (TD-19);
+  - NFR-02 (200 dòng gán nhãn), NFR-03 (300 cặp gán nhãn), NFR-06 đo trên MacBook;
+  - Dockerfile / docker-compose.
+- **Vì sao:**
+  - Đề BT2 mục 1: "làm thừa không được cộng điểm"; module cốt lõi của track DA là pipeline E/T/L, module mở rộng là
+    kho + dashboard ≥ 2 biểu đồ. Cả hai đã chạy. Slide buổi 12: thiếu thời gian thì ưu tiên bốn mục CỐT LÕI,
+    thêm tính năng là việc ít điểm nhất.
+  - UC5 cần người quyết định từng cặp nên không nằm trong luồng tự động (TD-14).
+  - Docker: môi trường thử không tải được ảnh `postgres`, `python` từ registry nên không kiểm chứng được tệp
+    Dockerfile. Không đưa vào repo tệp chưa chạy thử; đề ghi đây là bước chuẩn bị cho BT3.
+- **Ảnh hưởng:** Mọi cặp trong kho vẫn ở trạng thái Chờ xử lý; DQ-05 và chỉ số SAU dừng ở mức trước UC5 (dữ liệu
+  thật 94,76; dữ liệu mẫu 95,79). README mục 8 ghi việc còn lại.
