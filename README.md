@@ -19,16 +19,24 @@ Phạm vi và lý do: `docs/srs.md` (đặc tả), `docs/thay-doi-thiet-ke.md` (
 
 | Thành phần | Phiên bản | Ghi chú |
 |---|---|---|
-| Python | **3.11 trở lên** (`python3 --version`) | pandas 3 không chạy trên 3.10 trở xuống. Đã chạy trên 3.11 (MacBook, Linux) và 3.13 (Linux) |
-| PostgreSQL | **14 trở lên**, đang chạy | macOS: `brew services start postgresql@14`. Đã chạy trên 14 (MacBook) và 16 (Linux) |
+| Python | **3.11 trở lên** (macOS: `python3.11 --version` · Windows: `py -3.11 --version`) | pandas 3 không chạy trên 3.10 trở xuống. Đã chạy trên 3.11 (MacBook, Linux) và 3.13 (Linux) |
+| PostgreSQL | **14 trở lên**, đang chạy | macOS: `brew services start postgresql@14` · Windows: trình cài EDB, dịch vụ tự chạy cùng Windows, đăng nhập bằng tài khoản `postgres` + mật khẩu đặt khi cài. Đã chạy trên 14 (MacBook) và 16 (Linux) |
 | Thư viện | `requirements.txt` (mọi gói ghi `==`) | pandas, rapidfuzz, SQLAlchemy, psycopg2-binary, python-dotenv, PyYAML, openpyxl, pytest, streamlit, plotly |
-| Biến môi trường | `.env` chép từ `.env.example` | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_NAME_TEST`, `DASH_DB_USER`, `DASH_DB_PASSWORD`. `DB_USER` để trống = tài khoản hệ điều hành (đúng mặc định PostgreSQL Homebrew – TD-31). `.env` không commit (NFR-07) |
+| Biến môi trường | `.env` chép từ `.env.example` | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_NAME_TEST`, `DASH_DB_USER`, `DASH_DB_PASSWORD`. `DB_USER` để trống = tài khoản hệ điều hành (đúng mặc định PostgreSQL Homebrew – TD-31); Windows điền `DB_USER=postgres` và `DB_PASSWORD`. `.env` không commit (NFR-07) |
 | Dữ liệu | **có sẵn trong repo**: `data/mau/` | Dữ liệu giả 414 dòng (seed 42) và 3 tệp lỗi để thử C7, sinh bằng `scripts/sinh_du_lieu_mau.py`. Dữ liệu thật 67.037 dòng (LMS) là tùy chọn – mục 6 |
 | Cổng | 8501 còn trống | dashboard (`.streamlit/config.toml`; đổi bằng `--server.port`) |
 
 ## 3. Cài đặt và chạy – mỗi bước một lệnh
 
-Chạy từ thư mục trống, Terminal macOS/Linux (Windows: bước 4 là `.venv\Scripts\activate`). PostgreSQL phải đang chạy.
+macOS và Windows cùng 12 bước, cùng số thứ tự (mục 5 tra kết quả đúng theo số bước). Chạy từ một thư mục trống,
+PostgreSQL phải đang chạy. Mẹo: thêm `--depth 1` vào lệnh ở bước 1 để tải nhanh hơn (lịch sử repo còn thư mục
+`.venv` cũ, khoảng 150 MB).
+
+### 3.1. macOS (MacBook) – Terminal
+
+Chuẩn bị một lần: cài [Homebrew](https://brew.sh), rồi `brew install python@3.11 postgresql@14` và
+`brew services start postgresql@14`. Terminal báo `command not found: createdb` thì chạy
+`echo 'export PATH="$(brew --prefix postgresql@14)/bin:$PATH"' >> ~/.zshrc` rồi mở Terminal mới.
 
 | # | Việc | Lệnh |
 |---|---|---|
@@ -45,7 +53,41 @@ Chạy từ thư mục trống, Terminal macOS/Linux (Windows: bước 4 là `.v
 | 11 | Tạo CSDL riêng cho kiểm thử (một lần) | `createdb smartcrm_test` |
 | 12 | **Chạy bộ kiểm thử** | `python -m pytest -q` |
 
-Không có PostgreSQL: `python -m src.pipeline --tep data/mau/customers_mau.csv --khong-ghi-csdl` vẫn chạy extract,
+Linux: làm như macOS. PostgreSQL trên Linux thường bắt đăng nhập bằng mật khẩu: ở bước 6 điền `DB_USER`,
+`DB_PASSWORD`; bước 7 và 11 dùng `createdb -h localhost -U postgres smartcrm` (và `smartcrm_test`).
+
+### 3.2. Windows 10/11 – PowerShell
+
+Chuẩn bị một lần:
+
+- Python 3.11 trở lên từ [python.org](https://www.python.org/downloads/windows/) – khi cài, đánh dấu **Add python.exe to PATH**.
+- PostgreSQL 14 trở lên từ [trình cài EDB](https://www.postgresql.org/download/windows/) – nhớ mật khẩu đặt cho tài khoản `postgres`; dịch vụ tự chạy cùng Windows.
+- [Git for Windows](https://git-scm.com/download/win).
+- Mỗi cửa sổ PowerShell mới: cho dùng được lệnh `createdb`, `psql` (thay `16` bằng phiên bản PostgreSQL đã cài):
+  `$env:Path += ";C:\Program Files\PostgreSQL\16\bin"`
+
+| # | Việc | Lệnh |
+|---|---|---|
+| 1 | Lấy mã nguồn đúng tag nộp bài | `git clone --branch v0.2 https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality.git` |
+| 2 | Vào thư mục repo | `cd smartcrm-2374802010318-customer-data-quality` |
+| 3 | Tạo môi trường ảo (máy chỉ có Python 3.12/3.13 thì `py -3.12` / `py -3.13`) | `py -3.11 -m venv .venv` |
+| 4 | Kích hoạt môi trường ảo. Lệnh đầu chỉ cho phép chạy script kích hoạt trong cửa sổ này; dùng cmd thì gõ `.venv\Scripts\activate.bat` | `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force; .venv\Scripts\Activate.ps1` |
+| 5 | Cài thư viện | `pip install -r requirements.txt` |
+| 6 | Tạo tệp cấu hình; Notepad mở ra thì điền `DB_USER=postgres` và `DB_PASSWORD=<mật khẩu đặt khi cài PostgreSQL>`, lưu lại | `copy .env.example .env; notepad .env` |
+| 7 | Tạo CSDL rỗng, bảng mã UTF-8 (hỏi mật khẩu `postgres`; báo "already exists" thì `dropdb -U postgres smartcrm` rồi chạy lại) | `createdb -U postgres -E UTF8 -T template0 smartcrm` |
+| 8 | **Chạy luồng chính end-to-end** trên dữ liệu mẫu (như bước 8 của macOS) | `python -m src.pipeline --tep data/mau/customers_mau.csv` |
+| 9 | **Chạy lại lần hai** đúng lệnh trên – không lỗi, không nhân đôi | `python -m src.pipeline --tep data/mau/customers_mau.csv` |
+| 10 | Mở dashboard rồi vào http://localhost:8501 (Windows hỏi tường lửa thì bấm Allow; giữ cửa sổ này, bước 11 – 12 làm ở cửa sổ PowerShell mới: `cd` vào repo, chạy lệnh `$env:Path` ở trên và lệnh bước 4) | `python -m streamlit run dashboard/report.py` |
+| 11 | Tạo CSDL riêng cho kiểm thử (một lần) | `createdb -U postgres -E UTF8 -T template0 smartcrm_test` |
+| 12 | **Chạy bộ kiểm thử** | `python -m pytest -q` |
+
+Các lệnh Windows soạn theo cách cài chuẩn ở trên. Phần khác macOS ở mã nguồn – đăng nhập bằng tài khoản
+`postgres` có mật khẩu (kể cả mật khẩu có ký tự đặc biệt) và CSDL tạo bằng UTF-8 – đã chạy thử trên Linux: luồng
+chính, chạy lại +0, `139 passed, 2 skipped`. Chưa chạy trên máy Windows thật.
+
+### 3.3. Không có PostgreSQL
+
+`python -m src.pipeline --tep data/mau/customers_mau.csv --khong-ghi-csdl` vẫn chạy extract,
 transform, đo chất lượng và so khớp trong bộ nhớ (TD-10); bước 9, 10 cần CSDL.
 
 ## 4. Chạy kiểm thử
@@ -85,8 +127,8 @@ Thử thêm (giảng viên chấm C7 – dữ liệu sai, và suy giảm có ki�
 | Tệp thiếu cột | `python -m src.pipeline --tep data/mau/customers_thieu_cot.csv` | `TỪ CHỐI: Thiếu cột bắt buộc: so_dien_thoai – từ chối cả đợt, bảng tạm không thay đổi`, mã thoát 2 |
 | Tệp chỉ có dòng tiêu đề | `python -m src.pipeline --tep data/mau/customers_chi_tieu_de.csv` | `TỪ CHỐI: Tệp "customers_chi_tieu_de.csv" không có dòng dữ liệu nào …`, mã thoát 2, không tạo đợt nạp (TD-28) |
 | Tệp lưu sai bảng mã (Excel Windows) | `python -m src.pipeline --tep data/mau/customers_sai_bang_ma.csv` | `TỪ CHỐI: Tệp "customers_sai_bang_ma.csv" không phải bảng mã UTF-8 … chọn "Lưu dưới dạng" CSV UTF-8 rồi nạp lại`, mã thoát 2 (TD-28) |
-| Bảng reject | `psql -d smartcrm -c "SELECT row_no, phone_raw, error_code, ly_do FROM ops.v_reject ORDER BY row_no LIMIT 8"` | 31 dòng tất cả; cột `ly_do` viết thành câu |
-| Tắt CSDL | `brew services stop postgresql@14` rồi chạy lại bước 8 | `LỖI: LoiKetNoiCSDL: Không kết nối được PostgreSQL ở localhost:5432 …` kèm cách sửa, mã thoát 1, không in mật khẩu |
+| Bảng reject | `psql -d smartcrm -c "SELECT row_no, phone_raw, error_code, ly_do FROM ops.v_reject ORDER BY row_no LIMIT 8"` (Windows: thêm `-U postgres`) | 31 dòng tất cả; cột `ly_do` viết thành câu |
+| Tắt CSDL | macOS: `brew services stop postgresql@14` · Windows (PowerShell chạy quyền Administrator): `net stop postgresql-x64-16` – rồi chạy lại bước 8; xong bật lại bằng `brew services start postgresql@14` / `net start postgresql-x64-16` | `LỖI: LoiKetNoiCSDL: Không kết nối được PostgreSQL ở localhost:5432 …` kèm cách sửa, mã thoát 1, không in mật khẩu |
 | Chạy lại riêng UC3 | `python -m src.pipeline --dot 1` | `EXACT_PHONE +0 · FUZZY +0` (cặp đã có không tạo lại) |
 
 ## 6. Chạy trên dữ liệu thật (tùy chọn)
