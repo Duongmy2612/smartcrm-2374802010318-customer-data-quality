@@ -15,6 +15,10 @@ data/raw/*
 data/processed/*
 !data/processed/.gitkeep
 
+# Phiếu gán nhãn NFR-03 có họ tên, số điện thoại, email của dữ liệu LMS – chỉ commit tệp nhãn .csv
+# (ma_cap, dong_a, dong_b, nhan), không có dữ liệu cá nhân
+data/nhan/*.xlsx
+
 # Báo cáo sinh tự động mỗi lần chạy pipeline (ảnh/báo cáo minh chứng để trong docs/)
 reports/*
 !reports/.gitkeep
