@@ -348,7 +348,8 @@ Buổi 10 yêu cầu track DA nạp kho dữ liệu và dựng dashboard ≥ 2 b
 
 Đề BT2 yêu cầu ghi **mọi sai lệch so với thiết kế BT1, mỗi thay đổi ba dòng: thay đổi gì · vì sao · ảnh hưởng tới
 thành phần nào**. TD-01 – TD-21 ở trên vẫn đúng. Các mục dưới đây phát sinh khi đối chiếu repo với bảng tiêu chí
-kỹ thuật của BT2 (đề mục 4.2: C1 – C7, D1 – D4).
+kỹ thuật của BT2 (đề mục 4.2: C1 – C7, D1 – D4); TD-28 – TD-31 thêm sau lần rà soát cuối ngày 31/10/2026
+(thử dữ liệu sai và đọc lại dashboard – BUG-09 đến BUG-12 trong `docs/bug-log.md`).
 
 | Mã | Tóm tắt | Mục BT2 liên quan |
 |---|---|---|
@@ -358,6 +359,10 @@ kỹ thuật của BT2 (đề mục 4.2: C1 – C7, D1 – D4).
 | TD-25 | Chạy lại cùng tệp: cảnh báo AC1.4, không tạo đợt mới, mọi bảng +0, mã thoát 0 | C5 (CỐT LÕI) |
 | TD-26 | Dữ liệu mẫu giả `data/mau/` (414 dòng, seed 42) được commit; README chạy trên dữ liệu mẫu | C1 (CỐT LÕI), TP4 |
 | TD-27 | Phạm vi BT2: hoãn UC5 Gộp/Giữ riêng, K4, `dash_reader`, NFR-02, NFR-03, Docker sang Giai đoạn 3 | Phạm vi đề mục 1 |
+| TD-28 | Tệp rỗng, chỉ có tiêu đề, sai bảng mã, hỏng cấu trúc bị TỪ CHỐI bằng câu tiếng Việt, mã thoát 2 | C7 |
+| TD-29 | Hàm dùng chung `la_trong` chuyển sang `src/etl/tien_ich.py`: pha T không import pha E | C2 (CỐT LÕI), D1 |
+| TD-30 | Mỗi thẻ số ở K1, K3 có mốc so sánh; câu đọc K3 chỉ nói "sát ngưỡng" khi đúng là sát | TP3, D4 |
+| TD-31 | `DB_USER` để trống = tài khoản hệ điều hành; README bước 3 dùng `python3`, bước 6 không phải sửa tay | C1 (CỐT LÕI), TP4 |
 
 ### TD-22  Tách pha load: `src/etl/load_ops.py` giữ mọi lệnh đọc/ghi schema ops
 
@@ -453,3 +458,44 @@ kỹ thuật của BT2 (đề mục 4.2: C1 – C7, D1 – D4).
     Dockerfile. Không đưa vào repo tệp chưa chạy thử; đề ghi đây là bước chuẩn bị cho BT3.
 - **Ảnh hưởng:** Mọi cặp trong kho vẫn ở trạng thái Chờ xử lý; DQ-05 và chỉ số SAU dừng ở mức trước UC5 (dữ liệu
   thật 94,76; dữ liệu mẫu 95,79). README mục 8 ghi việc còn lại.
+
+### TD-28  Tệp không đọc được bị TỪ CHỐI rõ ràng (bổ sung AC1.3)
+
+- **Thay đổi gì:** `extract.doc_tep` từ chối cả đợt (mã thoát 2, không tạo đợt nạp) khi tệp: rỗng 0 byte, chỉ có dòng
+  tiêu đề, không phải UTF-8, hỏng cấu trúc CSV, hoặc đuôi `.xlsx` mà không phải tệp Excel. Mỗi trường hợp có câu tiếng
+  Việt chỉ cách sửa. Script sinh mẫu thêm `data/mau/customers_chi_tieu_de.csv`, `data/mau/customers_sai_bang_ma.csv`.
+- **Vì sao:** C7 yêu cầu "từ chối có thông báo rõ ràng, không sập và không trả lỗi thô của thư viện". Trước đó tệp chỉ
+  có tiêu đề thành một đợt rỗng được chấm 100 điểm (BUG-09), các tệp hỏng còn lại in `EmptyDataError`,
+  `UnicodeDecodeError`, `ParserError` với mã thoát 1 (BUG-10). Lỗi do tệp là lỗi DỮ LIỆU nên phải là mã 2.
+- **Ảnh hưởng:** `src/etl/extract.py`, `scripts/sinh_du_lieu_mau.py`, `data/mau/`; README mục 5 thêm hai lệnh thử;
+  test mới ở `tests/test_extract.py`, `tests/test_du_lieu_mau.py`. Không đổi bảng, cột, quy tắc hay số liệu nào.
+
+### TD-29  `la_trong` chuyển sang `src/etl/tien_ich.py`
+
+- **Thay đổi gì:** hàm `la_trong` (ô trống = chuỗi rỗng hoặc chỉ có khoảng trắng) chuyển từ `extract.py` sang
+  `src/etl/tien_ich.py`; `extract.py`, `transform.py`, `dq_evaluate.py` cùng import từ đó.
+- **Vì sao:** C2 kiểm "không gọi chéo sai chiều", và `pipeline.py` ghi "các pha không gọi lẫn nhau", nhưng pha T vẫn
+  import từ pha E (BUG-12). Hàm dùng chung không thuộc pha nào nên đặt riêng.
+- **Ảnh hưởng:** `tests/test_ranh_gioi_lop.py`: test `test_pha_t_khong_goi_pha_l` đổi thành
+  `test_pha_t_khong_goi_pha_e_va_l` (cấm thêm `src.etl.extract`). Vẫn 11 test ranh giới lớp; hành vi không đổi.
+
+### TD-30  Mốc so sánh cho thẻ số K1, K3; câu đọc K3 đúng với dữ liệu
+
+- **Thay đổi gì:** mỗi thẻ số có một mốc: K1 – chỉ số SAU "mốc ≥ 90", chênh lệch "cần ≥ +10" (mục tiêu chung ở
+  `docs/data-requirements.md` mục 6), số hồ sơ so với kỳ trước, tỉ lệ lỗi DQ-01/DQ-05 "mốc ≤ 100 − ngưỡng"; K3 – tổng cặp
+  trên số hồ sơ, mỗi trạng thái theo % tổng cặp, tỉ lệ đã xử lý "mục tiêu 100%". Câu đọc K3 chỉ nói "sát ngưỡng" khi cặp
+  FUZZY thấp nhất cách ngưỡng dưới 5 điểm. Thông báo kho rỗng chỉ lệnh chạy trên `data/mau/customers_mau.csv`.
+- **Vì sao:** đề mục 2.3: "Mỗi con số hoặc biểu đồ phải có ít nhất một mốc"; câu K3 cũ viết cứng nên mô tả sai dữ liệu
+  mẫu (BUG-11); `data/raw/customers_raw.csv` không có trong repo nên lệnh cũ không chạy được trên bản clone.
+- **Ảnh hưởng:** `dashboard/report.py`; hàm thuần mới `doc_kho.cau_fuzzy_thap_nhat`, `doc_kho.moc_ti_le_loi` có test
+  ở `tests/test_doc_kho.py`. Không đổi truy vấn, view hay số liệu.
+
+### TD-31  Dựng lại được trên máy khác với ít bước tay hơn
+
+- **Thay đổi gì:** `DB_USER` không còn bắt buộc – để trống thì thư viện libpq dùng tài khoản hệ điều hành (mặc định của
+  PostgreSQL cài bằng Homebrew). README bước 3 đổi `python3.11 -m venv .venv` thành `python3 -m venv .venv` (kèm điều kiện
+  `python3 --version` ≥ 3.11), bước 6 chỉ còn `cp .env.example .env`. `scripts/check_env.py` dùng chung `db.tao_engine`.
+- **Vì sao:** C1 – giảng viên làm đúng README, không gõ thêm lệnh. Máy chỉ có Python 3.12/3.13 không có lệnh
+  `python3.11`; bước 6 cũ phải mở `.env` sửa tay. Đã thử Python 3.13: cài đủ thư viện và toàn bộ test PASS.
+- **Ảnh hưởng:** `src/db.py`, `.env.example`, `scripts/check_env.py`, README mục 2, 3. PostgreSQL có tài khoản/mật khẩu
+  riêng vẫn điền `DB_USER`, `DB_PASSWORD` như trước; NFR-07 không đổi (mật khẩu vẫn chỉ ở `.env`).
