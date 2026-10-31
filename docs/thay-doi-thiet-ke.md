@@ -576,5 +576,7 @@ ngưỡng, bốn câu lập luận, GRAIN, từ điển dữ liệu, bảng truy
   - Bản PDF đầu tiên của BT2 xuất bằng Word for Mac bị hỏng chữ có dấu: "dữ liệu" thành "dfi liệu", "từ" thành "tfi",
     "Dương" thành "Dffơng" (BUG-14).
   - Ảnh K1 – K3 cũ chỉ rộng khoảng 600 điểm ảnh nên phóng lên là mờ, không sửa được bằng cách chèn lại.
-- **Ảnh hưởng:** Báo cáo dài hơn mức gợi ý 6 – 9 trang một chút (đã gộp bớt chữ, chỉ giữ ảnh mà đề bắt buộc). Không
-  đổi con số nào. `docs/bt2/README.md` cập nhật danh sách ảnh.
+- **Ảnh hưởng:** Báo cáo dài 17 trang, quá mức gợi ý 6 – 9 trang: một cột, chữ 13 và ảnh đủ lớn để đọc (đúng nhận
+  xét), cộng mục 3.4 NFR-03 mà nhận xét yêu cầu. Đã bỏ các bảng trùng với ảnh (bảng tầng, bảng quét ngưỡng – đã in
+  trong Hình 3.6, 3.7). Ảnh K1 – K3 cũ chỉ rộng khoảng 600 điểm ảnh; ảnh mới do Claude chụp trên môi trường thử, ghi ở
+  từng chú thích và `docs/bt2/README.md`. Không đổi con số nào.

@@ -1,18 +1,17 @@
 # Nhật ký phép thử thư mục trống – làm đúng README mục 3 (BT2 đề mục 2.4, checklist C1)
-# Môi trường thử của Claude: Linux, Python 3.11.18, 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) – 31/10/2026 06:58 UTC.
+# Môi trường thử của Claude: Linux, Python 3.11.18, PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) – 31/10/2026 14:09 UTC.
 # CSDL smartcrm, smartcrm_test đã xóa trước khi thử. Khác máy thật ở hai điểm, ghi rõ để không hiểu nhầm:
-#   - Bước 1 clone nhánh main (cùng commit sẽ gắn tag v0.2) vì lúc thử tag chưa được gắn lại; lệnh README dùng --branch v0.2.
-#   - PostgreSQL của môi trường thử cần mật khẩu qua TCP nên sau bước 6 điền DB_PASSWORD vào .env (Homebrew: không cần).
+#   - Bước 1 clone nhánh main (commit sẽ gắn tag v0.2; sau đó chỉ thêm ảnh, nhãn và tài liệu); lệnh README dùng --branch v0.2.
+#   - PostgreSQL của môi trường thử đăng nhập bằng tài khoản postgres nên sau bước 6 điền DB_USER=postgres vào .env (Homebrew: không cần).
 #   Ảnh minh chứng trong báo cáo PDF là ảnh chụp trên MacBook của em, không phải nhật ký này.
 
 ── Bước 1: Lấy mã nguồn
 $ git clone --branch main https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality.git
-  Cloning into 'smartcrm-2374802010318-customer-data-quality'...
   → mã thoát 0
 
 ── Bước 2: cd smartcrm-2374802010318-customer-data-quality – commit đang thử
 $ git log --oneline -1
-  481bb31e docs(readme): bước 3 giữ python3.11 – trên macOS python3 có sẵn là 3.9; ghi cách thay bằng python3 khi máy chỉ có 3.12/3.13 (TD-31)
+  aa2d8efa docs(bt2): ảnh dashboard K1 – K3 và ba trạng thái chụp lại đủ nét (Claude chụp trên môi trường thử – ghi rõ nơi chụp từng ảnh ở docs/bt2/README.md và khai báo AI)
   → mã thoát 0
 
 ── Bước 3 – 4: Tạo và kích hoạt môi trường ảo (source .venv/bin/activate chạy trước mỗi lệnh sau)
@@ -20,7 +19,10 @@ $ python3.11 -m venv .venv
   → mã thoát 0
 
 ── Bước 5: Cài thư viện
-$ pip install -q -r requirements.txt 2>&1 | grep -v notice; pip list 2>/dev/null | grep -iE '^(pandas|rapidfuzz|SQLAlchemy|streamlit|plotly|pytest) '
+$ pip install -r requirements.txt
+  openpyxl                  3.1.5
+  pandas                    3.0.6
+  plotly                    6.9.0
   pytest                    9.1.1
   RapidFuzz                 3.14.6
   SQLAlchemy                2.1.1
@@ -35,8 +37,10 @@ $ cp .env.example .env
 $ createdb smartcrm
   → mã thoát 0
 
-── Bước 8: Chạy luồng chính
+── Bước 8: Chạy luồng chính (in 14 dòng cuối)
 $ python -m src.pipeline --tep data/mau/customers_mau.csv
+  Số dòng: tệp 414 → bảng tạm 414 = sạch 343 + chờ quyết định 40 + lỗi 31
+  Thời gian: extract 0,1 s · transform 0,1 s · dq_evaluate 0,0 s → 0,2 s (NFR-01 phần 1: nạp và chuẩn hóa 8.000 dòng ≤ 60 s)
              UC3 phát hiện cặp + nạp kho 0,1 s (NFR-01 phần 2: ≤ 120 s trên 8.000 hồ sơ) · toàn luồng 0,2 s
   Số dòng bảng đích (trước → sau lần chạy này):
     Bảng                          trước       sau    thêm
@@ -48,10 +52,10 @@ $ python -m src.pipeline --tep data/mau/customers_mau.csv
     dwh.dim_batch                     0         1      +1
     dwh.fact_dq_check                 0        12     +12
     dwh.fact_dup_pair                 0        43     +43
-  Báo cáo: reports/uc1-dot-1-20261031_065841.md
+  Báo cáo: reports/uc1-dot-1-20261031_141029.md
   → mã thoát 0
 
-── Bước 9: Chạy lại lần hai
+── Bước 9: Chạy lại lần hai (in 12 dòng cuối)
 $ python -m src.pipeline --tep data/mau/customers_mau.csv
         ✔ Lần đo trước phiên bản quy tắc đầu tiên (gán phiên bản sớm nhất): ops 0 · dwh 0 – phải bằng 0; khác 0 là đồng hồ hai máy lệch (TD-16)
   Số dòng bảng đích (trước → sau lần chạy này):
@@ -67,49 +71,58 @@ $ python -m src.pipeline --tep data/mau/customers_mau.csv
   Kết quả lần chạy lại: mọi bảng +0 – không nhân đôi dữ liệu.
   → mã thoát 0
 
+── Bước 10: Mở dashboard (chạy nền 15 giây rồi gọi trang)
+$ python -m streamlit run dashboard/report.py
+  HTTP 200 từ http://localhost:8501
+  → mã thoát 0
+
 ── Bước 11: Tạo CSDL kiểm thử
 $ createdb smartcrm_test
   → mã thoát 0
 
-── Bước 12: Chạy bộ kiểm thử
+── Bước 12: Chạy bộ kiểm thử (in 6 dòng cuối)
 $ python -m pytest -q
-  .....................................................................    [100%]
+  ..............                                                           [100%]
   ============= Ba loại kiểm thử của BT2 (đánh dấu trong pytest.ini) =============
-    1. luồng đúng      14 passed
-    2. giá trị biên    24 passed
-    3. dữ liệu sai     20 passed
-  139 passed, 2 skipped in 4.33s
+    1. luồng đúng      18 passed
+    2. giá trị biên    28 passed
+    3. dữ liệu sai     25 passed
+  155 passed, 3 skipped in 4.77s
   → mã thoát 0
 
-── Thử thêm (README mục 5)
+── Bước 13: Kiểm chứng NFR-03 (in 18 dòng cuối)
+$ python -m src.kiem_chung_nfr03 --tep data/mau/customers_mau.csv --nhan-dung data/mau/nhan_dung_mau.csv
+        T5             17       17   Cùng họ tên, hai số khác khối hoặc điểm < 70 – hệ thống không ghép
+  [2/3] nhãn       63 cặp – nhãn đúng của script sinh mẫu (nhan_dung_mau.csv): 43 cùng một khách · 20 khác khách
+  [3/3] kết quả trên 63 cặp có nhãn, ngưỡng 85 (QL7-02):
+        Ma trận nhầm lẫn          nhãn: cùng một khách    nhãn: khác khách
+          hệ thống GHÉP               TP = 43                 FP = 0
+          hệ thống KHÔNG ghép         FN = 0                  TN = 20
+        Precision = TP/(TP+FP) = 43/43 = 100,00%  (yêu cầu ≥ 85%)  ✔ đạt
+        Recall    = TP/(TP+FN) = 43/43 = 100,00%  (yêu cầu ≥ 80%)  ✔ đạt
+        → NFR-03 ở ngưỡng 85: ĐẠT
+        Quét ngưỡng (chỉnh ngưỡng nếu chưa đạt):
+          Ngưỡng    TP    FP    FN  Precision    Recall  NFR-03
+              70    43     0     0    100,00%   100,00%  đạt
+              75    43     0     0    100,00%   100,00%  đạt
+              80    43     0     0    100,00%   100,00%  đạt
+              85    43     0     0    100,00%   100,00%  đạt
+              90    43     0     0    100,00%   100,00%  đạt
+              95    40     0     3    100,00%    93,02%  đạt
+  Báo cáo: reports/nfr03-customers_mau-20261031_141047.md
+  → mã thoát 0
 
-── Thử thêm: tệp lỗi customers_thieu_cot
-$ python -m src.pipeline --tep data/mau/customers_thieu_cot.csv
+── Thử thêm (README mục 5): ba tệp lỗi
+$ python -m src.pipeline --tep data/mau/customers_<thieu_cot|chi_tieu_de|sai_bang_ma>.csv
   TỪ CHỐI: Thiếu cột bắt buộc: so_dien_thoai – từ chối cả đợt, bảng tạm không thay đổi
-  → mã thoát 2
-
-── Thử thêm: tệp lỗi customers_chi_tieu_de
-$ python -m src.pipeline --tep data/mau/customers_chi_tieu_de.csv
+  mã thoát 2
   TỪ CHỐI: Tệp "customers_chi_tieu_de.csv" không có dòng dữ liệu nào (chỉ có dòng tiêu đề) – từ chối cả đợt, không tạo đợt nạp rỗng
-  → mã thoát 2
-
-── Thử thêm: tệp lỗi customers_sai_bang_ma
-$ python -m src.pipeline --tep data/mau/customers_sai_bang_ma.csv
+  mã thoát 2
   TỪ CHỐI: Tệp "customers_sai_bang_ma.csv" không phải bảng mã UTF-8 (thường gặp khi lưu CSV bằng Excel trên Windows) – mở tệp, chọn "Lưu dưới dạng" CSV UTF-8 rồi nạp lại
-  → mã thoát 2
-
-── Thử thêm: bảng reject
-$ psql -d smartcrm -c "SELECT error_code, count(*) FROM ops.v_reject GROUP BY 1 ORDER BY 2 DESC"
-  ---------------+-------
-   MISSING_PHONE |    24
-   INVALID_PHONE |     5
-   MISSING_NAME  |     2
-  (3 rows)
-  
+  mã thoát 2
   → mã thoát 0
 
-── Thử thêm: chạy lại riêng UC3
-$ python -m src.pipeline --dot 1
-  UC3 đợt 1: 383 hồ sơ · 53 cặp ứng viên · EXACT_PHONE +0 · FUZZY +0 · 0,1 s
-  load_dwh: dim_date (thêm ngày) +0 · dim_batch +0 · dim_rule (phiên bản mới) +0 · dim_rule (đóng phiên bản) +0 · fact_dq_check +0 · fact_dup_pair (thêm/cập nhật) +0 · lô ngày 0
+── Kiểm tra git status sạch sau khi chạy
+$ git status --short
+  (không có dòng nào ở trên = sạch)
   → mã thoát 0
