@@ -552,6 +552,16 @@ ngưỡng, bốn câu lập luận, GRAIN, từ điển dữ liệu, bảng truy
   - Dữ liệu mẫu (63 cặp, cả khung): precision 100%, recall 100% – dữ liệu do script sinh nên dễ; giá trị của phép
     chạy này là kiểm được bằng một lệnh, và quét ngưỡng cho thấy ở 95 recall giảm còn 93,02% (3 cặp số gõ nhầm có
     điểm 94).
+  - Dữ liệu thật (300 cặp, `data/nhan/nfr03_nhan_300_cap.csv`): TP 128 · FP 12 · FN 4 · TN 156 → precision 91,43%,
+    recall 96,97% → ĐẠT ở ngưỡng 85; giữ ngưỡng 85 (SRS chỉ yêu cầu chỉnh khi chưa đạt). Ở 75 precision còn 84,77%.
+  - **Việc cho Giai đoạn 3** rút ra từ kết quả trên:
+    - Cả 12 cặp FUZZY bị đánh giá là hai khách khác nhau (8 cặp khác tên; 4 cặp trùng tên nhưng số lệch 2 – 5 chữ số,
+      ngày tạo cách nhau nhiều tháng), điểm 85 – 89,56. Ở ngưỡng 90 precision 100%, recall không đổi: công thức
+      QL7-03 đang để số gần giống kéo điểm lên dù họ tên khác. Xét nâng ngưỡng lên 90 hoặc tăng trọng số họ tên khi
+      làm UC5 – cặp FUZZY hiện chỉ vào hàng Chờ xử lý nên cái giá là thời gian người duyệt, không phải gộp sai.
+    - Ước lượng cho toàn khung (trọng số tầng): precision 99,90%, recall 86,54%. Chỗ bỏ sót lớn nhất là T4 (27.128
+      cặp, một bên thiếu số): QL7-04 không đưa hồ sơ thiếu số vào so khớp; cần cách khác (ví dụ khớp theo họ tên +
+      ngày tạo, cho người xác nhận) ở UC5.
   - Lỗi gặp khi dựng khung: BUG-13 trong `docs/bug-log.md`.
 
 ### TD-33  Trình bày báo cáo PDF BT2

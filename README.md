@@ -150,16 +150,28 @@ python -m src.pipeline --tep data/raw/customers_raw.csv
 Kết quả đúng (giống buổi 8 – 10): CLEAN 51.279 · PENDING_DUP 11.625 · ERROR 4.133; chỉ số 87,20 → 94,76;
 EXACT_PHONE 11.625 · FUZZY 12; đối soát 6/6 ✔. Khi có tệp này, hai test hồi quy ở mục 4 cũng chạy.
 
-**NFR-03 trên dữ liệu thật – 300 cặp gán nhãn** (TD-32; không cần CSDL):
+**NFR-03 trên dữ liệu thật – 300 cặp có nhãn** (TD-32; không cần CSDL). Nhãn có sẵn trong repo:
+`data/nhan/nfr03_nhan_300_cap.csv` (mã cặp, số dòng của hai hồ sơ, nhãn 1/0 – không có họ tên, số điện thoại):
+
+```
+python -m src.kiem_chung_nfr03 --tep data/raw/customers_raw.csv --nhan data/nhan/nfr03_nhan_300_cap.csv
+```
+
+Kết quả đúng: khung 233.548 cặp → 300 cặp theo tầng: T1 128 (của 11.625) · T2 12 (lấy hết) · T3 60 · T4 60 · T5 40;
+nhãn 132 cùng một khách · 168 khác khách; TP 128 · FP 12 · FN 4 · TN 156 → precision 91,43%, recall 96,97% →
+`NFR-03 ở ngưỡng 85: ĐẠT`. Quét ngưỡng: 75 → precision 84,77% (chưa đạt); 90 → precision 100%, recall 96,97%. Ước
+lượng cho toàn khung: precision 99,90% · recall 86,54%. Cả 12 cặp FUZZY bị đánh giá là hai khách khác nhau; 4 cặp bị
+bỏ sót đều ở T4 (một bên thiếu số – QL7-04). Nhận định và việc cho Giai đoạn 3: TD-32.
+
+Nguồn nhãn: Claude gợi ý trên phiếu "mù" (không có điểm, tầng hay quyết định của hệ thống), em rà lại –
+`docs/ai-disclosure.md`. Tạo phiếu mới để gán nhãn lại (phiếu `.xlsx` có họ tên, số điện thoại nên `.gitignore`
+chặn; lệnh tạo phiếu không ghi đè phiếu đã có):
 
 ```
 python -m src.kiem_chung_nfr03 --tep data/raw/customers_raw.csv --tao-phieu data/nhan/nfr03_phieu_gan_nhan.xlsx
-# mở phiếu, điền cột nhan: 1 = cùng một khách · 0 = hai khách khác nhau
+# điền cột nhan: 1 = cùng một khách · 0 = hai khách khác nhau
 python -m src.kiem_chung_nfr03 --tep data/raw/customers_raw.csv --nhan data/nhan/nfr03_phieu_gan_nhan.xlsx
 ```
-
-Khung 233.548 cặp → 300 cặp theo tầng: T1 128 (của 11.625) · T2 12 (lấy hết) · T3 60 · T4 60 · T5 40. Phiếu
-không có điểm, tầng hay quyết định của hệ thống. Lệnh tạo phiếu không ghi đè phiếu đã có.
 
 ## 7. Cấu trúc thư mục – nơi từng lớp nằm
 
@@ -214,7 +226,7 @@ không tồn tại).
 | D2 – ≥ 5 hàm kiểm chất lượng trả về số đo | ✔ | 6 hàm `kiem_dq01_…` – `kiem_dq06_…` trả về số dòng lỗi, tỉ lệ lỗi (TD-24) |
 | D3 – bảng reject có dòng, lý do cho người đọc | ✔ | `ops.v_reject`, 31 dòng trên dữ liệu mẫu (TD-23) |
 | D4 – ≥ 2 biểu đồ có mốc tham chiếu, ghi nguồn | ✔ | 4 biểu đồ K1 – K3 (mốc 90/75, ngưỡng đạt, 10 điểm, ngưỡng 85); mỗi thẻ số ở K1, K3 cũng có mốc (TD-30) |
-| NFR-03 – nhận xét BT1: "chạy kiểm chứng precision/recall" | ✔ | Bước 13 (dữ liệu mẫu, nhãn đúng của script sinh) và mục 6 (300 cặp dữ liệu thật có nhãn); TD-32 |
+| NFR-03 – nhận xét BT1: "chạy kiểm chứng precision/recall" | ✔ | Bước 13 (dữ liệu mẫu, nhãn đúng của script sinh: 100% / 100%) và mục 6 (300 cặp dữ liệu thật: precision 91,43%, recall 96,97% – ĐẠT); TD-32 |
 
 Ảnh kết quả chạy BT2: `docs/bt2/` (danh sách ở `docs/bt2/README.md`). Nhật ký lỗi đã gỡ: `docs/bug-log.md`.
 Phần chuyển sang Giai đoạn 3 (UC5 Gộp/Giữ riêng, K4, `dash_reader`, NFR-02, Docker): TD-27. NFR-03 làm ở BT2 theo
