@@ -51,6 +51,7 @@ def test_scd2_cau_hinh_doi_ma_thoi_diem_khong_tien_len_bi_tu_choi():
         quyet_dinh_scd2({'DQ-01': _phien_ban(valid_from=T1)}, [_qt(weight=0.30, updated_at=T0)])
 
 
+@pytest.mark.luong_dung
 def test_nap_kho_lan_hai_khong_nhan_doi_dong(csdl_test):
     """Phép thử nạp lại của buổi 10: chạy load_dwh lần hai → không thêm dòng nào; đối soát ops ↔ dwh khớp hết.
     [luồng đúng]"""

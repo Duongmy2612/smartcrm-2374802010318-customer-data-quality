@@ -26,6 +26,7 @@ def test_qt14_tai_khoan_khong_co_trong_cau_hinh_khong_xem_duoc_gi():
 @pytest.mark.parametrize('diem, khoang', [(84.99, '< 85'), (85, '85 – <90'), (89.99, '85 – <90'),
                                           (90, '90 – <95'), (95, '≥ 95'), (100, '≥ 95')],
                          ids=['84.99', '85', '89.99', '90', '95', '100'])
+@pytest.mark.gia_tri_bien
 def test_khoang_diem_k3_bien_thuoc_khoang_tren(diem, khoang):
     """Khoảng điểm của K3 (docs/data-requirements.md mục 5.2): đúng 85 nằm ở khoảng 85 – <90. [biên]"""
     assert khoang_diem(diem) == khoang

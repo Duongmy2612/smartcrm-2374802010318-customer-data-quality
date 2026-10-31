@@ -12,6 +12,7 @@ def _ghi(tmp_path, noi_dung, ten='tep.csv'):
     return p
 
 
+@pytest.mark.du_lieu_sai
 def test_ac13_thieu_cot_bat_buoc_bi_tu_choi(tmp_path):
     p = _ghi(tmp_path, 'record_id,ho_ten,email\n1,An,a@b.vn\n')
     with pytest.raises(TepBiTuChoi, match='so_dien_thoai'):

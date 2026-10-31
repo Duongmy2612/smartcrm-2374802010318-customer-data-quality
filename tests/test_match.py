@@ -35,6 +35,7 @@ def test_diem_tuong_dong_theo_cong_thuc_ql7_03():
     assert diem_tuong_dong('0901234567', '0901234567', 'an nguyen van', 'nguyen van an') == 100
 
 
+@pytest.mark.luong_dung
 def test_cung_so_tao_k_tru_1_cap_ghep_voi_ho_so_nap_som_nhat():
     """QL7-02: nhóm 3 hồ sơ cùng số → 2 cặp EXACT_PHONE, cả hai ghép với hồ sơ nạp sớm nhất. [luồng đúng]"""
     hs = _ho_so((5, '0901234567', 'Nguyễn Văn An'), (2, '0901234567', 'NGUYỄN VĂN AN'),
@@ -42,6 +43,7 @@ def test_cung_so_tao_k_tru_1_cap_ghep_voi_ho_so_nap_som_nhat():
     assert _cap(tim_cap(hs)) == {(2, 5, 'EXACT_PHONE'), (2, 9, 'EXACT_PHONE')}
 
 
+@pytest.mark.gia_tri_bien
 def test_diem_bang_dung_nguong_van_tao_cap_fuzzy():
     """Điểm BẰNG ngưỡng thì tạo cặp, thấp hơn 0,01 điểm thì không (≥, không phải >). [biên]"""
     hs = _ho_so((1, '0901234567', 'Trần Thị Mai'), (2, '0901234576', 'Tran Thi Mai'))
@@ -51,6 +53,7 @@ def test_diem_bang_dung_nguong_van_tao_cap_fuzzy():
     assert tim_cap(hs, nguong=d + 0.01).empty
 
 
+@pytest.mark.du_lieu_sai
 def test_ho_so_khong_co_so_hop_le_khong_tham_gia_so_khop():
     """QL7-04: số trống / rác không quy đổi được → không tạo cặp, dù họ tên giống hệt. [dữ liệu sai]"""
     hs = _ho_so((1, chuan_hoa_so_dien_thoai(''), 'Lê Chi'),
