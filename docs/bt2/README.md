@@ -7,6 +7,8 @@ Cùng bộ ảnh với báo cáo PDF `BT2_2374802010318_DuongDiemMy.pdf`. Nơi c
   cuối, mã luồng chính, kho và dashboard không đổi dòng nào:
   `git diff 1c5a6a7 v0.2 -- src/pipeline.py src/etl/extract.py src/etl/transform.py src/etl/dq_evaluate.py src/etl/match.py src/etl/load_ops.py src/etl/load_dwh.py src/doc_kho.py dashboard sql`
   không ra dòng nào. Phần thêm sau đó là NFR-03 (TD-32) – vì vậy số test và test ranh giới tăng.
+- **MacBook của em, lần 2** (31/10/2026 tối): bản clone mới nhất của nhánh `main` (`git clone --depth 1`, môi trường
+  ảo Python 3.11), chép `customers_raw.csv` của LMS vào `data/raw/`, chạy lệnh NFR-03 ở README mục 6.
 - **Claude, môi trường thử Linux** (phiên chat riêng, 31/10/2026 tối): nạp lại dữ liệu thật `customers_raw.csv`
   (67.037 dòng, LMS) vào CSDL mới với mã giống tag `v0.2`, chụp dashboard bằng Chromium. Lý do: ảnh K1 – K3 em chụp
   trên MacBook chỉ rộng khoảng 600 điểm ảnh nên in ra bị mờ. Số trên ảnh khớp số em chạy trên MacBook (87,20 → 94,76;
@@ -26,7 +28,7 @@ Cùng bộ ảnh với báo cáo PDF `BT2_2374802010318_DuongDiemMy.pdf`. Nơi c
 | `12-dashboard-rong.png` | Trạng thái **rỗng**: người xem `ql.mm001`, đợt thuộc đơn vị khác (QT-14) | 5.5 | ba trạng thái | Claude, môi trường thử |
 | `13-dashboard-dang-tai.png` | Trạng thái **đang tải**: khóa bảng `dwh.dim_batch` ở phiên khác rồi bấm Làm mới dữ liệu | 5.4 | ba trạng thái | Claude, môi trường thử |
 | `14-dashboard-loi.png` | Trạng thái **lỗi**: dừng PostgreSQL rồi bấm Làm mới – chỉ in loại lỗi, có nút Thử lại | 5.6 | ba trạng thái | Claude, môi trường thử |
-| `16-nfr03-du-lieu-that.png` | README mục 6: NFR-03 trên 300 cặp dữ liệu thật – TP 128 · FP 12 · FN 4 · TN 156, precision 91,43%, recall 96,97%, ĐẠT | 3.6 | NFR-03 (nhận xét BT1) | Claude, môi trường thử (commit `aa2d8efa`, nhãn trên ảnh) |
+| `16-nfr03-du-lieu-that.png` | README mục 6: NFR-03 trên 300 cặp dữ liệu thật – TP 128 · FP 12 · FN 4 · TN 156, precision 91,43%, recall 96,97%, ĐẠT; dòng `md5` cho thấy đúng tệp `customers_raw.csv` của LMS | 3.6 | NFR-03 (nhận xét BT1) | MacBook, lần 2 |
 
 Ảnh dashboard em chụp trên MacBook ở buổi 10 (cùng dữ liệu thật): `docs/sprint2/dashboard-*.png`. Bộ ảnh trước đó
 xem được trong lịch sử commit `fd6bd8f2`. Nhật ký phép thử thư mục trống trên môi trường Linux: `thu-clone-moi.txt`.
