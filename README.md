@@ -138,7 +138,7 @@ không tồn tại).
 | Mục | Đạt | Minh chứng |
 |---|---|---|
 | C1 · CỐT LÕI – chạy từ trạng thái ban đầu theo README | ✔ | Phép thử clone `--branch v0.2` vào thư mục trống, làm đúng 12 bước: `docs/bt2/thu-clone-moi.txt` |
-| C2 · CỐT LÕI – tách lớp đúng | ✔ | Bảng mục 7; `tests/test_ranh_gioi_lop.py` (12 test); TD-22 |
+| C2 · CỐT LÕI – tách lớp đúng | ✔ | Bảng mục 7; `tests/test_ranh_gioi_lop.py` (11 test); TD-22 |
 | C3 – ≥ 2 quy tắc nghiệp vụ thật | ✔ | QT-02 chuẩn hóa số, QT-01 hồ sơ lặp không tạo mới, QL7-03 điểm tương đồng, QL7-04 hồ sơ lỗi ở lại bảng tạm, QL7-06 chỉ số |
 | C4 · CỐT LÕI – ≥ 3 test ba loại, PASS bằng một lệnh | ✔ | `python -m pytest -q` → 123 passed, 2 skipped; bảng ba loại in cuối kết quả |
 | C5 · CỐT LÕI – chạy lại không lỗi, không nhân đôi | ✔ | Bước 9: +0 ở 8 bảng đích, mã thoát 0 (TD-25) |

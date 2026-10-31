@@ -15,8 +15,8 @@ Repo: https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-qualit
 | BUG-04 | Trục K2 không hiện mốc 100% | Trình bày | `33dc22e8` |
 | BUG-05 | README bước 12 ghi sai kết quả mong đợi của bản clone mới | Tài liệu / tái lập | `5e00d0d6` |
 | BUG-06 | Dashboard báo `ModuleNotFoundError` trên MacBook | Môi trường chạy | `52779738` |
-| BUG-07 | Chạy lại luồng chính lần hai trả mã thoát 2 ("TỪ CHỐI") | Thiết kế luồng (C5) | xem mục BUG-07 |
-| BUG-08 | `transform.py` vẫn có câu SQL – lớp load lẫn vào pha transform | Kiến trúc (C2) | xem mục BUG-08 |
+| BUG-07 | Chạy lại luồng chính lần hai trả mã thoát 2 ("TỪ CHỐI") | Thiết kế luồng (C5) | `8d8e6038` |
+| BUG-08 | `transform.py` vẫn có câu SQL – lớp load lẫn vào pha transform | Kiến trúc (C2) | `6a69241f` |
 
 ---
 
@@ -87,7 +87,7 @@ Repo: https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-qualit
 3. **Tái lập:** `python -m src.pipeline --tep data/mau/customers_mau.csv` hai lần liên tiếp; `echo $?` sau lần hai.
 4. **Khoanh vùng:** `src/pipeline.chay_uc1`, nhánh kiểm `tim_dot_cung_tep` ném `TuChoi`.
 5. **Nguyên nhân gốc:** hiểu AC1.4 là "từ chối", trong khi AC1.4 chỉ yêu cầu cảnh báo và không nạp khi chưa xác nhận (TD-25).
-6. **Sửa:** cảnh báo, không tạo đợt mới, đồng bộ kho + UC3 theo khóa nghiệp vụ, in số dòng 8 bảng đích trước → sau, mã thoát 0 – commit `fix(pipeline)` của BT2 (bảng lịch sử commit ở README mục 8).
+6. **Sửa:** cảnh báo, không tạo đợt mới, đồng bộ kho + UC3 theo khóa nghiệp vụ, in số dòng 8 bảng đích trước → sau, mã thoát 0 – [8d8e6038](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/8d8e6038).
 7. **Xác nhận:** `test_chay_lai_bang_lenh_tra_ma_0_va_khong_nhan_doi` PASS; ảnh `docs/bt2/02-chay-lai-lan-hai.png` (mọi bảng +0).
 
 ### BUG-08  Lớp load lẫn vào pha transform
@@ -97,5 +97,5 @@ Repo: https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-qualit
 3. **Tái lập:** lệnh `grep` ở dòng 2 trên mã trước BT2.
 4. **Khoanh vùng:** phần "đọc / ghi CSDL" ở cuối `extract.py`, `transform.py`, `dq_evaluate.py`, `match.py`.
 5. **Nguyên nhân gốc:** quy ước Sprint 1 cho mỗi mô-đun giữ cả hàm thuần lẫn hàm ghi CSDL của nhóm FR mình (TD-22).
-6. **Sửa:** chuyển mọi hàm có `conn` sang `src/etl/load_ops.py` – commit `refactor(etl)` của BT2 (README mục 8).
-7. **Xác nhận:** `tests/test_ranh_gioi_lop.py` (12 test) PASS; lệnh `grep` ở dòng 2 không còn kết quả.
+6. **Sửa:** chuyển mọi hàm có `conn` sang `src/etl/load_ops.py` – [6a69241f](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/6a69241f); chú thích đầu `transform.py` không còn nhắc tên thư viện CSDL để phép `grep` không bắt nhầm.
+7. **Xác nhận:** `tests/test_ranh_gioi_lop.py` (11 test) PASS; lệnh `grep` ở dòng 2 không còn kết quả.

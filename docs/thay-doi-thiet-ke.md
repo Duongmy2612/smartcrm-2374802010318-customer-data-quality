@@ -374,7 +374,7 @@ kỹ thuật của BT2 (đề mục 4.2: C1 – C7, D1 – D4).
 - **Ảnh hưởng:**
   - Pha E = `extract.py`; pha T = `transform.py`, `dq_evaluate.py`, `match.py`; pha L = `load_ops.py`,
     `load_dwh.py`. Chỉ `src/pipeline.py` gọi cả ba pha.
-  - `tests/test_ranh_gioi_lop.py` (12 test, đọc mã bằng `ast`) giữ ranh giới: E/T không import `sqlalchemy`,
+  - `tests/test_ranh_gioi_lop.py` (11 test, đọc mã bằng `ast`) giữ ranh giới: E/T không import `sqlalchemy`,
     `src.db` và không có câu SQL; L không gọi E/T; dashboard không gọi `src/etl`.
   - Không đổi bảng, cột, quy tắc hay con số nào: 95 test cũ vẫn PASS sau khi đổi tên hàm trong test.
   - TD-06 (giữ `src/etl/`, mỗi mô-đun một nhóm FR) vẫn đúng: thêm một mô-đun, không đổi thư mục.
