@@ -60,7 +60,7 @@ def test_tep_mau_hong_bi_tu_choi_ma_thoat_2(ten_tep, cau, capsys):
 
 
 def test_tep_mau_hong_sinh_lai_dung_tung_byte(tmp_path, monkeypatch):
-    """NFR-05: ba tệp SAI của data/mau cũng sinh lại đúng từng byte bằng script."""
+    """NFR-05: ba tệp SAI và tệp nhãn đúng NFR-03 (TD-32) của data/mau cũng sinh lại đúng từng byte bằng script."""
     import importlib.util
     spec = importlib.util.spec_from_file_location('sinh', GOC / 'scripts' / 'sinh_du_lieu_mau.py')
     sinh = importlib.util.module_from_spec(spec)
@@ -68,5 +68,5 @@ def test_tep_mau_hong_sinh_lai_dung_tung_byte(tmp_path, monkeypatch):
     monkeypatch.setattr(sinh, 'THU_MUC', tmp_path)
     sinh.main()
     for ten in ('customers_mau.csv', 'customers_thieu_cot.csv', 'customers_chi_tieu_de.csv',
-                'customers_sai_bang_ma.csv'):
+                'customers_sai_bang_ma.csv', 'nhan_dung_mau.csv'):
         assert (tmp_path / ten).read_bytes() == (GOC / 'data' / 'mau' / ten).read_bytes(), ten

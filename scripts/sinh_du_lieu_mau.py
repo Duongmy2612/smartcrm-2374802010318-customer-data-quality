@@ -1,6 +1,6 @@
 """Sinh dữ liệu MẪU cho repo (BT2 – TP4: "có dữ liệu mẫu để hệ thống không lên trống trơn").
 
-    python scripts/sinh_du_lieu_mau.py          # ghi data/mau/customers_mau.csv và data/mau/customers_thieu_cot.csv
+    python scripts/sinh_du_lieu_mau.py          # ghi data/mau/customers_mau.csv, ba tệp lỗi và nhan_dung_mau.csv
 
 Dữ liệu GIẢ hoàn toàn (họ tên ghép ngẫu nhiên từ danh sách họ/đệm/tên, số điện thoại sinh ngẫu nhiên), không
 lấy dòng nào từ customers_raw.csv của LMS, nên được commit. Cùng cấu trúc 6 cột và cùng các "bệnh" đã đo ở
@@ -13,6 +13,10 @@ mục 4 BT1, để mọi nhánh của luồng chính đều có dữ liệu đi 
     email sai mẫu                                                           → DQ-06
 
 Chỉ dùng thư viện chuẩn với random.Random(42) (NFR-05): chạy lại cho đúng từng byte như tệp đã commit.
+
+Vì script tự sinh ra từng hồ sơ nên biết chắc hồ sơ nào là của cùng một khách: data/mau/nhan_dung_mau.csv ghi
+record_id → ma_khach. Đây là NHÃN ĐÚNG để kiểm chứng NFR-03 trên dữ liệu mẫu (src/kiem_chung_nfr03.py, TD-32).
+Gán ma_khach không gọi thêm số ngẫu nhiên nào, nên customers_mau.csv giữ đúng từng byte như trước.
 """
 import csv
 import datetime as dt
@@ -78,7 +82,9 @@ def sinh() -> tuple[list[dict], dict]:
         if so in so_da_dung:
             continue
         so_da_dung.add(so)
-        khach.append({'ten': f'{r.choice(HO)} {r.choice(DEM)} {r.choice(TEN)}', 'so': so})
+        khach.append({'ten': f'{r.choice(HO)} {r.choice(DEM)} {r.choice(TEN)}', 'so': so,
+                      'ma': f'K{len(khach) + 1:03d}'})
+    ma_moi = iter(range(SO_KHACH + 1, 10**6))                 # người khác hẳn (thiếu số, số sai, thiếu tên)
 
     def email(ten: str) -> str:
         if r.random() < 0.45:                                 # ~45% không có email (BT1: 44,99%)
@@ -95,29 +101,30 @@ def sinh() -> tuple[list[dict], dict]:
         return d.isoformat()
 
     dong = [{'ho_ten': k['ten'], 'so_dien_thoai': dang_ghi(k['so'], r), 'email': email(k['ten']),
-             'dia_chi': dia_chi(), 'ngay_tao': ngay()} for k in khach]
+             'dia_chi': dia_chi(), 'ngay_tao': ngay(), 'ma_khach': k['ma']} for k in khach]
     for k in r.sample(khach, SO_LAP):                         # hồ sơ lặp cùng số
         dong.append({'ho_ten': viet_khac(k['ten'], r), 'so_dien_thoai': dang_ghi(k['so'], r), 'email': '',
-                     'dia_chi': dia_chi(), 'ngay_tao': ngay()})
+                     'dia_chi': dia_chi(), 'ngay_tao': ngay(), 'ma_khach': k['ma']})
     for k in r.sample(khach, SO_FUZZY):                       # cùng 5 số đầu, khác chữ số cuối → FUZZY
         so = k['so'][:-1] + str((int(k['so'][-1]) + 1) % 10)
         while so in so_da_dung:
             so = so[:-1] + str((int(so[-1]) + 1) % 10)
         so_da_dung.add(so)
         dong.append({'ho_ten': viet_khac(k['ten'], r), 'so_dien_thoai': dang_ghi(so, r), 'email': email(k['ten']),
-                     'dia_chi': dia_chi(), 'ngay_tao': ngay()})
+                     'dia_chi': dia_chi(), 'ngay_tao': ngay(), 'ma_khach': k['ma']})   # cùng khách, số gõ nhầm
     for _ in range(SO_THIEU_SO):
         dong.append({'ho_ten': f'{r.choice(HO)} {r.choice(DEM)} {r.choice(TEN)}', 'so_dien_thoai': '',
-                     'email': '', 'dia_chi': dia_chi(), 'ngay_tao': ngay()})
+                     'email': '', 'dia_chi': dia_chi(), 'ngay_tao': ngay(), 'ma_khach': f'K{next(ma_moi):03d}'})
     for sai in SO_SAI_SO:
         dong.append({'ho_ten': f'{r.choice(HO)} {r.choice(DEM)} {r.choice(TEN)}', 'so_dien_thoai': sai,
-                     'email': '', 'dia_chi': dia_chi(), 'ngay_tao': ngay()})
+                     'email': '', 'dia_chi': dia_chi(), 'ngay_tao': ngay(), 'ma_khach': f'K{next(ma_moi):03d}'})
     for _ in range(SO_THIEU_TEN):
         so = r.choice(DAU_SO) + f'{r.randrange(10**7):07d}'
         while so in so_da_dung:
             so = r.choice(DAU_SO) + f'{r.randrange(10**7):07d}'
         so_da_dung.add(so)
-        dong.append({'ho_ten': '', 'so_dien_thoai': so, 'email': '', 'dia_chi': dia_chi(), 'ngay_tao': ngay()})
+        dong.append({'ho_ten': '', 'so_dien_thoai': so, 'email': '', 'dia_chi': dia_chi(), 'ngay_tao': ngay(),
+                     'ma_khach': f'K{next(ma_moi):03d}'})
 
     r.shuffle(dong)
     for i, d in enumerate(dong, start=1):
@@ -168,11 +175,14 @@ def main() -> None:
     ghi(dong[:5], THU_MUC / 'customers_thieu_cot.csv', ['record_id', 'ho_ten', 'email', 'dia_chi', 'ngay_tao'])
     ghi([], THU_MUC / 'customers_chi_tieu_de.csv')
     ghi_sai_bang_ma(dong[:5], THU_MUC / 'customers_sai_bang_ma.csv')
+    # Nhãn đúng cho NFR-03 (TD-32): hai hồ sơ cùng ma_khach là cùng một khách hàng
+    ghi(dong, THU_MUC / 'nhan_dung_mau.csv', ['record_id', 'ma_khach'])
     print(f"data/mau/customers_mau.csv: {len(dong)} dòng – {tk['khach']} khách, {tk['lap']} hồ sơ lặp cùng số, "
           f"{tk['fuzzy']} cặp số gần giống, {tk['thieu_so']} thiếu số, {tk['sai_so']} số sai, {tk['thieu_ten']} thiếu tên")
     print('data/mau/customers_thieu_cot.csv: 5 dòng, thiếu cột so_dien_thoai (thử AC1.3)')
     print('data/mau/customers_chi_tieu_de.csv: chỉ có dòng tiêu đề, 0 dòng dữ liệu (thử C7)')
     print('data/mau/customers_sai_bang_ma.csv: 5 dòng lưu bằng bảng mã Windows-1258 (thử C7)')
+    print(f"data/mau/nhan_dung_mau.csv: {len(dong)} dòng record_id → ma_khach (nhãn đúng để kiểm chứng NFR-03)")
 
 
 if __name__ == '__main__':
