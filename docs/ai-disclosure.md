@@ -60,7 +60,7 @@ Bảng theo đúng bốn cột của đề BT2. Em nhờ Claude đối chiếu r
 liệu, chạy thử trên môi trường thử của Claude (Linux), commit và đẩy lên GitHub (các commit từ `6a69241f`; commit
 chiều 31/10 có thêm dòng `Co-Authored-By: Claude`), nên khai báo từng phần dưới đây. Phần em tự làm: gắn tag
 `v0.2`; rà lại nhãn 300 cặp NFR-03; chạy lại trên MacBook theo README và chụp các ảnh dòng lệnh của báo cáo PDF
-(kể cả Hình 3.6 – NFR-03 trên 300 cặp dữ liệu thật). Sáu
+(kể cả Hình 2.2 – 14 test ranh giới lớp và Hình 3.6 – NFR-03 trên 300 cặp dữ liệu thật). Sáu
 ảnh dashboard (Hình 5.1 – 5.6) do Claude chụp trên môi trường thử Linux – ghi rõ ở dòng riêng dưới đây và trong báo cáo. Cột cuối có hai phần: việc đã kiểm
 chứng bằng máy (test, lệnh chạy) và ô [ ] em tự làm – em chỉ đánh [x] ô nào đã thật sự làm, trước khi gắn tag lần
 cuối.
