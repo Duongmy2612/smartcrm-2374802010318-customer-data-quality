@@ -30,7 +30,7 @@
 
 <div class="bang b0"><div class="hang">
   <div class="o" style="flex:1"><b>data/mau/customers_mau.csv</b><div>414 dòng giả, seed 42 – có trong repo</div></div>
-  <div class="o" style="flex:1"><b>data/mau/customers_thieu_cot.csv</b><div>tệp sai để thử AC1.3</div></div>
+  <div class="o" style="flex:1"><b>data/mau/customers_thieu_cot.csv · _chi_tieu_de · _sai_bang_ma</b><div>3 tệp sai để thử AC1.3, C7 (TD-28)</div></div>
   <div class="o cho" style="flex:1"><b>data/raw/customers_raw.csv</b><div>67.037 dòng thật (LMS, không commit) – tùy chọn</div></div>
 </div></div>
 <div class="xuong"><div class="m">▼</div>python -m src.pipeline --tep …</div>
@@ -40,7 +40,7 @@
   <div class="xuong" style="margin:4px 0"><span class="m">▼</span> gọi lần lượt</div>
   <div class="hang">
     <div class="pha" style="flex:.8"><div class="t">pha E – đọc nguồn</div>
-      <div class="o"><b>etl/extract.py</b><div>đọc .csv/.xlsx · kiểm cột bắt buộc · SHA-256 · đổi tên cột</div></div></div>
+      <div class="o"><b>etl/extract.py</b><div>đọc .csv/.xlsx · kiểm cột bắt buộc, tệp rỗng, bảng mã · SHA-256 · đổi tên cột</div></div></div>
     <div class="mui">→<span>bảng tạm</span></div>
     <div class="pha" style="flex:1.25"><div class="t">pha T – hàm thuần, không CSDL</div>
       <div class="o"><b>etl/transform.py</b><div>chuẩn hóa số, họ tên · mã lỗi · phân loại CLEAN / PENDING_DUP / ERROR</div></div>
@@ -53,6 +53,7 @@
   </div>
   <div class="hang" style="margin-top:8px">
     <div class="o" style="flex:1"><b>src/db.py · src/config.py</b><div>.env → kết nối (NFR-07) · chạy sql/0*.sql · configs/config.yaml</div></div>
+    <div class="o" style="flex:.8"><b>etl/tien_ich.py</b><div>la_trong – hàm dùng chung, không thuộc pha nào (TD-29)</div></div>
     <div class="o cho" style="flex:1"><b>etl/merge_service.py</b><div>UC5 Gộp / Giữ riêng – Giai đoạn 3 (TD-27)</div></div>
   </div>
 </div>
@@ -72,7 +73,7 @@
   <div class="hang">
     <div class="o" style="flex:1"><b>src/doc_kho.py</b><div>chỉ SELECT · QT-14 · câu giải thích khi rỗng</div></div>
     <div class="mui">→</div>
-    <div class="o" style="flex:1.2"><b>dashboard/report.py</b><div>Streamlit · K1 – K3 · 4 biểu đồ có mốc tham chiếu · đang tải / rỗng / lỗi</div></div>
+    <div class="o" style="flex:1.2"><b>dashboard/report.py</b><div>Streamlit · K1 – K3 · 4 biểu đồ và mọi thẻ số có mốc tham chiếu · đang tải / rỗng / lỗi</div></div>
     <div class="o cho" style="flex:.8"><b>dashboard/app.py</b><div>K4 · UC6 · UC9 – Giai đoạn 3</div></div>
   </div>
 </div>
