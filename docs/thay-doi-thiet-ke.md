@@ -362,7 +362,7 @@ kỹ thuật của BT2 (đề mục 4.2: C1 – C7, D1 – D4); TD-28 – TD-31 
 | TD-28 | Tệp rỗng, chỉ có tiêu đề, sai bảng mã, hỏng cấu trúc bị TỪ CHỐI bằng câu tiếng Việt, mã thoát 2 | C7 |
 | TD-29 | Hàm dùng chung `la_trong` chuyển sang `src/etl/tien_ich.py`: pha T không import pha E | C2 (CỐT LÕI), D1 |
 | TD-30 | Mỗi thẻ số ở K1, K3 có mốc so sánh; câu đọc K3 chỉ nói "sát ngưỡng" khi đúng là sát | TP3, D4 |
-| TD-31 | `DB_USER` để trống = tài khoản hệ điều hành; README bước 3 dùng `python3`, bước 6 không phải sửa tay | C1 (CỐT LÕI), TP4 |
+| TD-31 | `DB_USER` để trống = tài khoản hệ điều hành; README bước 3 có cách thay khi không có `python3.11`, bước 6 không phải sửa tay | C1 (CỐT LÕI), TP4 |
 
 ### TD-22  Tách pha load: `src/etl/load_ops.py` giữ mọi lệnh đọc/ghi schema ops
 
@@ -493,9 +493,10 @@ kỹ thuật của BT2 (đề mục 4.2: C1 – C7, D1 – D4); TD-28 – TD-31 
 ### TD-31  Dựng lại được trên máy khác với ít bước tay hơn
 
 - **Thay đổi gì:** `DB_USER` không còn bắt buộc – để trống thì thư viện libpq dùng tài khoản hệ điều hành (mặc định của
-  PostgreSQL cài bằng Homebrew). README bước 3 đổi `python3.11 -m venv .venv` thành `python3 -m venv .venv` (kèm điều kiện
-  `python3 --version` ≥ 3.11), bước 6 chỉ còn `cp .env.example .env`. `scripts/check_env.py` dùng chung `db.tao_engine`.
+  PostgreSQL cài bằng Homebrew). README bước 3 giữ `python3.11 -m venv .venv` và ghi cách thay `python3 -m venv .venv`
+  khi máy không có lệnh `python3.11` (điều kiện `python3 --version` ≥ 3.11); bước 6 chỉ còn `cp .env.example .env`. `scripts/check_env.py` dùng chung `db.tao_engine`.
 - **Vì sao:** C1 – giảng viên làm đúng README, không gõ thêm lệnh. Máy chỉ có Python 3.12/3.13 không có lệnh
-  `python3.11`; bước 6 cũ phải mở `.env` sửa tay. Đã thử Python 3.13: cài đủ thư viện và toàn bộ test PASS.
+  `python3.11`; nhưng không đổi hẳn sang `python3` vì trên macOS `python3` có sẵn của Apple là 3.9 (pandas 3 không cài
+  được). Bước 6 cũ phải mở `.env` sửa tay. Đã thử Python 3.13: cài đủ thư viện và toàn bộ test PASS.
 - **Ảnh hưởng:** `src/db.py`, `.env.example`, `scripts/check_env.py`, README mục 2, 3. PostgreSQL có tài khoản/mật khẩu
   riêng vẫn điền `DB_USER`, `DB_PASSWORD` như trước; NFR-07 không đổi (mật khẩu vẫn chỉ ở `.env`).

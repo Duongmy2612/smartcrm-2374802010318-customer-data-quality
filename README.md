@@ -34,7 +34,7 @@ Chạy từ thư mục trống, Terminal macOS/Linux (Windows: bước 4 là `.v
 |---|---|---|
 | 1 | Lấy mã nguồn đúng tag nộp bài | `git clone --branch v0.2 https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality.git` |
 | 2 | Vào thư mục repo | `cd smartcrm-2374802010318-customer-data-quality` |
-| 3 | Tạo môi trường ảo (`python3 --version` phải từ 3.11; máy có nhiều bản thì dùng `python3.11`) | `python3 -m venv .venv` |
+| 3 | Tạo môi trường ảo. Máy không có lệnh `python3.11` thì dùng `python3 -m venv .venv`, với điều kiện `python3 --version` từ 3.11 trở lên (macOS: `python3` có sẵn của Apple là 3.9 – không dùng được) | `python3.11 -m venv .venv` |
 | 4 | Kích hoạt môi trường ảo | `source .venv/bin/activate` |
 | 5 | Cài thư viện | `pip install -r requirements.txt` |
 | 6 | Tạo tệp cấu hình. PostgreSQL cài bằng Homebrew: **không cần sửa gì** (`DB_USER` trống = tài khoản macOS). PostgreSQL có tài khoản/mật khẩu riêng thì điền `DB_USER`, `DB_PASSWORD` trong `.env` | `cp .env.example .env` |
