@@ -26,6 +26,7 @@ Cùng bộ ảnh với báo cáo PDF `BT2_2374802010318_DuongDiemMy.pdf`. Nơi c
 | `12-dashboard-rong.png` | Trạng thái **rỗng**: người xem `ql.mm001`, đợt thuộc đơn vị khác (QT-14) | 5.5 | ba trạng thái | Claude, môi trường thử |
 | `13-dashboard-dang-tai.png` | Trạng thái **đang tải**: khóa bảng `dwh.dim_batch` ở phiên khác rồi bấm Làm mới dữ liệu | 5.4 | ba trạng thái | Claude, môi trường thử |
 | `14-dashboard-loi.png` | Trạng thái **lỗi**: dừng PostgreSQL rồi bấm Làm mới – chỉ in loại lỗi, có nút Thử lại | 5.6 | ba trạng thái | Claude, môi trường thử |
+| `16-nfr03-du-lieu-that.png` | README mục 6: NFR-03 trên 300 cặp dữ liệu thật – TP 128 · FP 12 · FN 4 · TN 156, precision 91,43%, recall 96,97%, ĐẠT | 3.6 | NFR-03 (nhận xét BT1) | Claude, môi trường thử (commit `aa2d8efa`, nhãn trên ảnh) |
 
 Ảnh dashboard em chụp trên MacBook ở buổi 10 (cùng dữ liệu thật): `docs/sprint2/dashboard-*.png`. Bộ ảnh trước đó
 xem được trong lịch sử commit `fd6bd8f2`. Nhật ký phép thử thư mục trống trên môi trường Linux: `thu-clone-moi.txt`.

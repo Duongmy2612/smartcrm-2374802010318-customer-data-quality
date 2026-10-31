@@ -568,15 +568,16 @@ ngưỡng, bốn câu lập luận, GRAIN, từ điển dữ liệu, bảng truy
 
 - **Phản hồi của GV:** "trình bày rất dày đặc (dàn chữ hai cột, cỡ chữ nhỏ) nên hơi khó đọc; em có thể tách bớt bảng
   sang trang riêng".
-- **Thay đổi gì:** Báo cáo BT2 một cột, chữ 13, chữ trong bảng 11; mỗi ảnh chụp đặt hết chiều ngang trang, không đặt
-  hai ảnh cạnh nhau; bảng dài (thay đổi so với BT1, khai báo AI) đặt ở trang riêng. Ảnh K1 – K3 chụp lại đủ độ phân
-  giải. PDF xuất bằng LibreOffice như bản BT1, buổi 8, buổi 10.
+- **Thay đổi gì:**
+  - Chữ chạy một cột (BT1 dàn chữ hai cột – TD-13); bảng dài (tự kiểm, thay đổi so với BT1, khai báo AI) cho phép
+    sang trang thay vì nén cỡ chữ; sơ đồ kiến trúc vẽ lại với chữ to hơn.
+  - Ảnh chèn nguyên độ phân giải, không nén (PDF xuất bằng LibreOffice, tắt giảm độ phân giải ảnh) – phóng to trong
+    trình xem PDF vẫn đọc được từng dòng lệnh. Ảnh K1 – K3 thay bằng ảnh đủ nét.
+  - Sáu ảnh dashboard xếp lưới hai cột trên một trang để báo cáo gọn (12 trang); mỗi ảnh vẫn có chú thích riêng.
 - **Vì sao:**
   - Đúng nhận xét: TD-13 đặt hình và chữ hai cột để rút xuống 9 trang, đổi lại bản PDF khó đọc.
   - Bản PDF đầu tiên của BT2 xuất bằng Word for Mac bị hỏng chữ có dấu: "dữ liệu" thành "dfi liệu", "từ" thành "tfi",
-    "Dương" thành "Dffơng" (BUG-14).
+    "Dương" thành "Dffơng" (BUG-14). Word còn nén ảnh xuống khoảng 200 điểm/inch, ảnh dòng lệnh in ra bị mờ.
   - Ảnh K1 – K3 cũ chỉ rộng khoảng 600 điểm ảnh nên phóng lên là mờ, không sửa được bằng cách chèn lại.
-- **Ảnh hưởng:** Báo cáo dài 17 trang, quá mức gợi ý 6 – 9 trang: một cột, chữ 13 và ảnh đủ lớn để đọc (đúng nhận
-  xét), cộng mục 3.4 NFR-03 mà nhận xét yêu cầu. Đã bỏ các bảng trùng với ảnh (bảng tầng, bảng quét ngưỡng – đã in
-  trong Hình 3.6, 3.7). Ảnh K1 – K3 cũ chỉ rộng khoảng 600 điểm ảnh; ảnh mới do Claude chụp trên môi trường thử, ghi ở
-  từng chú thích và `docs/bt2/README.md`. Không đổi con số nào.
+- **Ảnh hưởng:** Báo cáo 12 trang (đề gợi ý 6 – 9) vì thêm mục 3.4 NFR-03 theo nhận xét. Ảnh dashboard mới do Claude chụp
+  trên môi trường thử – ghi ở chú thích, ghi chú mục 5 và `docs/bt2/README.md`. Không đổi con số nào.
