@@ -56,23 +56,26 @@ Như Sprint 1: AI soạn bản nháp và chạy thử trên môi trường thử
 
 ## Bài tập 2 – buổi 12 (31/10/2026): khai báo theo đề BT2 mục 2.6
 
-Bảng theo đúng bốn cột của đề BT2. Em nhờ Claude làm trọn phần buổi 12 (đối chiếu repo với bảng tiêu chí BT2,
-sửa mã, viết test và tài liệu, chạy demo, chụp ảnh, đẩy lên GitHub và gắn tag `v0.2`), nên khai báo từng phần
-dưới đây. Cột cuối ghi việc đã được kiểm chứng bằng máy (test, lệnh chạy) và các ô em phải tự làm; em chỉ đánh
-dấu [x] ô nào đã thật sự làm.
+Bảng theo đúng bốn cột của đề BT2. Em nhờ Claude đối chiếu repo với bảng tiêu chí BT2, sửa mã, viết test và tài
+liệu, chạy thử trên môi trường thử của Claude (Linux), commit và đẩy lên GitHub (các commit từ `6a69241f`; commit
+chiều 31/10 có thêm dòng `Co-Authored-By: Claude`), nên khai báo từng phần dưới đây. Phần em tự làm: gắn tag
+`v0.2`; chạy lại toàn bộ trên MacBook theo README và chụp ảnh cho báo cáo PDF. Cột cuối có hai phần: việc đã kiểm
+chứng bằng máy (test, lệnh chạy) và ô [ ] em tự làm – em chỉ đánh [x] ô nào đã thật sự làm, trước khi gắn tag lần
+cuối.
 
 | Công cụ | Dùng vào việc gì | Áp dụng ở tệp / hàm nào | Em đã kiểm chứng thế nào |
 |---|---|---|---|
 | Claude (Anthropic) | Tách mọi lệnh đọc/ghi CSDL ra pha load (TD-22) | `src/etl/load_ops.py` (toàn bộ); `src/pipeline.py`: `chay_uc3`, `chay_lai_uc3`, `mo_ket_noi`; bỏ phần CSDL ở `extract.py`, `transform.py`, `dq_evaluate.py`, `match.py` | Máy: 95 test cũ vẫn PASS; `tests/test_ranh_gioi_lop.py` PASS; `grep -n "sqlalchemy\|INSERT INTO" src/etl/transform.py` không còn kết quả. [ ] Em mở `transform.py` và `load_ops.py`, chỉ được hàm nào thuộc pha nào |
 | Claude (Anthropic) | Sáu hàm kiểm chất lượng trả về số dòng lỗi, tỉ lệ lỗi (TD-24) | `src/etl/dq_evaluate.py`: `kiem_dq01_…` – `kiem_dq06_…`, `HAM_KIEM`, `KetQua.so_loi`, `KetQua.ti_le_loi` | Máy: số đo trên dữ liệu mẫu không đổi trước/sau khi tách (88,41 → 95,79); `test_sau_ham_kiem_tra_ve_so_dong_loi_va_ti_le_loi` PASS. [ ] Em giải thích được mẫu số của DQ-02 và vì sao DQ-05 so theo `phone_norm` |
-| Claude (Anthropic) | Chạy lại cùng tệp: cảnh báo, mọi bảng +0, mã thoát 0 (TD-25) | `src/pipeline.py`: `_tep_da_nap`, `_in_bang_dich`; `load_ops.dem_dong_bang_dich` | Máy: chạy lệnh luồng chính hai lần, lần hai in +0 ở 8 bảng đích, mã thoát 0 (ảnh `docs/bt2/02-chay-lai-lan-hai.png`); `test_chay_lai_bang_lenh_tra_ma_0_va_khong_nhan_doi` PASS. [ ] Em tự chạy lại hai lần trên MacBook |
-| Claude (Anthropic) | Bảng reject `ops.v_reject` (TD-23) | `sql/004_v_reject.sql`; `load_ops.doc_reject` | Máy: `test_bang_reject_co_dong_va_ly_do_cho_nguoi_doc`, `test_ly_do_trong_view_reject_khop_transform` PASS; truy vấn view bằng psql (ảnh `docs/bt2/04-bang-reject.png`) |
+| Claude (Anthropic) | Chạy lại cùng tệp: cảnh báo, mọi bảng +0, mã thoát 0 (TD-25) | `src/pipeline.py`: `_tep_da_nap`, `_in_bang_dich`; `load_ops.dem_dong_bang_dich` | Máy: chạy lệnh luồng chính hai lần, lần hai in +0 ở 8 bảng đích, mã thoát 0 (ảnh trong báo cáo PDF, Hình 3.2); `test_chay_lai_bang_lenh_tra_ma_0_va_khong_nhan_doi` PASS. [ ] Em tự chạy lại hai lần trên MacBook |
+| Claude (Anthropic) | Bảng reject `ops.v_reject` (TD-23) | `sql/004_v_reject.sql`; `load_ops.doc_reject` | Máy: `test_bang_reject_co_dong_va_ly_do_cho_nguoi_doc`, `test_ly_do_trong_view_reject_khop_transform` PASS; truy vấn view bằng psql (báo cáo PDF, Hình 3.4). [ ] Em chạy câu `SELECT … FROM ops.v_reject` trên MacBook và giải thích vì sao reject là view, không phải bảng thứ hai |
 | Claude (Anthropic) | Dữ liệu mẫu giả và script sinh (TD-26) | `scripts/sinh_du_lieu_mau.py`; `data/mau/*.csv` | Máy: `test_tep_mau_sinh_lai_dung_tung_byte`, `test_du_lieu_mau_ra_dung_so_lieu_readme` PASS. [ ] Em mở `customers_mau.csv`, tìm được một hồ sơ lặp và một cặp FUZZY |
-| Claude (Anthropic) | Bộ kiểm thử thêm cho BT2 và cách in số test theo ba loại | `tests/test_ranh_gioi_lop.py`, `tests/test_du_lieu_mau.py`; test mới trong `test_transform.py`, `test_dq_evaluate.py`, `test_pipeline.py`, `test_pipeline_csdl.py`; `pytest.ini`; `tests/conftest.py` (`pytest_terminal_summary`) | Máy: `python -m pytest -q` → 123 passed, 2 skipped (2 test cần dữ liệu thật của LMS), in số test PASS theo ba loại. [ ] Em đọc một test mỗi loại và nói được nó kiểm gì |
-| Claude (Anthropic) | Tài liệu BT2 | `README.md`; `docs/thay-doi-thiet-ke.md` TD-22 – TD-27; `docs/bug-log.md`; `docs/architecture-thuc-te.html` và ảnh; `docs/bt2/` | Đối chiếu từng lệnh README bằng phép thử clone vào thư mục mới (`docs/bt2/thu-clone-moi.txt`). [ ] Em đọc và đồng ý TD-22 – TD-27 |
-| Claude (Anthropic) | Chạy demo, chụp ảnh, commit, đẩy lên GitHub, gắn tag `v0.2` | `docs/bt2/*.png`; lịch sử commit; tag `v0.2` | Ảnh chụp trên **môi trường thử của Claude** (Linux, Python 3.11, PostgreSQL 16), không phải MacBook của em – chú thích từng ảnh ghi rõ. [ ] Em clone tag `v0.2` trên MacBook và chạy lại theo README |
-| Claude (Anthropic) | Soạn báo cáo PDF BT2 | `BT2_2374802010318_DuongDiemMy.pdf` (nộp E-learning) | [ ] Em đọc lại cả bài trước khi nộp |
-| — không dùng — | Ảnh dashboard có dữ liệu thật (K1 – K3, rỗng, lỗi) em chụp trên MacBook ngày 25/10/2026 (buổi 10) | `docs/sprint2/dashboard-*.png` | Không áp dụng |
+| Claude (Anthropic) | Bộ kiểm thử thêm cho BT2 và cách in số test theo ba loại | `tests/test_ranh_gioi_lop.py`, `tests/test_du_lieu_mau.py`; test mới trong `test_transform.py`, `test_dq_evaluate.py`, `test_pipeline.py`, `test_pipeline_csdl.py`; `pytest.ini`; `tests/conftest.py` (`pytest_terminal_summary`) | Máy: `python -m pytest -q` → 139 passed, 2 skipped (2 test cần dữ liệu thật của LMS), in số test PASS theo ba loại. [ ] Em đọc một test mỗi loại và nói được nó kiểm gì |
+| Claude (Anthropic) | Tài liệu BT2 | `README.md`; `docs/thay-doi-thiet-ke.md` TD-22 – TD-31; `docs/bug-log.md` BUG-07 – BUG-12; `docs/architecture-thuc-te.html` và ảnh; `docs/bt2/` | Đối chiếu từng lệnh README bằng phép thử clone vào thư mục mới (`docs/bt2/thu-clone-moi.txt`). [ ] Em đọc và đồng ý TD-22 – TD-31 |
+| Claude (Anthropic) | Chạy thử trên môi trường thử, commit, đẩy lên GitHub | lịch sử commit; `docs/bt2/thu-clone-moi.txt` | Nhật ký phép thử thư mục trống trên môi trường thử của Claude (Linux, Python 3.11, PostgreSQL 16) – không phải MacBook của em. [ ] Em clone tag `v0.2` trên MacBook và chạy lại đủ 12 bước theo README |
+| Claude (Anthropic) | Rà soát lần cuối, sửa BUG-09 – BUG-12: tệp lỗi bị TỪ CHỐI rõ ràng (TD-28), `la_trong` sang `tien_ich.py` (TD-29), mốc cho thẻ số và câu đọc K3 (TD-30), `DB_USER` trống và README bước 3, 6 (TD-31) | `src/etl/extract.py` `doc_tep`; `src/etl/tien_ich.py`; `src/doc_kho.py` `cau_fuzzy_thap_nhat`, `moc_ti_le_loi`; `dashboard/report.py`; `src/db.py`; `scripts/sinh_du_lieu_mau.py`; test mới trong `test_extract.py`, `test_du_lieu_mau.py`, `test_doc_kho.py` | Máy: 139 passed, 2 skipped; ba tệp lỗi trong `data/mau/` bị TỪ CHỐI mã 2; Python 3.13 cũng PASS. [ ] Em chạy ba tệp lỗi trên MacBook và giải thích vì sao trước đây tệp chỉ có tiêu đề được 100 điểm |
+| Claude (Anthropic) | Soạn báo cáo PDF BT2 (khung chữ, bảng; chừa chỗ cho ảnh em tự chụp) | `BT2_2374802010318_DuongDiemMy.pdf` (nộp E-learning) | [ ] Mọi ảnh trong báo cáo do em chụp trên MacBook; em đọc lại cả bài trước khi nộp |
+| — không dùng — | Gắn tag `v0.2`; chạy README trên MacBook và chụp ảnh cho báo cáo BT2; ảnh dashboard dữ liệu thật buổi 10 | tag `v0.2`; ảnh trong báo cáo PDF; `docs/sprint2/dashboard-*.png` | Không áp dụng |
 
-**Em xác nhận đã đọc, hiểu và chịu trách nhiệm về toàn bộ nội dung nộp.**
+**Em xác nhận đã đọc, hiểu và chịu trách nhiệm về toàn bộ nội dung nộp** (ký sau khi đã đánh dấu các ô ở trên).
 Họ tên: Dương Diễm My · MSSV: 2374802010318 · Ngày: 31/10/2026
