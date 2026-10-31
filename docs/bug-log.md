@@ -92,7 +92,7 @@ Repo: https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-qualit
 4. **Khoanh vùng:** `src/pipeline.chay_uc1`, nhánh kiểm `tim_dot_cung_tep` ném `TuChoi`.
 5. **Nguyên nhân gốc:** hiểu AC1.4 là "từ chối", trong khi AC1.4 chỉ yêu cầu cảnh báo và không nạp khi chưa xác nhận (TD-25).
 6. **Sửa:** cảnh báo, không tạo đợt mới, đồng bộ kho + UC3 theo khóa nghiệp vụ, in số dòng 8 bảng đích trước → sau, mã thoát 0 – [8d8e6038](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/8d8e6038).
-7. **Xác nhận:** `test_chay_lai_bang_lenh_tra_ma_0_va_khong_nhan_doi` PASS; ảnh `docs/bt2/02-chay-lai-lan-hai.png` (mọi bảng +0).
+7. **Xác nhận:** `test_chay_lai_bang_lenh_tra_ma_0_va_khong_nhan_doi` PASS; ảnh `docs/bt2/03-chay-lai-lan-hai.png` (mọi bảng +0).
 
 ### BUG-08  Lớp load lẫn vào pha transform
 
