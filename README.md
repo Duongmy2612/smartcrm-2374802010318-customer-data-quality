@@ -2,8 +2,26 @@
 
 **Sinh viên:** Dương Diễm My – MSSV 2374802010318 · **Track:** DA (Data Analytics)
 **Học phần:** Chuyên đề Tốt nghiệp 1 – Trường ĐH Văn Lang · HK1 2026 – 2027
-**Bài tập 2 (buổi 12):** tag `v0.2` · báo cáo `BT2_2374802010318_DuongDiemMy.pdf` (nộp trên VLU E-learning)
+**Bài tập 3 (buổi 16):** tag `v1.0` · báo cáo `BT3_2374802010318_DuongDiemMy.pdf` (một tệp PDF, nộp trên VLU E-learning)
+**Bài tập 2 (buổi 12):** tag `v0.2` · báo cáo `BT2_2374802010318_DuongDiemMy.pdf`
 **Bài tập 1:** `BT1_2374802010318_DuongDiemMy.pdf` (bản nộp lại 21/10/2026)
+
+## Chạy hệ thống – hai lệnh (Docker, BT3)
+
+Máy chỉ cần Docker và Git (không cần Python, PostgreSQL). Sau khi clone và `cd` vào thư mục repo:
+
+```
+cp .env.example .env
+docker compose up -d --build
+```
+
+Dashboard: http://localhost:8501 · kiểm tra: `docker compose ps -a` (db, dashboard `healthy`; pipeline `Exited (0)`) ·
+bộ kiểm thử: `docker compose run --rm pipeline python -m pytest -q`. Hướng dẫn đầy đủ bằng tiếng Anh (yêu cầu môi
+trường, biến môi trường, dữ liệu mẫu, cách kiểm tra): **`docs/deployment-guide.md`**. Mục 3 dưới đây là cách chạy
+không dùng Docker (môi trường phát triển của BT2).
+
+Tài liệu BT3: `docs/test-plan.md` · `docs/test-report.md` · `docs/bug-log.md` · `docs/deployment-guide.md` ·
+`docs/checklist-bao-mat.md` · `docs/pipeline-doc.md` · `docs/data-dictionary.md`.
 
 ## 1. Hệ thống làm gì
 
