@@ -16,10 +16,11 @@ trước test case – viết tắt **[CSDL sạch]** trong bảng.
 |---|---|---|---|
 | 1 | 07/11/2026 · commit `574bfd0` (vừa viết 12 test case) | Linux, `.venv` Python 3.11, PostgreSQL 16 | **10/12 PASS** – TC-09 FAIL (BUG-15), TC-12 FAIL (BUG-16) |
 | 2 | 07/11/2026 · sau commit `a3566b0` (BUG-15) và `aab583b` (BUG-16) | như lần 1 và Docker (`docker compose run --rm pipeline …`) | **12/12 PASS** |
-| 3 | mỗi lần push · GitHub Actions | máy ảo Ubuntu mới, ảnh Docker thật từ Docker Hub | `pytest` 191 passed, 3 skipped (gồm 12 test case) – xanh |
+| 3 | mỗi lần push · GitHub Actions | máy ảo Ubuntu mới, ảnh Docker thật từ Docker Hub | `pytest` 194 passed, 3 skipped (gồm 12 test case) – xanh ([lần chạy ở commit `e3c7a28`](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42376678386)) |
 
 Ảnh chụp kết quả từng test case: `docs/screenshots/TC-01.png` … `TC-12.png`; ảnh lần chạy FAIL: `TC-09-lan1-FAIL.png`,
-`TC-12-lan1-FAIL.png`. Nơi chụp từng ảnh: `docs/screenshots/README.md`.
+`TC-12-lan1-FAIL.png`; ảnh phép thử máy trắng: `PT-01-hai-lenh.png` … `PT-07-mat-csdl.png`. Nơi chụp từng ảnh:
+`docs/screenshots/README.md`.
 
 ## 2. Tóm tắt và truy vết
 
@@ -206,4 +207,6 @@ Sau khi sửa BUG-17, BUG-18: pytest trong Docker **191 passed, 3 skipped**; `pi
 câu báo mất CSDL chỉ lệnh `docker compose`. Môi trường Linux của Claude chặn registry Docker nên hai ảnh gốc ở lần
 này là ảnh thay thế dựng cục bộ. Cùng các bước chạy lại trên **GitHub Actions với ảnh thật từ Docker Hub** ở mỗi lần
 push (`.github/workflows/ci.yml`) – lần chạy đầu ở commit `1a315f9`: mọi bước xanh, pytest 191 passed, 3 skipped,
-pip-audit 0 lỗ hổng: https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42375421851
+pip-audit 0 lỗ hổng ([run 42375421851](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42375421851));
+ở commit `e3c7a28` (đủ tài liệu và `tests/test_tai_lieu.py`): pytest **194 passed, 3 skipped**
+([run 42376678386](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42376678386)).
