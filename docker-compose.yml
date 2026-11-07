@@ -47,7 +47,8 @@ services:
     restart: "no"
 
   dashboard:
-    image: smartcrm-l7:local
+    image: smartcrm-l7:local    # dùng lại ảnh do dịch vụ pipeline dựng – không có trên Docker Hub
+    pull_policy: never          # nên không bao giờ tải về (tránh lỗi "pull access denied for smartcrm-l7")
     environment: *bien_ung_dung
     command: ["python", "-m", "streamlit", "run", "dashboard/report.py", "--server.address=0.0.0.0"]
     ports:

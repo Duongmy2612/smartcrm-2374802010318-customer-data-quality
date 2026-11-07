@@ -21,7 +21,8 @@ them exactly and gives the meaning in English.
 | Internet | needed on the first build only: pull two base images from Docker Hub, install pinned Python packages from PyPI | – |
 
 Runtime inside the containers: Python 3.11 (`python:3.11-slim`), PostgreSQL 16 (`postgres:16-alpine`), libraries
-pinned with `==` in `requirements.txt` (pandas 3.0.6, SQLAlchemy 2.1.1, streamlit 1.64.0, …).
+pinned with `==` in `requirements.txt` – every direct and indirect package, 47 in total (pandas 3.0.6,
+SQLAlchemy 2.1.1, streamlit 1.67.0, pillow 13.0.0, …).
 
 ## 2. Build and start the system
 
@@ -33,9 +34,10 @@ itself starts with the **two commands** in lines 3 – 4.
 | 1 | `git clone --branch v1.0 https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality.git smartcrm` | Gets the submitted version (tag `v1.0`) into a new folder |
 | 2 | `cd smartcrm` | Enters the project folder |
 | 3 | `cp .env.example .env` (PowerShell: `Copy-Item .env.example .env`) | Creates the configuration file from the sample – no editing needed (section 3) |
-| 4 | `docker compose up -d --build` | Builds the application image and starts the three services below |
+| 4 | `docker compose up -d --build` | Builds the application image `smartcrm-l7:local` and starts the three services below |
 
-The first run takes about 3 – 6 minutes (download and build); later runs take a few seconds. Command 4 starts:
+The first run of command 4 takes about 3 – 6 minutes (it downloads the base images and builds); later runs take a
+few seconds. Command 4 starts:
 
 | Service | What it is | Correct state |
 |---|---|---|
@@ -59,7 +61,7 @@ a **sample** – keep it for a local run, change both passwords for any shared o
 | `DB_USER` | Account used by the pipeline and the tests. Empty → Docker uses `smartcrm` (the database owner); without Docker on macOS Homebrew, empty means the current macOS account | *(empty)* | No |
 | `DB_PASSWORD` | Password of `DB_USER`. With Docker it is also the password given to PostgreSQL on its **first** start | `smartcrm_mau_doi_khi_trien_khai` | **Yes** – Compose stops with `required variable DB_PASSWORD is missing a value` |
 | `DB_NAME_TEST` | Separate database for `pytest` and the 12 test cases; every test drops and recreates schemas there, never in `DB_NAME` | `smartcrm_test` | No – default `smartcrm_test` |
-| `DASH_DB_USER` | Read-only account of the dashboard. The pipeline creates it and grants **SELECT on schema `dwh` only** (counts, no personal data); it has no right on schema `ops` (names, phone numbers) | `dash_reader` | **Yes** |
+| `DASH_DB_USER` | Read-only account of the dashboard. The pipeline creates it and grants **SELECT on schema `dwh` only** (counts, no personal data); it has no privileges on schema `ops` (names, phone numbers) | `dash_reader` | **Yes** |
 | `DASH_DB_PASSWORD` | Password of `DASH_DB_USER` | `dash_reader_mau_doi_khi_trien_khai` | **Yes** |
 
 Changing `DB_PASSWORD` after the first start: PostgreSQL keeps the first password in the data volume, so run
@@ -112,4 +114,6 @@ Common problems:
 | `required variable DB_PASSWORD is missing a value` | `.env` was not created | Run step 3, then step 4 again |
 | `Bind for 0.0.0.0:8501 failed: port is already allocated` | Another program (often a dashboard started with `streamlit run`) uses port 8501 | Stop that program, then `docker compose up -d` |
 | `pipeline` shows `Exited (1)`; log has `password authentication failed` | `DB_PASSWORD` was changed after the first start | `docker compose down -v`, then `docker compose up -d` |
-| Dashboard shows "Chưa cấu hình tài khoản chỉ đọc của dashboard" | `DASH_DB_USER` or `DASH_DB_PASSWORD` is empty in `.env` | Copy both lines from `.env.example`, then `docker compose up -d` |
+| `required variable DASH_DB_PASSWORD is missing a value` | `.env` was created from an older `.env.example` (before `v1.0`) that has no dashboard account | Copy the `DASH_DB_USER` and `DASH_DB_PASSWORD` lines from `.env.example` into `.env`, then step 4 again |
+| Run without Docker: the dashboard shows "Chưa cấu hình tài khoản chỉ đọc của dashboard" ("the dashboard's read-only account is not configured") | `DASH_DB_USER` or `DASH_DB_PASSWORD` is empty in `.env` | Copy both lines from `.env.example`, run the pipeline once (it creates the account), restart the dashboard |
+| `pull access denied for smartcrm-l7` | An older copy of `docker-compose.yml`; the dashboard must reuse the image built by `pipeline` | Use the file of tag `v1.0` (it sets `pull_policy: never` on `dashboard`) and run step 4 with `--build` |
