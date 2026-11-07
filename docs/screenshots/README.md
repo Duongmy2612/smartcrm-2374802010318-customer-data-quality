@@ -6,7 +6,10 @@ Deployment Guide mục 5).
 
 **Cách tạo ảnh hiện có.** Lệnh chạy thật; đầu ra dòng lệnh được lưu thành tệp văn bản rồi **vẽ thành ảnh PNG** (không
 phải ảnh chụp màn hình), riêng `PT-06-dashboard.png` là ảnh chụp trình duyệt Chromium. Mỗi ảnh có nhãn vàng ghi nơi
-chạy, commit và ngày, để không lẫn với ảnh chụp trên MacBook.
+chạy, commit và ngày, để không lẫn với ảnh chụp trên MacBook. Các ảnh `PT-xx`, `TC-xx` là **một lần chạy liền** của
+script phép thử máy trắng (clone mới nhánh `main` ở commit `49ea1ba`, ngày 07/11/2026): 12/12 test case PASS, pytest
+194 passed, 3 skipped. Cùng lần đó làm lại lần chạy 1 trong Docker (mã nguồn `574bfd0`): TC-09, TC-12 FAIL như ảnh
+`…-lan1-FAIL.png`.
 
 | Ảnh | Nội dung | Nơi chạy · cách tạo ảnh |
 |---|---|---|
