@@ -1,9 +1,13 @@
-# Nhật ký lỗi đã gỡ – Giai đoạn 2 (buổi 7 – 12)
+# Nhật ký lỗi đã gỡ – Giai đoạn 2 và 3 (buổi 7 – 16)
 
 Sinh viên: Dương Diễm My – MSSV 2374802010318 · L7 – Chất lượng dữ liệu khách hàng · Track DA
 
 Mỗi lỗi đủ **7 dòng**, theo quy trình gỡ bốn bước của buổi 11: tái lập → khoanh vùng → sửa nguyên nhân → xác nhận.
 Link commit trỏ tới GitHub của repo. Thêm lỗi mới vào cuối, không sửa mục cũ.
+
+**Bài tập 3 (buổi 13 – 16):** BUG-15 – BUG-18 ở mục cuối, theo mẫu bảy dòng của BT3 (mã và mức độ · phát hiện bởi
+test case nào · triệu chứng · cách tái lập · nguyên nhân · cách sửa · link commit và xác nhận). Mỗi bug một commit
+riêng `fix(…): … (BUG-xx)`.
 
 Repo: https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality
 
@@ -165,3 +169,98 @@ Repo: https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-qualit
 5. **Nguyên nhân gốc:** phông Times New Roman do Word for Mac nhúng vào PDF ánh xạ chữ "ư", "ữ" sang ký tự ghép "ff", "fi" – cả lớp chữ (pdftotext) lẫn hình hiển thị (trình xem dùng phông nhúng) đều ra chữ sai; trình xem trên máy em có thể vẫn hiện đúng nên khó thấy.
 6. **Sửa:** xuất PDF bằng LibreOffice (TD-33); trước khi nộp chạy lệnh ở bước 3.
 7. **Xác nhận:** bản PDF mới: `grep -c "dfi"` = 0.
+
+---
+
+## Bài tập 3 – Giai đoạn 3 (buổi 13 – 16)
+
+Phân loại theo bảng mức độ của đề BT3 mục 2.3, trả lời hai câu hỏi: người dùng còn làm được việc không (có cách làm
+tạm không) · dữ liệu có bị sai hay bị lộ không.
+
+| Mã | Mức độ | Phát hiện bởi | Lỗi | Commit sửa |
+|---|---|---|---|---|
+| BUG-15 | MAJOR | TC-09 | Ngày tạo sai định dạng vẫn thành hồ sơ sạch | [`a3566b0`](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/a3566b009a9a6673d6754bad0ce52e0189b41583) |
+| BUG-16 | CRITICAL | TC-12 | Kết nối của dashboard đọc được họ tên, số điện thoại ở schema `ops` | [`aab583b`](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/aab583b96b6b289a722af6e0722611f6d983c391) |
+| BUG-17 | MAJOR | PT-01 – checklist mục 7 | Ảnh Docker cài pillow 12.3.0 có 39 lỗ hổng đã công bố | [`43be2fa`](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/43be2fa849e139b0ca9e280607c72545fbdda6f7) |
+| BUG-18 | MINOR | PT-01 – checklist mục 5 | Mất CSDL trong Docker nhưng câu báo khuyên lệnh Homebrew | [`e91fdc1`](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/e91fdc1788fac83a8e24154d1b3f1130f2aae0a0) |
+
+### BUG-15  Ngày tạo sai định dạng vẫn thành hồ sơ sạch
+
+1. **Mã và mức độ:** BUG-15 · **MAJOR** – dữ liệu sai lọt vào `customer_clean` mà không ai được báo; chưa làm sai chỉ
+   số hay kho (ngày tạo chưa dùng ở bước sau) và có cách làm tạm (lọc tay tệp nguồn), nên không xếp Critical.
+2. **Phát hiện bởi:** TC-09 (dữ liệu sai), lần chạy 1 ngày 07/11/2026 ở commit `574bfd0` – kết quả FAIL.
+3. **Triệu chứng:** tệp 3 hồ sơ có ngày `31/02/2026` và `2026-02-30` → mã thoát 0, `customer_clean` 0 → 3,
+   `ops.v_reject` 0 dòng; cả ba hồ sơ CLEAN.
+4. **Cách tái lập:** `git checkout 574bfd0` → `python -m tests.tc_bt3 TC-09` (hoặc nạp
+   `tests/du_lieu_tc/tc09_ngay_sai.csv` rồi `SELECT row_no, created_raw, status FROM ops.stg_customer`).
+5. **Nguyên nhân:** `transform.gan_ma_loi` chỉ xét số điện thoại và họ tên; cột `created_raw` được chép vào bảng tạm
+   nhưng không hàm nào kiểm, dù `docs/data-requirements.md` mục 3 ghi `ngay_tao` phải là ngày hợp lệ dạng yyyy-mm-dd.
+   Miền giá trị `error_code` (CHECK ở `sql/001`) cũng chỉ có ba mã, nên không có chỗ ghi lỗi này.
+6. **Cách sửa:** thêm `transform.ngay_tao_hop_le` (trống là hợp lệ – cột tùy chọn; có giá trị phải đúng yyyy-mm-dd
+   và là ngày có thật) và mã `INVALID_DATE`, xét sau cùng (MISSING_PHONE > INVALID_PHONE > MISSING_NAME > INVALID_DATE);
+   migration `sql/005_invalid_date.sql` thêm mã vào CHECK của CSDL cũ; `ops.v_reject` có câu lý do và cột
+   `created_raw` (TD-37). 13 test mới, gồm biên 29/02 năm nhuận / năm thường.
+7. **Link commit và xác nhận:** [a3566b0](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/a3566b009a9a6673d6754bad0ce52e0189b41583) · TC-09 PASS (`v_reject` 2 dòng
+   INVALID_DATE, `customer_clean` 0 → 1); dữ liệu mẫu và dữ liệu thật không có ngày sai nên mọi con số cũ giữ nguyên
+   (88,41 → 95,79; 87,20 → 94,76); `python -m pytest -q` 0 failed.
+
+### BUG-16  Kết nối của dashboard đọc được dữ liệu cá nhân ở schema ops
+
+1. **Mã và mức độ:** BUG-16 · **CRITICAL** – lỗ hổng bảo mật: lớp hiển thị đọc được họ tên, số điện thoại của khách
+   hàng, trái NFR-07 ("dashboard chỉ đọc kho số đếm").
+2. **Phát hiện bởi:** TC-12 (bảo mật), lần chạy 1 ngày 07/11/2026 ở commit `574bfd0` – kết quả FAIL.
+3. **Triệu chứng:** `db.tao_engine_chi_doc()` – đúng kết nối dashboard dùng – chạy được
+   `SELECT full_name_raw, phone_raw FROM ops.stg_customer` và trả về dữ liệu; tài khoản kết nối là tài khoản của
+   pipeline (`postgres` trên máy thử).
+4. **Cách tái lập:** `git checkout 574bfd0`, `.env` theo `.env.example` (khi đó `DASH_DB_USER` trống) →
+   `python -m tests.tc_bt3 TC-12`.
+5. **Nguyên nhân:** khi `DASH_DB_USER` trống, `tao_engine_chi_doc` dùng lại `DB_USER` – tài khoản có mọi quyền trên
+   `ops` – và chỉ đặt `default_transaction_read_only=on`. Tùy chọn này chặn GHI chứ không chặn ĐỌC, nên phần quyền
+   đọc vẫn là của pipeline. Tài khoản riêng `dash_reader` được thiết kế ở TD-19 nhưng hoãn sang Giai đoạn 3 (TD-27).
+6. **Cách sửa:** `DASH_DB_USER`, `DASH_DB_PASSWORD` bắt buộc (`.env.example` có giá trị mẫu `dash_reader`);
+   `db.khoi_tao_csdl` gọi `cap_quyen_dashboard`: tạo hoặc đồng bộ mật khẩu tài khoản (NOSUPERUSER), `GRANT USAGE` +
+   `SELECT` trên schema `dwh`, `REVOKE` mọi quyền trên `ops`; tên tài khoản kiểm bằng biểu thức chính quy, mật khẩu
+   truyền dạng tham số. Thiếu cấu hình thì dashboard báo đúng tên biến cần điền (TD-36). 6 test mới.
+7. **Link commit và xác nhận:** [aab583b](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/aab583b96b6b289a722af6e0722611f6d983c391) · TC-12 PASS: tài khoản
+   `dash_reader` đọc được `dwh.v_batch_score`, đọc `ops.stg_customer` bị từ chối "permission denied for schema ops";
+   dashboard K1 – K3 vẫn hiển thị đủ (ảnh Docker).
+
+### BUG-17  Ảnh Docker cài pillow 12.3.0 có 39 lỗ hổng đã công bố
+
+1. **Mã và mức độ:** BUG-17 · **MAJOR** – thư viện có lỗ hổng đã công bố nằm trong ảnh chạy hệ thống. Không xếp
+   Critical vì chưa có đường khai thác trong ứng dụng hiện tại: các lỗ hổng nằm ở bộ giải mã ảnh của pillow, còn
+   dashboard không nhận tệp ảnh nào từ người dùng. Vẫn sửa ngay vì checklist bảo mật mục 7 yêu cầu.
+2. **Phát hiện bởi:** PT-01 – phép thử máy trắng, bước kiểm checklist bảo mật mục 7, ngày 07/11/2026 ở commit `4ba61ab`.
+3. **Triệu chứng:** `pip-audit -r requirements.txt` → `pillow 12.3.0` với 39 mã lỗ hổng (PYSEC-2026-4327, PYSEC-2026-4328,
+   GHSA-78g4-xqwv-q3g8, …), bản sửa 13.0.0; pillow không có trong `requirements.txt`.
+4. **Cách tái lập:** `git checkout 4ba61ab` → `pip install pip-audit` → `pip-audit -r requirements.txt`.
+5. **Nguyên nhân:** `requirements.txt` chỉ ghim 10 gói dùng trực tiếp; 36 gói gián tiếp (pillow do streamlit kéo theo)
+   để pip tự chọn lúc dựng, nên không ai biết ảnh Docker đang chứa phiên bản nào và không bước nào kiểm lỗ hổng.
+   Thêm vào đó streamlit 1.64.0 khai báo `pillow < 13` nên không nâng riêng pillow được.
+6. **Cách sửa:** streamlit 1.64.0 → 1.67.0 (khai báo `pillow < 14`), ghim `pillow==13.0.0`; `requirements.txt` thành
+   tệp khóa đầy đủ 48 gói lấy từ `pip freeze` của môi trường ảo sạch (watchdog chỉ ngoài macOS, colorama chỉ trên Windows
+   – đúng khai báo của gói); ghi cách cập nhật ở đầu tệp (TD-40). CI chạy `pip-audit` ở mỗi lần push.
+7. **Link commit và xác nhận:** [43be2fa](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/43be2fa849e139b0ca9e280607c72545fbdda6f7) · `pip-audit`: "No known
+   vulnerabilities found"; pytest 192 passed (.venv), 190 passed, 3 skipped (Docker); dashboard K1 – K3 hiển thị đúng
+   với streamlit 1.67.0.
+
+### BUG-18  Mất CSDL trong Docker nhưng câu báo khuyên lệnh Homebrew
+
+1. **Mã và mức độ:** BUG-18 · **MINOR** – nghiệp vụ vẫn đúng (mã thoát 1, không ghi gì, không lộ mật khẩu); chỉ lời
+   khuyên sai môi trường làm người vận hành mất thời gian.
+2. **Phát hiện bởi:** PT-01 – phép thử máy trắng, bước "gây một lỗi và đọc phản hồi" của checklist bảo mật mục 5, ngày
+   07/11/2026 ở commit `43be2fa`.
+3. **Triệu chứng:** `docker compose stop db` rồi `docker compose run --rm --no-deps pipeline` → "Không kết nối được
+   PostgreSQL ở db:5432 … Kiểm tra PostgreSQL đang chạy (macOS: brew services start postgresql@14), CSDL đã tạo
+   (createdb smartcrm) …" – hai lệnh không có và không cần trong container.
+4. **Cách tái lập:** `git checkout 43be2fa` → hai lệnh của Deployment Guide → `docker compose stop db` →
+   `docker compose run --rm --no-deps pipeline`.
+5. **Nguyên nhân:** câu báo của `LoiKetNoiCSDL` viết cố định ở BT2 (TD-31), khi hệ thống chỉ có cách cài trên máy cá
+   nhân; mã không biết mình đang chạy trong container nên không chọn được cách sửa đúng.
+6. **Cách sửa:** `Dockerfile` đặt `SMARTCRM_TRONG_DOCKER=1`; `pipeline.cach_sua_ket_noi()` chọn câu theo nơi chạy –
+   trong Docker: `docker compose ps -a`, `docker compose up -d db`, `down -v` khi đã đổi mật khẩu. 1 test mới; test cũ
+   bỏ biến này để chạy được cả trong container.
+7. **Link commit và xác nhận:** [e91fdc1](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/e91fdc1788fac83a8e24154d1b3f1130f2aae0a0) · làm lại bước gây lỗi: câu báo
+   chỉ lệnh `docker compose`, không còn `brew`, `createdb`, không có mật khẩu; pytest 193 passed (.venv), 191 passed,
+   3 skipped (Docker).
+

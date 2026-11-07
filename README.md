@@ -34,7 +34,7 @@ Chất lượng phát hiện trùng được kiểm chứng bằng precision/rec
 trên dữ liệu mẫu với nhãn đúng của script sinh, và trên 300 cặp dữ liệu thật có nhãn của người (Claude gợi ý nhãn,
 em rà lại từng cặp – `docs/ai-disclosure.md`).
 
-Phạm vi và lý do: `docs/srs.md` (đặc tả), `docs/thay-doi-thiet-ke.md` (TD-01 – TD-33, mọi sai lệch so với BT1).
+Phạm vi và lý do: `docs/srs.md` (đặc tả), `docs/thay-doi-thiet-ke.md` (TD-01 – TD-41, mọi sai lệch so với BT1).
 
 ## 2. Yêu cầu môi trường
 
@@ -119,18 +119,25 @@ transform, đo chất lượng và so khớp trong bộ nhớ (TD-10); bước 9
 python -m pytest -q          # cả bộ; thêm -rs để xem lý do test bị bỏ qua
 ```
 
-Cuối kết quả có bảng số test PASS theo **ba loại của đề BT2** (đánh dấu bằng marker trong `pytest.ini`):
+Cuối kết quả có bảng số test PASS theo **năm loại của đề BT3** (đánh dấu bằng marker trong `pytest.ini`; ba loại đầu
+có từ BT2):
 
 | Loại | Ví dụ | Kiểm gì |
 |---|---|---|
 | 1. Luồng đúng | `tests/test_du_lieu_mau.py::test_du_lieu_mau_ra_dung_so_lieu_readme` | tệp mẫu đúng định dạng → nạp đủ 414 dòng, ra đúng các số ở mục 5 |
 | 2. Giá trị biên | `tests/test_match.py::test_diem_bang_dung_nguong_van_tao_cap_fuzzy` | điểm đúng bằng ngưỡng 85 vẫn tạo cặp, 84,99 thì không |
 | 3. Dữ liệu sai | `tests/test_pipeline_csdl.py::test_bang_reject_co_dong_va_ly_do_cho_nguoi_doc` | hồ sơ thiếu số vào bảng reject kèm lý do, không sập |
+| 4. Chất lượng / bảo mật | `tests/test_tc_bt3.py::test_tc_bt3[TC-12]` | tài khoản dashboard đọc được kho, bị từ chối khi đọc dữ liệu cá nhân |
+| 5. Tái lập | `tests/test_tc_bt3.py::test_tc_bt3[TC-11]` | chạy lại cùng tệp: 8 bảng đích giống hệt lần một |
 
-Kết quả đúng trên bản clone mới: **`155 passed, 3 skipped`** (luồng đúng 18 · giá trị biên 28 · dữ liệu sai 25).
-Ba test bỏ qua là test hồi quy trên dữ liệu thật của LMS (`data/raw/customers_raw.csv`, mẫu 8.000 dòng) – không
-có trong repo; có hai tệp đó thì `158 passed`. Chưa làm bước 11 thì thêm 12 test tích hợp cần PostgreSQL tự bỏ
-qua (`143 passed, 15 skipped`), không báo lỗi. Test của NFR-03 (`tests/test_danh_gia_match.py`) không cần CSDL. Kiểm thử tự dựng dữ liệu nó cần
+12 test case hệ thống của BT3 (`docs/test-plan.md`, `docs/test-report.md`) nằm trong bộ trên; chạy riêng một test case
+và in đủ tám cột: `python -m tests.tc_bt3 TC-06` (cả 12: bỏ mã test case). Trong Docker: thêm
+`docker compose run --rm pipeline` ở trước lệnh.
+
+Kết quả đúng trên bản clone mới (cả trong Docker): **`194 passed, 3 skipped`** (luồng đúng 23 · giá trị biên 35 · dữ
+liệu sai 42 · chất lượng / bảo mật 3 · tái lập 7; còn lại là test chưa gắn loại). Ba test bỏ qua là test hồi quy trên
+dữ liệu thật của LMS (`data/raw/customers_raw.csv`, mẫu 8.000 dòng) – không có trong repo; có hai tệp đó thì
+`197 passed`. Chưa làm bước 11 thì 26 test cần PostgreSQL (14 tích hợp, 12 test case) tự bỏ qua, không báo lỗi. Test của NFR-03 (`tests/test_danh_gia_match.py`) không cần CSDL. Kiểm thử tự dựng dữ liệu nó cần
 (tệp 4 dòng trong `tmp_path`, CSDL `smartcrm_test` xóa và tạo lại schema ở mỗi test), không phụ thuộc dữ liệu
 có sẵn trên máy.
 
@@ -138,10 +145,10 @@ có sẵn trên máy.
 
 | Sau bước | Kết quả đúng |
 |---|---|
-| 8 | 5 bước `[1/5]` … `[5/5]`, mã thoát 0. `[2/5] transform`: CLEAN 343 · PENDING_DUP 40 · ERROR 31 (MISSING_PHONE 24, INVALID_PHONE 5, MISSING_NAME 2). `[3/5]`: bảng 6 hàm kiểm có cột "Dòng lỗi SAU (tỉ lệ lỗi)"; chỉ số mức độ sạch TRƯỚC 88,41 → SAU 95,79 (Tốt). `[5/5]`: EXACT_PHONE 40 · FUZZY 3. Đối soát staging ↔ kho 6/6 ✔. Bảng số dòng bảng đích: `ops.stg_customer` +414, `dwh.fact_dq_check` +12, `dwh.fact_dup_pair` +43 |
+| 8 | 5 bước `[1/5]` … `[5/5]`, mã thoát 0. `[2/5] transform`: CLEAN 343 · PENDING_DUP 40 · ERROR 31 (MISSING_PHONE 24, INVALID_PHONE 5, MISSING_NAME 2, INVALID_DATE 0). `[3/5]`: bảng 6 hàm kiểm có cột "Dòng lỗi SAU (tỉ lệ lỗi)"; chỉ số mức độ sạch TRƯỚC 88,41 → SAU 95,79 (Tốt). `[5/5]`: EXACT_PHONE 40 · FUZZY 3. Đối soát staging ↔ kho 6/6 ✔. Bảng số dòng bảng đích: `ops.stg_customer` +414, `dwh.fact_dq_check` +12, `dwh.fact_dup_pair` +43 |
 | 9 | `CẢNH BÁO (AC1.4): tệp này đã nạp ở đợt 1 …`; bảng số dòng bảng đích **+0 ở cả 8 bảng**; `Kết quả lần chạy lại: mọi bảng +0 – không nhân đôi dữ liệu.`; mã thoát 0 (TD-25) |
 | 10 | Tab K1 – K3, 4 biểu đồ, mỗi biểu đồ có mốc tham chiếu và dòng ghi nguồn. Người xem `ql.mm001` → trạng thái rỗng có câu giải thích; dừng PostgreSQL rồi bấm Làm mới → trạng thái lỗi có nút Thử lại, không in chuỗi kết nối |
-| 12 | `155 passed, 3 skipped` và bảng ba loại kiểm thử: luồng đúng 18 · giá trị biên 28 · dữ liệu sai 25 |
+| 12 | `194 passed, 3 skipped` và bảng năm loại kiểm thử (mục 4) |
 | 13 | `[1/3] khung cặp 414 hồ sơ → 63 cặp trong khung → 63 cặp để gán nhãn (khung ≤ 300 cặp: lấy hết)`: T1 40 = EXACT_PHONE, T2 3 = FUZZY của bước 8. `[3/3]`: TP 43 · FP 0 · FN 0 · TN 20 → precision 100,00%, recall 100,00% → `NFR-03 ở ngưỡng 85: ĐẠT`; bảng quét ngưỡng 70 – 95 (ở 95 recall còn 93,02% vì 3 cặp FUZZY có điểm 94); mã thoát 0 |
 
 Thử thêm (giảng viên chấm C7 – dữ liệu sai, và suy giảm có kiểm soát):
@@ -229,7 +236,27 @@ không tồn tại).
 
 **Tái lập (NFR-05):** mọi bước ngẫu nhiên dùng `seed = 42`; nạp cùng tệp vào CSDL mới cho cùng kết quả.
 
-## 8. Trạng thái Bài tập 2 – tự kiểm theo bảng tiêu chí (đề BT2 mục 4.2)
+## 8. Trạng thái Bài tập 3 – tự kiểm theo bảng tiêu chí (đề BT3 mục 4.2)
+
+| Mục | Đạt | Minh chứng |
+|---|---|---|
+| C1 · CỐT LÕI – dựng lại từ thư mục trống bằng ≤ 2 lệnh theo Guide | ✔ | `cp .env.example .env` · `docker compose up -d --build`; phép thử máy trắng: `docs/test-report.md` mục 4; GitHub Actions làm lại ở mỗi lần push |
+| C2 · CỐT LÕI – Test Report 10 – 12 test case đủ tám cột, đủ năm loại | ✔ | `docs/test-report.md` (12 test case); `docs/test-plan.md` mục 2 |
+| C3 · CỐT LÕI – PASS bằng một lệnh; một test case chạy lại tại chỗ | ✔ | `python -m pytest -q` → 194 passed, 3 skipped; `python -m tests.tc_bt3 TC-xx` |
+| C4 · CỐT LÕI – Bug Log ≥ 3 bug, ≥ 1 Critical/Major, link commit | ✔ | `docs/bug-log.md`: BUG-15 Major, BUG-16 Critical, BUG-17 Major, BUG-18 Minor – mỗi bug một commit `fix(…)` |
+| C5 – Deployment Guide đủ năm mục, có mục cách kiểm tra | ✔ | `docs/deployment-guide.md` (tiếng Anh) |
+| C6 – checklist bảo mật bảy mục có minh chứng | ✔ | `docs/checklist-bao-mat.md`: 6 mục DONE, mục 4 NOT DONE (ghi trung thực, có lý do) |
+| C7 – không có secret trong repo, `.env` chưa từng chứa khóa thật | ✔ | checklist mục 1 (quét repo và lịch sử) |
+| C8 – chạy lại nạp dữ liệu không lỗi, không nhân đôi | ✔ | TC-11; `docker compose up -d` lần hai → "mọi bảng +0" |
+| C9 – tài liệu theo track mô tả đúng hệ thống | ✔ | `tests/test_tai_lieu.py` đối chiếu từ điển dữ liệu với CSDL thật |
+| D1 – Pipeline doc đủ sáu mục, có hạn chế đã biết | ✔ | `docs/pipeline-doc.md` |
+| D2 – Data dictionary mọi cột của mọi bảng đích, đủ sáu trường | ✔ | `docs/data-dictionary.md` – 11 bảng + 3 view, 147 cột |
+| D3 – đo đủ ba chiều chất lượng; độ đầy đủ theo từng cột với ngưỡng riêng | ✔ | DQ-01 – DQ-06 (COMPLETENESS, VALIDITY, UNIQUENESS); `nguong_day_du` (TD-38), TC-10 |
+| D4 – cột định danh cá nhân bị loại khỏi view phân tích | ✔ | Kho `dwh` và view `v_rule_rate`, `v_batch_score` không có họ tên, số điện thoại; dashboard chỉ đọc được `dwh` (TC-12) |
+
+Quyết định xử lý nhận xét BT2 và mọi thay đổi của BT3: `docs/thay-doi-thiet-ke.md` TD-34 – TD-41.
+
+### 8.2. Bài tập 2 – tự kiểm theo bảng tiêu chí (đề BT2 mục 4.2, tag `v0.2`)
 
 | Mục | Đạt | Minh chứng |
 |---|---|---|
@@ -253,7 +280,7 @@ Trạng thái Sprint 1 – 2 đã nộp ở buổi 8, 10: `docs/lich-su-sprint.m
 
 ## 9. Khai báo sử dụng công cụ AI
 
-Theo từng phần, có cột "đã kiểm chứng thế nào": `docs/ai-disclosure.md` (BT1, buổi 8, buổi 10, BT2).
+Theo từng phần, có cột "đã kiểm chứng thế nào": `docs/ai-disclosure.md` (BT1, buổi 8, buổi 10, BT2, BT3).
 
 ## Tài liệu
 
@@ -261,8 +288,11 @@ Theo từng phần, có cột "đã kiểm chứng thế nào": `docs/ai-disclos
 |---|---|
 | `docs/srs.md` | SRS 1.2: User Story, tiêu chí chấp nhận, đặc tả UC5, FR, NFR, quy tắc, truy vết |
 | `docs/data-requirements.md` | Nguồn dữ liệu, profiling, từ điển dữ liệu, quy tắc DQ, thuật toán so khớp |
-| `docs/thay-doi-thiet-ke.md` | TD-01 – TD-33: mọi thay đổi so với BT1 (BT2: TD-22 – TD-33) |
-| `docs/bug-log.md` | 14 lỗi đã gỡ, mỗi lỗi 7 dòng, kèm commit |
+| `docs/thay-doi-thiet-ke.md` | TD-01 – TD-41: mọi thay đổi so với BT1 (BT2: TD-22 – TD-33; BT3: TD-34 – TD-41) |
+| `docs/bug-log.md` | 18 lỗi đã gỡ, mỗi lỗi 7 dòng, kèm commit (BT3: BUG-15 – BUG-18) |
+| `docs/test-plan.md`, `docs/test-report.md` | BT3: kế hoạch kiểm thử bốn mục; 12 test case tám cột, kết quả chạy thật |
+| `docs/deployment-guide.md`, `docs/checklist-bao-mat.md` | BT3 (tiếng Anh): dựng bằng Docker, biến môi trường, cách kiểm tra; checklist bảo mật bảy mục |
+| `docs/pipeline-doc.md`, `docs/data-dictionary.md` | BT3 (tiếng Anh): tài liệu pipeline sáu mục; từ điển dữ liệu 147 cột |
 | `docs/ai-disclosure.md` | Khai báo AI theo từng phần |
 | `docs/architecture-thuc-te.html`, `docs/export/` | Sơ đồ kiến trúc đã hiện thực và sơ đồ BT1 |
 | `docs/bt2/`, `docs/sprint1/`, `docs/sprint2/` | Ảnh kết quả chạy từng giai đoạn |

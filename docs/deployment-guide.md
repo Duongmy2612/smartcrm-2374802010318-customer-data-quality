@@ -101,7 +101,7 @@ Run these commands in the project folder after step 4. Each line gives the exact
 | 3 | Open http://localhost:8501 in a browser | Title "Mức độ sạch dữ liệu khách hàng"; tab K1 shows **95,79** (after) and **88,41** (before), 414 records; tabs K2, K3 show the 6 rules and 43 pairs |
 | 4 | `docker compose logs pipeline` | Line `Số dòng: tệp 414 → bảng tạm 414 = sạch 343 + chờ quyết định 40 + lỗi 31` and the table of row counts of section 4 |
 | 5 | `docker compose exec db psql -U smartcrm -d smartcrm -c "SELECT status, count(*) FROM ops.stg_customer GROUP BY status ORDER BY status"` | `CLEAN 343` · `ERROR 31` · `PENDING_DUP 40` |
-| 6 | `docker compose run --rm pipeline python -m pytest -q` (**test suite, one command**) | `190 passed, 3 skipped` and a table of the five test types. The 3 skipped tests need the real LMS file |
+| 6 | `docker compose run --rm pipeline python -m pytest -q` (**test suite, one command**) | `194 passed, 3 skipped` and a table of the five test types. The 3 skipped tests need real data that is not in the repository (the LMS file and an 8,000-row sample of it) |
 | 7 | `docker compose run --rm pipeline python -m tests.tc_bt3 TC-06` (any of TC-01 … TC-12; no argument = all 12) | The eight columns of the test case and `Kết quả : PASS` ("Result: PASS") |
 | 8 | `docker compose up -d` then `docker compose logs pipeline` | Last line `Kết quả lần chạy lại: mọi bảng +0 – không nhân đôi dữ liệu.` ("re-run: every table +0 – no duplicated data") |
 

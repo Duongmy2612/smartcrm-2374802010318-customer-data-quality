@@ -582,3 +582,108 @@ ngưỡng, bốn câu lập luận, GRAIN, từ điển dữ liệu, bảng truy
   Hình 5.1 – 5.5 em chụp lại trên MacBook ở phép thử thư mục trống (tag `v0.2`, dữ liệu mẫu) nên số trên dashboard khớp
   mục 3; chỉ Hình 5.6 do Claude chụp trên môi trường thử – ghi ở chú thích, Phụ lục và `docs/bt2/README.md`. Không đổi
   con số nào.
+
+## Bài tập 3 (buổi 13 – 16) – kiểm thử và đóng gói
+
+Nhận xét BT2 (10,0): điểm mạnh được ghi nhận – chuẩn hóa số / họ tên, reject có lý do, đo 6 quy tắc trước / sau, kiểm
+chứng precision/recall, kho hình sao, chạy lại không nhân đôi, dashboard đủ mốc và ba trạng thái, 155 kiểm thử PASS,
+dữ liệu mẫu giả đi kèm repo; mục kiểm chứng bảng 4.2 đạt đủ. **Cần khắc phục:** "Đề yêu cầu nộp một tệp PDF duy nhất;
+không cần nộp kèm ZIP mã nguồn" – TD-34. Các mục còn lại phát sinh khi chạy 12 test case và phép thử máy trắng; lỗi
+tìm thấy ghi ở `docs/bug-log.md` (BUG-15 – BUG-18).
+
+| Mã | Tóm tắt | Mục BT3 liên quan |
+|---|---|---|
+| TD-34 | Nộp đúng MỘT tệp PDF; mã nguồn chỉ ở repo, tag `v1.0` – không nộp ZIP | Nhận xét BT2; tiêu chí 1 |
+| TD-35 | Đóng gói Docker: db / pipeline (chạy một lần) / dashboard, hai lệnh, healthcheck, tài khoản thường (thay phần Docker của TD-27) | TP4, C1 (CỐT LÕI), C8 |
+| TD-36 | Dashboard bắt buộc dùng tài khoản riêng `dash_reader` chỉ đọc `dwh` (thay phần "để trống thì dùng DB_USER" của TD-19) | C6, D4 – BUG-16 |
+| TD-37 | Mã lỗi thứ tư `INVALID_DATE` cho ngày tạo sai; `v_reject` thêm cột `created_raw` (bổ sung TD-08, TD-23) | C2, C6 – BUG-15 |
+| TD-38 | Độ đầy đủ đo theo từng cột với ngưỡng riêng (`nguong_day_du`), không đổi chỉ số mức độ sạch | D3 |
+| TD-39 | 12 test case hệ thống chạy lệnh thật trên CSDL kiểm thử; năm loại marker; kiểm tài liệu bằng test | TP1, TP2, C2, C3, C9 |
+| TD-40 | `requirements.txt` thành tệp khóa đầy đủ 48 gói; kiểm lỗ hổng bằng `pip-audit`; streamlit 1.64 → 1.67 | C6 mục 7 – BUG-17 |
+| TD-41 | Phạm vi BT3: không làm UC5, K4, UC6, NFR-02 và không deploy lên free tier | Đề mục 1, 3.3 |
+
+### TD-34  Nộp một tệp PDF duy nhất (nhận xét BT2)
+
+- **Thay đổi gì:** BT3 nộp đúng một tệp `BT3_2374802010318_DuongDiemMy.pdf` trên VLU E-learning; mã nguồn chỉ nằm trong
+  repo GitHub ở tag `v1.0` (link ở trang bìa). Không nộp kèm ZIP.
+- **Vì sao:** nhận xét BT2 – "Đề yêu cầu nộp một tệp PDF duy nhất; không cần nộp kèm ZIP mã nguồn". Đề BT3 mục 3.1 cũng
+  ghi "1 file PDF + link GitHub repo có tag v1.0".
+- **Ảnh hưởng:** chỉ quy trình nộp. README ghi tên tệp PDF; trang bìa ghi link repo và tag.
+
+### TD-35  Đóng gói bằng Docker Compose (thay phần Docker của TD-27)
+
+- **Thay đổi gì:** thêm `Dockerfile` (một ảnh `python:3.11-slim` cho pipeline, dashboard, pytest; chạy bằng tài khoản
+  `app`, không phải root), `docker-compose.yml` (ba dịch vụ `db` – `postgres:16-alpine`, `pipeline` – tác vụ chạy một
+  lần nạp dữ liệu mẫu, `dashboard` – Streamlit cổng 8501), `docker/initdb/` (tạo CSDL kiểm thử lần dựng đầu),
+  `.dockerignore`, `.gitattributes` (giữ LF cho script chạy trong container khi clone trên Windows) và
+  `docs/deployment-guide.md` tiếng Anh. Ảnh đặt `SMARTCRM_TRONG_DOCKER=1` để câu báo lỗi chỉ đúng cách sửa (BUG-18).
+  GitHub Actions (`.github/workflows/ci.yml`) làm lại phép thử máy trắng ở mỗi lần push.
+- **Vì sao:** đề BT3 mục 2.4 – "Chỉ có hướng dẫn bằng lời trong README: KHÔNG đạt thành phần 4"; hệ thống phải lên
+  bằng ≤ 2 lệnh, có healthcheck, có dữ liệu mẫu nạp tự động. TD-27 hoãn Docker vì môi trường thử không tải được ảnh
+  từ registry; ở BT3 hai ảnh gốc được dựng lại cục bộ trên môi trường thử, còn GitHub Actions dùng ảnh thật.
+  `pipeline` là tác vụ chạy một lần (trạng thái đúng `Exited (0)`) vì nạp tệp là việc theo đợt; `dashboard` chỉ mở khi
+  `pipeline` xong thành công (`service_completed_successfully`).
+- **Ảnh hưởng:** cách chạy chính đổi thành hai lệnh (README đầu tệp, Guide mục 2); cách chạy không Docker ở README mục 3
+  vẫn giữ. `.env.example` có giá trị mẫu cho mọi biến (TD-31 vẫn đúng: chạy Homebrew để trống `DB_USER`). `docs/` có
+  trong ảnh để `tests/test_tai_lieu.py` chạy được trong container. Phép thử: `docs/test-report.md` mục 4.
+
+### TD-36  Tài khoản riêng `dash_reader` cho dashboard (thay một phần TD-19)
+
+- **Thay đổi gì:** `DASH_DB_USER`, `DASH_DB_PASSWORD` bắt buộc. `db.khoi_tao_csdl` gọi `cap_quyen_dashboard`: tạo hoặc
+  đồng bộ mật khẩu tài khoản (NOSUPERUSER), cấp `USAGE` + `SELECT` trên schema `dwh`, thu hồi mọi quyền trên `ops`.
+  `tao_engine_chi_doc` không còn dùng lại `DB_USER`.
+- **Vì sao:** TC-12 cho thấy cách của TD-19 (`default_transaction_read_only`) chỉ chặn ghi; dashboard vẫn đọc được họ
+  tên, số điện thoại ở `ops` (BUG-16, Critical). TD-19 đã thiết kế `dash_reader`, TD-27 hoãn sang Giai đoạn 3.
+- **Ảnh hưởng:** lớp hiển thị chỉ thấy kho số đếm (D4, NFR-07); dashboard thiếu cấu hình thì báo đúng tên biến. Tài khoản
+  pipeline cần quyền tạo tài khoản (đúng với PostgreSQL Homebrew và Docker); thiếu quyền thì pipeline báo rõ cách xử lý.
+
+### TD-37  Ngày tạo sai → mã lỗi `INVALID_DATE` (bổ sung TD-08, TD-23)
+
+- **Thay đổi gì:** `transform.ngay_tao_hop_le`; mã `INVALID_DATE` xét sau cùng (MISSING_PHONE > INVALID_PHONE >
+  MISSING_NAME > INVALID_DATE); migration `sql/005_invalid_date.sql`; `ops.v_reject` có câu lý do thứ tư và cột
+  `created_raw` ở cuối view.
+- **Vì sao:** TC-09 – ngày `31/02/2026`, `2026-02-30` vẫn thành hồ sơ CLEAN (BUG-15), trong khi data-requirements mục 3
+  ghi `ngay_tao` phải là ngày hợp lệ. Gợi ý test case của track DA (slide buổi 14): "dòng sai định dạng ngày → vào bảng
+  reject kèm lý do, pipeline không dừng". Ngày trống vẫn hợp lệ vì cột tùy chọn (SRS 4.1).
+- **Ảnh hưởng:** không có quy tắc DQ mới (trọng số giữ nguyên), nên dữ liệu mẫu và dữ liệu thật – không có ngày sai –
+  giữ mọi con số (88,41 → 95,79; 87,20 → 94,76). `customer_clean.created_at` vẫn là thời điểm nạp.
+
+### TD-38  Độ đầy đủ theo từng cột với ngưỡng riêng (D3)
+
+- **Thay đổi gì:** `dq_evaluate.do_day_du_theo_cot` đo tỉ lệ ô có giá trị của MỌI cột tệp nguồn; ngưỡng từng cột ở
+  `configs/config.yaml` (`nguong_day_du`: `so_dien_thoai` 98, `ho_ten` 99 như DQ-01, DQ-03; `record_id` 100,
+  `ngay_tao` 99, `dia_chi` 90, `email` 50). Pipeline in bảng ở bước [1/5] và ghi vào `reports/*.md`; cột có ngưỡng mà
+  tệp không có thì báo CHƯA ĐẠT.
+- **Vì sao:** bảng tiêu chí BT3 mục D3 – "đo ĐẦY ĐỦ theo từng cột với ngưỡng riêng". Trước đó chỉ hai cột có quy tắc
+  đầy đủ (DQ-01, DQ-03); các cột khác chỉ in số ô trống, không ai biết thế nào là xấu.
+- **Ảnh hưởng:** số đo giám sát, không cộng vào chỉ số mức độ sạch (QL7-06 giữ nguyên). Ngưỡng của bốn cột còn lại em
+  đặt theo số đo dữ liệu LMS (SRS 4.1), chưa phải yêu cầu của Mekong Mobile – cần xác nhận ở Giai đoạn 4. TC-10 kiểm.
+
+### TD-39  Bộ kiểm thử hệ thống của BT3
+
+- **Thay đổi gì:** `tests/tc_bt3.py` định nghĩa 12 test case; mỗi test case gọi `python -m src.pipeline` bằng tiến trình
+  con trên CSDL kiểm thử đã làm sạch và đếm bảng trước / sau; `python -m tests.tc_bt3 TC-xx` in đủ tám cột.
+  `tests/test_tc_bt3.py` đưa cả 12 vào `pytest`. `pytest.ini` thêm hai loại `chat_luong_bao_mat`, `tai_lap`; bảng tóm tắt
+  cuối lần chạy đếm theo năm loại. `tests/test_tai_lieu.py` đối chiếu từ điển dữ liệu, Guide, compose với hệ thống.
+- **Vì sao:** đề BT3 mục 2.2 – 10 – 12 test case đủ tám cột, đủ năm loại, chạy thật; giảng viên chọn ngẫu nhiên một
+  test case để chạy lại tại chỗ – cần một lệnh cho mỗi test case. Test unit của BT2 kiểm hàm, chưa kiểm hệ thống chạy
+  như người dùng.
+- **Ảnh hưởng:** tổng 197 test; Docker: 194 passed, 3 skipped (3 test cần tệp LMS thật). Dữ liệu thử là dữ liệu giả
+  trong `tests/du_lieu_tc/`.
+
+### TD-40  Tệp khóa phụ thuộc đầy đủ và kiểm lỗ hổng
+
+- **Thay đổi gì:** `requirements.txt` ghim cả 48 gói (10 dùng trực tiếp + 38 gián tiếp, lấy từ `pip freeze` của môi
+  trường ảo sạch); streamlit 1.64.0 → 1.67.0, pillow 13.0.0; hướng dẫn cập nhật ở đầu tệp; CI chạy `pip-audit`.
+- **Vì sao:** `pip-audit` ở phép thử máy trắng thấy pillow 12.3.0 (gói gián tiếp, không ai ghim) có 39 lỗ hổng
+  (BUG-17); checklist bảo mật mục 7 yêu cầu phụ thuộc được ghim và đã kiểm lỗ hổng.
+- **Ảnh hưởng:** dựng lại ở máy nào cũng ra cùng phiên bản. Máy chạy không Docker cần `pip install -r requirements.txt`
+  lại một lần. Dashboard K1 – K3 đã chạy lại với streamlit 1.67.0, không đổi giao diện.
+
+### TD-41  Phạm vi BT3
+
+- **Thay đổi gì:** không làm UC5 Gộp/Giữ riêng, K4, UC6 sửa quy tắc trên giao diện, NFR-02; không deploy lên free tier.
+- **Vì sao:** đề BT3 – bài tập kiểm thử và đóng gói hệ thống đã nộp ở BT2, "không tạo repo mới"; deploy là điểm cộng
+  tự chọn và đề dặn "ĐỪNG làm nếu sáu thành phần bắt buộc chưa xong". Thời gian dành cho bốn mục CỐT LÕI (C1 – C4).
+- **Ảnh hưởng:** Test Plan mục 1 ghi các phần này là "chủ ý không kiểm"; hạn chế đã biết ghi ở `docs/pipeline-doc.md`
+  mục 6. Chuyển sang Giai đoạn 4 (Chuyên đề tốt nghiệp 2).
