@@ -148,7 +148,7 @@ def chay_uc1(tep, don_vi: str, nguoi_nap: str, nap_lai: bool = False, ghi_csdl: 
         tt, ml = tk['trang_thai'], tk['ma_loi']
         in_ra(f"      phân loại: CLEAN {so(tt['CLEAN'])} · PENDING_DUP {so(tt['PENDING_DUP'])} · ERROR {so(tt['ERROR'])} "
               f"(MISSING_PHONE {so(ml['MISSING_PHONE'])}, INVALID_PHONE {so(ml['INVALID_PHONE'])}, "
-              f"MISSING_NAME {so(ml['MISSING_NAME'])})")
+              f"MISSING_NAME {so(ml['MISSING_NAME'])}, INVALID_DATE {so(ml['INVALID_DATE'])})")
         if conn is not None:
             load_ops.ghi_ket_qua_chuan_hoa(conn, batch_id, df)
             truoc = len(so_dang_hieu_luc)

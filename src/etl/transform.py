@@ -2,7 +2,7 @@
 không có câu SQL, không ghi tệp – ghi kết quả là việc của load_ops.py (TD-22).
 
 1. Chuẩn hóa số điện thoại về 0xxxxxxxxx (QT-02) và họ tên (FR-03) – hàm THUẦN, kiểm thử ở tests/.
-2. Gắn mã lỗi chính cho hồ sơ không dùng được (MISSING_PHONE / INVALID_PHONE / MISSING_NAME).
+2. Gắn mã lỗi chính cho hồ sơ không dùng được (MISSING_PHONE / INVALID_PHONE / MISSING_NAME / INVALID_DATE).
 3. Phân loại hồ sơ: ERROR (ở lại bảng tạm – QL7-04), CLEAN (vào customer_clean), PENDING_DUP (hồ sơ lặp,
    không tạo hồ sơ mới mà chờ quyết định ở UC5 – QT-01).
 4. Lập bảng hồ sơ lỗi kèm lý do viết cho người đọc (FR-10) – load_ops ghi ra CSV, view ops.v_reject (sql/004)
@@ -12,6 +12,7 @@ name_key KHÔNG tạo ở đây: theo thay đổi số 2 của SRS 1.1, khóa t�
 """
 import re
 import unicodedata
+from datetime import date
 
 import pandas as pd
 
@@ -20,13 +21,15 @@ from src.etl.tien_ich import la_trong
 KY_TU_BO = re.compile(r'[\s.\-]')          # QT-02: bỏ dấu cách, dấu chấm, dấu gạch
 MAU_SO_CHUAN = re.compile(r'0[0-9]{9}')    # 10 chữ số ASCII, bắt đầu bằng 0 – khớp CHECK '^0[0-9]{9}$' ở sql/001
 #   (không dùng \d: trong Python \d nhận cả chữ số Unicode như '９', CSDL sẽ từ chối)
+MAU_NGAY = re.compile(r'[0-9]{4}-[0-9]{2}-[0-9]{2}')   # ngay_tao: yyyy-mm-dd (docs/data-requirements.md mục 3)
 
 # Lý do dạng câu chữ suy ra từ error_code, KHÔNG lưu vào bảng (tránh lưu giá trị tính được – TD-07).
-# View ops.v_reject (sql/004) viết đúng ba câu này; test_ly_do_trong_view_reject_khop_transform giữ hai nơi khớp nhau.
+# View ops.v_reject (sql/004) viết đúng bốn câu này; test_ly_do_trong_view_reject_khop_transform giữ hai nơi khớp nhau.
 LY_DO = {
     'MISSING_PHONE': 'Thiếu số điện thoại – không sửa được bằng làm sạch, cửa hàng cần bổ sung tại nguồn',
     'INVALID_PHONE': 'Số điện thoại không quy về được dạng 0xxxxxxxxx (sau khi bỏ dấu cách, chấm, gạch và đổi +84/84 thành 0)',
     'MISSING_NAME': 'Thiếu họ tên – hồ sơ đã làm sạch bắt buộc có họ tên',
+    'INVALID_DATE': 'Ngày tạo không phải ngày hợp lệ dạng yyyy-mm-dd (ví dụ 2026-01-31) – cửa hàng cần sửa tại nguồn',
 }
 
 
@@ -66,10 +69,26 @@ def chuan_hoa_ho_ten(tho) -> str | None:
     return ' '.join(t[:1].upper() + t[1:].lower() for t in tu)
 
 
-def gan_ma_loi(phone_raw, phone_norm, name_norm) -> str | None:
-    """Mã lỗi CHÍNH (stg_customer chỉ có một cột error_code). Thứ tự ưu tiên (TD-08):
-    MISSING_PHONE > INVALID_PHONE > MISSING_NAME – lỗi số điện thoại quan trọng hơn vì số là khóa
-    so khớp và là cột không thể sửa bằng làm sạch."""
+def ngay_tao_hop_le(tho) -> bool:
+    """ngay_tao trống là hợp lệ (cột tùy chọn – SRS 4.1 chỉ bắt buộc ho_ten, so_dien_thoai). Có giá trị thì phải
+    đúng dạng yyyy-mm-dd VÀ là ngày có thật: '31/02/2026' sai dạng, '2026-02-30' đúng dạng nhưng không có ngày đó
+    (BUG-15, TD-37)."""
+    if tho is None or pd.isna(tho) or str(tho).strip() == '':
+        return True
+    s = str(tho).strip()
+    if not MAU_NGAY.fullmatch(s):
+        return False
+    try:
+        date.fromisoformat(s)
+    except ValueError:
+        return False
+    return True
+
+
+def gan_ma_loi(phone_raw, phone_norm, name_norm, created_raw=None) -> str | None:
+    """Mã lỗi CHÍNH (stg_customer chỉ có một cột error_code). Thứ tự ưu tiên (TD-08, TD-37):
+    MISSING_PHONE > INVALID_PHONE > MISSING_NAME > INVALID_DATE – lỗi số điện thoại quan trọng hơn vì số là khóa
+    so khớp và là cột không thể sửa bằng làm sạch; ngày tạo sai xét sau cùng."""
     # pd.isna thay vì "is None": cột chuỗi của pandas 3 lưu giá trị thiếu là NaN chứ không phải None
     if pd.isna(phone_raw) or str(phone_raw).strip() == '':
         return 'MISSING_PHONE'
@@ -77,6 +96,8 @@ def gan_ma_loi(phone_raw, phone_norm, name_norm) -> str | None:
         return 'INVALID_PHONE'
     if pd.isna(name_norm):
         return 'MISSING_NAME'
+    if not ngay_tao_hop_le(created_raw):
+        return 'INVALID_DATE'
     return None
 
 
@@ -85,8 +106,9 @@ def chuan_hoa(bang_tam: pd.DataFrame) -> pd.DataFrame:
     df = bang_tam.copy()
     df['phone_norm'] = df['phone_raw'].map(chuan_hoa_so_dien_thoai).astype(object)
     df['name_norm'] = df['full_name_raw'].map(chuan_hoa_ho_ten).astype(object)
-    df['error_code'] = [gan_ma_loi(r, p, n) for r, p, n in
-                        zip(df['phone_raw'], df['phone_norm'], df['name_norm'])]
+    ngay = df['created_raw'] if 'created_raw' in df else pd.Series(None, index=df.index, dtype=object)
+    df['error_code'] = [gan_ma_loi(r, p, n, c) for r, p, n, c in
+                        zip(df['phone_raw'], df['phone_norm'], df['name_norm'], ngay)]
     return df
 
 

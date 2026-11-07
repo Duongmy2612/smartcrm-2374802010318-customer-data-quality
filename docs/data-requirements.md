@@ -87,7 +87,7 @@ Bốn bảng đã đăng ký ở Buổi 2 (`stg_customer`, `customer_clean`, `dq
 | `phone_norm` | CHAR(10) | NULL được, INDEX | Số điện thoại sau chuẩn hóa (QT-02); NULL khi thiếu hoặc không hợp lệ. |
 | `name_norm` | VARCHAR(120) | NULL được | Họ tên sau chuẩn hóa (bỏ khoảng trắng thừa, viết hoa chữ cái đầu). |
 | `name_key` | VARCHAR(120) | NULL được | Họ tên không dấu, chữ thường – khóa so khớp (QL7-03). |
-| `error_code` | VARCHAR(20) | NULL được; MISSING_PHONE / INVALID_PHONE / MISSING_NAME | Mã lỗi chính khiến hồ sơ không vào customer_clean. |
+| `error_code` | VARCHAR(20) | NULL được; MISSING_PHONE / INVALID_PHONE / MISSING_NAME / INVALID_DATE (BT3, TD-37) | Mã lỗi chính khiến hồ sơ không vào customer_clean. |
 | `status` | VARCHAR(12) | NOT NULL; LOADED / CLEAN / PENDING_DUP / MERGED / ERROR | Bước xử lý hiện tại của hồ sơ thô. |
 
 **`customer_clean`** – hồ sơ đã làm sạch – 1 dòng = 1 hồ sơ (đang hiệu lực hoặc đã ngừng sử dụng)

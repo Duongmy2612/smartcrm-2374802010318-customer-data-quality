@@ -112,3 +112,29 @@ def test_bien_120_ky_tu_cua_customer_clean():
     bt = pd.DataFrame({'row_no': [1, 2], 'phone_raw': ['0901234567', '0912345678'],
                        'full_name_raw': ['A' * 120, 'B' * 121], 'email_raw': ['', ''], 'address_raw': ['', '']})
     assert kiem_do_dai_ho_so_sach(chuan_hoa(bt)) == {'name_norm': [2]}
+
+
+# ------------------------------------------------------------------ BUG-15, TD-37: ngày tạo sai → INVALID_DATE
+@pytest.mark.du_lieu_sai
+@pytest.mark.parametrize('ngay, hop_le', [('2026-01-05', True), ('', True), ('  ', True), (None, True),
+                                          ('31/02/2026', False), ('2026-02-30', False), ('2026-13-01', False),
+                                          ('khong-phai-ngay', False), ('2026-1-5', False)])
+def test_ngay_tao_hop_le(ngay, hop_le):
+    """ngay_tao trống là hợp lệ (cột tùy chọn); có giá trị thì phải là ngày có thật dạng yyyy-mm-dd. [dữ liệu sai]"""
+    from src.etl.transform import ngay_tao_hop_le
+    assert ngay_tao_hop_le(ngay) is hop_le
+
+
+@pytest.mark.gia_tri_bien
+@pytest.mark.parametrize('ngay, ma', [('2024-02-29', None), ('2026-02-28', None), ('2026-02-29', 'INVALID_DATE')],
+                         ids=['29-02-nam-nhuan', '28-02', '29-02-nam-thuong'])
+def test_ngay_tao_bien_cuoi_thang_hai(ngay, ma):
+    """Ngày cuối tháng 2: 2024 nhuận có 29/02, 2026 không có. [giá trị biên]"""
+    assert gan_ma_loi('0901234567', '0901234567', 'An', ngay) == ma
+
+
+def test_ngay_sai_xet_sau_loi_so_dien_thoai_va_ho_ten():
+    """Thứ tự ưu tiên TD-37: MISSING_PHONE > INVALID_PHONE > MISSING_NAME > INVALID_DATE."""
+    assert gan_ma_loi('', None, 'An', '31/02/2026') == 'MISSING_PHONE'
+    assert gan_ma_loi('0901234567', '0901234567', None, '31/02/2026') == 'MISSING_NAME'
+    assert gan_ma_loi('0901234567', '0901234567', 'An', '31/02/2026') == 'INVALID_DATE'

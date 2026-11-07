@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS ops.stg_customer (
     name_norm        VARCHAR(120),
     name_key         VARCHAR(120),                            -- match.py ghi ở Sprint 2 (FR-04)
     error_code       VARCHAR(20)
-                     CHECK (error_code IN ('MISSING_PHONE', 'INVALID_PHONE', 'MISSING_NAME')),
+                     CHECK (error_code IN ('MISSING_PHONE', 'INVALID_PHONE', 'MISSING_NAME', 'INVALID_DATE')),
     status           VARCHAR(12)  NOT NULL DEFAULT 'LOADED'
                      CHECK (status IN ('LOADED', 'CLEAN', 'PENDING_DUP', 'MERGED', 'ERROR')),
     CONSTRAINT uq_stg_customer_batch_row UNIQUE (batch_id, row_no)

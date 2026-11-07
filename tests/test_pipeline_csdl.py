@@ -143,7 +143,7 @@ def test_bang_reject_co_dong_va_ly_do_cho_nguoi_doc(csdl_test):
 
 
 def test_ly_do_trong_view_reject_khop_transform(csdl_test):
-    """Ba câu lý do viết ở hai nơi (sql/004 và transform.LY_DO) phải giống hệt nhau."""
+    """Các câu lý do viết ở hai nơi (sql/004 và transform.LY_DO) phải giống hệt nhau."""
     engine, _, _ = csdl_test
     with engine.begin() as conn:
         db.khoi_tao_csdl(conn)

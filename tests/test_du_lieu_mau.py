@@ -22,7 +22,7 @@ def test_du_lieu_mau_ra_dung_so_lieu_readme(tmp_path):
                            thu_muc_ra=tmp_path)
     assert bc['so_dong_tep'] == 414
     assert bc['chuan_hoa']['trang_thai'] == {'CLEAN': 343, 'PENDING_DUP': 40, 'ERROR': 31}
-    assert bc['chuan_hoa']['ma_loi'] == {'MISSING_PHONE': 24, 'INVALID_PHONE': 5, 'MISSING_NAME': 2}
+    assert bc['chuan_hoa']['ma_loi'] == {'MISSING_PHONE': 24, 'INVALID_PHONE': 5, 'MISSING_NAME': 2, 'INVALID_DATE': 0}
     assert bc['chi_so'] == {'TRUOC': 88.41, 'SAU': 95.79}
     assert (bc['so_khop']['exact'], bc['so_khop']['fuzzy']) == (40, 3)
 
