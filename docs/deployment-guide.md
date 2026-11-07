@@ -12,7 +12,7 @@ them exactly and gives the meaning in English.
 
 | Item | Requirement | How to check |
 |---|---|---|
-| Operating system | macOS 13 or later (Intel or Apple Silicon), Windows 10/11 with WSL 2, or Linux (x86_64 / arm64) | – |
+| Operating system | macOS 13 or later (Intel or Apple Silicon), Windows 10/11 with WSL 2, or Linux (x86_64 / arm64). Both base images are multi-architecture and every pinned Python package has a ready-built linux/arm64 wheel (checked by CI on every push), so Apple Silicon builds without compiling | `uname -m` (x86_64 or arm64) |
 | Docker | Docker Engine 24 or later with Docker Compose v2 (Docker Desktop 4.25 or later on macOS / Windows), running | `docker --version` · `docker compose version` |
 | Git | 2.30 or later | `git --version` |
 | Disk space | at least 3 GB free: images about 1.1 GB (application image about 0.8 GB, `postgres:16-alpine` about 0.3 GB) plus build cache | – |
