@@ -1,0 +1,46 @@
+# CI (BT3, khuyến khích): mỗi lần push, GitHub làm lại PHÉP THỬ MÁY TRẮNG trên máy ảo Ubuntu mới – đúng hai lệnh của
+# docs/deployment-guide.md, rồi các bước kiểm tra ở mục 5 của Guide, bộ kiểm thử và quét lỗ hổng phụ thuộc.
+name: CI – phép thử máy trắng
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  may-trang:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Hai lệnh của Deployment Guide (mục 2)
+        run: |
+          cp .env.example .env
+          docker compose up -d --build
+
+      - name: Kiểm tra hệ thống đã chạy đúng (Guide mục 5, bước 1, 2, 4, 5)
+        run: |
+          for i in $(seq 1 30); do [ "$(curl -s http://localhost:8501/_stcore/health)" = "ok" ] && break; sleep 5; done
+          docker compose ps -a
+          test "$(curl -s http://localhost:8501/_stcore/health)" = "ok"
+          docker compose ps -a --format '{{.Service}} {{.Status}}' | grep -E '^db .*\(healthy\)'
+          docker compose ps -a --format '{{.Service}} {{.Status}}' | grep -E '^dashboard .*\(healthy\)'
+          docker compose ps -a --format '{{.Service}} {{.Status}}' | grep -E '^pipeline Exited \(0\)'
+          docker compose logs pipeline | grep 'sạch 343 + chờ quyết định 40 + lỗi 31'
+          docker compose exec -T db psql -U smartcrm -d smartcrm -c "SELECT status, count(*) FROM ops.stg_customer GROUP BY status ORDER BY status"
+
+      - name: Bộ kiểm thử – một lệnh (Guide mục 5, bước 6)
+        run: docker compose run --rm pipeline python -m pytest -q
+
+      - name: Chạy lại lần hai không nhân đôi dữ liệu (Guide mục 5, bước 8)
+        run: |
+          docker compose up -d
+          docker compose logs pipeline | tail -3
+          docker compose logs pipeline | grep 'mọi bảng +0'
+
+      - name: Quét lỗ hổng phụ thuộc (checklist bảo mật mục 7)
+        run: pipx run pip-audit -r requirements.txt
+
+      - name: Nhật ký khi có bước lỗi
+        if: failure()
+        run: docker compose logs
