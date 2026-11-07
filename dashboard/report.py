@@ -120,8 +120,11 @@ except Exception as e:                                  # noqa: BLE001
     if isinstance(e, ModuleNotFoundError):              # thường do chạy nhầm Python, không phải lỗi CSDL
         bao_sai_python(e)
         st.stop()
-    st.error('Không đọc được dữ liệu từ kho dữ liệu. Kiểm tra PostgreSQL đang chạy, tệp .env đúng và luồng chính '
-             'đã chạy ít nhất một lần, rồi bấm Thử lại.')
+    if isinstance(e, db.ThieuCauHinhCSDL):              # câu báo chỉ nêu tên biến cần điền, không có giá trị (TD-36)
+        st.error(str(e))
+    else:
+        st.error('Không đọc được dữ liệu từ kho dữ liệu. Kiểm tra PostgreSQL đang chạy, tệp .env đúng và luồng chính '
+                 'đã chạy ít nhất một lần, rồi bấm Thử lại.')
     st.caption(f'Loại lỗi: {type(e).__name__}')         # chỉ in loại lỗi – không in chuỗi kết nối, tên bảng, vết lỗi
     if st.button('Thử lại', type='primary'):
         st.cache_data.clear()
