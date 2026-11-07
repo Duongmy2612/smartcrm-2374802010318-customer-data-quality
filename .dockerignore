@@ -1,5 +1,5 @@
 # Không đưa vào ảnh Docker (BT3, TD-35): bí mật, môi trường ảo, dữ liệu thật / dữ liệu cá nhân, tệp sinh ra khi chạy,
-# tài liệu và báo cáo PDF (không cần lúc chạy).
+# báo cáo PDF (không cần lúc chạy). docs/ có trong ảnh vì tests/test_tai_lieu.py đối chiếu tài liệu với hệ thống.
 .env
 .git
 .github
@@ -15,6 +15,5 @@ data/processed/*
 data/nhan/*.xlsx
 reports/*
 !reports/.gitkeep
-docs
 *.pdf
 .DS_Store
