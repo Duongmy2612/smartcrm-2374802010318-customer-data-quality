@@ -599,7 +599,7 @@ tìm thấy ghi ở `docs/bug-log.md` (BUG-15 – BUG-18).
 | TD-37 | Mã lỗi thứ tư `INVALID_DATE` cho ngày tạo sai; `v_reject` thêm cột `created_raw` (bổ sung TD-08, TD-23) | C2, C6 – BUG-15 |
 | TD-38 | Độ đầy đủ đo theo từng cột với ngưỡng riêng (`nguong_day_du`), không đổi chỉ số mức độ sạch | D3 |
 | TD-39 | 12 test case hệ thống chạy lệnh thật trên CSDL kiểm thử; năm loại marker; kiểm tài liệu bằng test | TP1, TP2, C2, C3, C9 |
-| TD-40 | `requirements.txt` thành tệp khóa đầy đủ 48 gói; kiểm lỗ hổng bằng `pip-audit`; streamlit 1.64 → 1.67 | C6 mục 7 – BUG-17 |
+| TD-40 | `requirements.txt` thành tệp khóa đầy đủ 47 gói; kiểm lỗ hổng bằng `pip-audit`; streamlit 1.64 → 1.67 | C6 mục 7 – BUG-17 |
 | TD-41 | Phạm vi BT3: không làm UC5, K4, UC6, NFR-02 và không deploy lên free tier | Đề mục 1, 3.3 |
 
 ### TD-34  Nộp một tệp PDF duy nhất (nhận xét BT2)
@@ -673,7 +673,7 @@ tìm thấy ghi ở `docs/bug-log.md` (BUG-15 – BUG-18).
 
 ### TD-40  Tệp khóa phụ thuộc đầy đủ và kiểm lỗ hổng
 
-- **Thay đổi gì:** `requirements.txt` ghim cả 48 gói (10 dùng trực tiếp + 38 gián tiếp, lấy từ `pip freeze` của môi
+- **Thay đổi gì:** `requirements.txt` ghim cả 47 gói (10 dùng trực tiếp + 37 gián tiếp, lấy từ `pip freeze` của môi
   trường ảo sạch); streamlit 1.64.0 → 1.67.0, pillow 13.0.0; hướng dẫn cập nhật ở đầu tệp; CI chạy `pip-audit`.
 - **Vì sao:** `pip-audit` ở phép thử máy trắng thấy pillow 12.3.0 (gói gián tiếp, không ai ghim) có 39 lỗ hổng
   (BUG-17); checklist bảo mật mục 7 yêu cầu phụ thuộc được ghim và đã kiểm lỗ hổng.

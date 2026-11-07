@@ -11,7 +11,7 @@ Docker system of `docs/deployment-guide.md` and on the Git repository. Values: *
 | 4 | Passwords and sensitive data are hashed or encrypted | **NOT DONE** | Passwords: hashed by PostgreSQL (`pg_authid.rolpassword` starts with `SCRAM-SHA-256$`). Names and phone numbers in schema `ops` are stored in plain text |
 | 5 | Error messages do not reveal internal structure | **DONE** | Stopped `db` and ran the pipeline / opened the dashboard: one Vietnamese sentence + fix, no traceback, no password or connection string (`test_mat_ket_noi_*`, TC-08); dashboard shows only the error type |
 | 6 | Logs do not record secrets or unneeded personal data | **DONE** | `docker compose logs \| grep -cE "0[0-9]{9}\|@example\|@gmail"` → `0`; pipeline output and `reports/*.md` contain counts only |
-| 7 | Dependencies are pinned and checked for known vulnerabilities | **DONE** | `requirements.txt` pins all 48 packages with `==`; `pip-audit -r requirements.txt` → "No known vulnerabilities found" (after BUG-17); CI repeats it on every push |
+| 7 | Dependencies are pinned and checked for known vulnerabilities | **DONE** | `requirements.txt` pins all 47 packages with `==`; `pip-audit -r requirements.txt` → "No known vulnerabilities found" (after BUG-17); CI repeats it on every push |
 
 ## Details
 

@@ -234,12 +234,15 @@ tạm không) · dữ liệu có bị sai hay bị lộ không.
 3. **Triệu chứng:** `pip-audit -r requirements.txt` → `pillow 12.3.0` với 39 mã lỗ hổng (PYSEC-2026-4327, PYSEC-2026-4328,
    GHSA-78g4-xqwv-q3g8, …), bản sửa 13.0.0; pillow không có trong `requirements.txt`.
 4. **Cách tái lập:** `git checkout 4ba61ab` → `pip install pip-audit` → `pip-audit -r requirements.txt`.
-5. **Nguyên nhân:** `requirements.txt` chỉ ghim 10 gói dùng trực tiếp; 36 gói gián tiếp (pillow do streamlit kéo theo)
-   để pip tự chọn lúc dựng, nên không ai biết ảnh Docker đang chứa phiên bản nào và không bước nào kiểm lỗ hổng.
-   Thêm vào đó streamlit 1.64.0 khai báo `pillow < 13` nên không nâng riêng pillow được.
+5. **Nguyên nhân:** `requirements.txt` chỉ ghim 10 gói dùng trực tiếp; 38 gói gián tiếp (pillow do streamlit kéo theo;
+   đếm bằng `pip freeze` sau khi cài vào môi trường ảo sạch trên Linux) để pip tự chọn lúc dựng, nên không ai biết
+   ảnh Docker đang chứa phiên bản nào và không bước nào kiểm lỗ hổng. Thêm vào đó streamlit 1.64.0 khai báo `pillow < 13` nên không nâng riêng pillow được.
 6. **Cách sửa:** streamlit 1.64.0 → 1.67.0 (khai báo `pillow < 14`), ghim `pillow==13.0.0`; `requirements.txt` thành
-   tệp khóa đầy đủ 48 gói lấy từ `pip freeze` của môi trường ảo sạch (watchdog chỉ ngoài macOS, colorama chỉ trên Windows
-   – đúng khai báo của gói); ghi cách cập nhật ở đầu tệp (TD-40). CI chạy `pip-audit` ở mỗi lần push.
+   tệp khóa đầy đủ 47 gói – 10 trực tiếp + 37 gián tiếp, lấy từ `pip freeze` của môi trường ảo sạch (streamlit 1.67 bỏ
+   được `toml`, `httptools`; watchdog chỉ ngoài macOS, colorama chỉ trên Windows – đúng khai báo của gói); ghi cách
+   cập nhật ở đầu tệp (TD-40). Thông điệp commit 43be2fa ghi nhầm "36 gián tiếp / 48 gói" – số đúng là 38 và 47,
+   kiểm lại ngày 07/11/2026 bằng cài mới hai bản `requirements.txt`. Bước `pip-audit` trong CI thêm ở commit sau
+   ([1a315f9](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/1a315f938c779df7ea7b5f1de8d4fc72ee1e9f03)), để lỗi này không quay lại.
 7. **Link commit và xác nhận:** [43be2fa](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/43be2fa849e139b0ca9e280607c72545fbdda6f7) · `pip-audit`: "No known
    vulnerabilities found"; pytest 192 passed (.venv), 190 passed, 3 skipped (Docker); dashboard K1 – K3 hiển thị đúng
    với streamlit 1.67.0.

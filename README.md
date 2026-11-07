@@ -246,11 +246,11 @@ không tồn tại).
 | C4 · CỐT LÕI – Bug Log ≥ 3 bug, ≥ 1 Critical/Major, link commit | ✔ | `docs/bug-log.md`: BUG-15 Major, BUG-16 Critical, BUG-17 Major, BUG-18 Minor – mỗi bug một commit `fix(…)` |
 | C5 – Deployment Guide đủ năm mục, có mục cách kiểm tra | ✔ | `docs/deployment-guide.md` (tiếng Anh) |
 | C6 – checklist bảo mật bảy mục có minh chứng | ✔ | `docs/checklist-bao-mat.md`: 6 mục DONE, mục 4 NOT DONE (ghi trung thực, có lý do) |
-| C7 – không có secret trong repo, `.env` chưa từng chứa khóa thật | ✔ | checklist mục 1 (quét repo và lịch sử) |
+| C7 – không có secret trong repo, `.env` chưa từng chứa khóa thật | ✔ | checklist mục 1 (quét repo và lịch sử): `.env` từng bị commit một lần (`39020f3`, 25/09) và đã gỡ (`ef28fe3`, 19/10) – dòng `DB_PASSWORD` khi đó để trống nên không có khóa nào phải đổi; hiện chỉ có hai mật khẩu mẫu trong `.env.example` |
 | C8 – chạy lại nạp dữ liệu không lỗi, không nhân đôi | ✔ | TC-11; `docker compose up -d` lần hai → "mọi bảng +0" |
 | C9 – tài liệu theo track mô tả đúng hệ thống | ✔ | `tests/test_tai_lieu.py` đối chiếu từ điển dữ liệu với CSDL thật |
 | D1 – Pipeline doc đủ sáu mục, có hạn chế đã biết | ✔ | `docs/pipeline-doc.md` |
-| D2 – Data dictionary mọi cột của mọi bảng đích, đủ sáu trường | ✔ | `docs/data-dictionary.md` – 11 bảng + 3 view, 147 cột |
+| D2 – Data dictionary mọi cột của mọi bảng đích, đủ sáu trường | ✔ | `docs/data-dictionary.md` – 11 bảng (8 bảng đích nhận dòng mỗi lần nạp + 3 bảng cấu hình/lịch) + 3 view, 147 cột |
 | D3 – đo đủ ba chiều chất lượng; độ đầy đủ theo từng cột với ngưỡng riêng | ✔ | DQ-01 – DQ-06 (COMPLETENESS, VALIDITY, UNIQUENESS); `nguong_day_du` (TD-38), TC-10 |
 | D4 – cột định danh cá nhân bị loại khỏi view phân tích | ✔ | Kho `dwh` và view `v_rule_rate`, `v_batch_score` không có họ tên, số điện thoại; dashboard chỉ đọc được `dwh` (TC-12) |
 
