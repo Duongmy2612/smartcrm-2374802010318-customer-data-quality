@@ -1,0 +1,6 @@
+# Script chạy trong container Linux phải giữ xuống dòng LF kể cả khi clone trên Windows (git autocrlf):
+# "set -e\r" làm script khởi tạo CSDL của ảnh postgres báo lỗi và container db không lên (BT3, TD-35).
+*.sh          text eol=lf
+Dockerfile    text eol=lf
+*.yml         text eol=lf
+*.sql         text eol=lf

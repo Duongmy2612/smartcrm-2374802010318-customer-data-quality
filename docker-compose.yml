@@ -1,0 +1,66 @@
+# Đóng gói prototype L7 – Smart CRM – Mekong Mobile (BT3, TD-35). Dựng từ thư mục trống bằng HAI lệnh:
+#     cp .env.example .env
+#     docker compose up -d --build
+# Ba dịch vụ:
+#   db         PostgreSQL 16 – CSDL smartcrm (ops + dwh) và smartcrm_test (kiểm thử). Có healthcheck.
+#   pipeline   tác vụ chạy MỘT lần: nạp dữ liệu mẫu data/mau/customers_mau.csv (414 dòng) → làm sạch → kho.
+#              Trạng thái đúng sau khi chạy: Exited (0). Chạy lại (docker compose up -d lần hai) không nhân đôi dữ liệu.
+#   dashboard  Streamlit K1 – K3 tại http://localhost:8501, chỉ mở khi pipeline xong thành công. Có healthcheck.
+# Kiểm tra và chạy bộ kiểm thử: docs/deployment-guide.md mục 5.
+name: smartcrm-l7
+
+x-bien-ung-dung: &bien_ung_dung   # biến môi trường chung của pipeline và dashboard (giá trị lấy từ .env)
+  DB_HOST: db
+  DB_PORT: "5432"
+  DB_NAME: ${DB_NAME:-smartcrm}
+  DB_USER: ${DB_USER:-smartcrm}
+  DB_PASSWORD: ${DB_PASSWORD:?Thiếu DB_PASSWORD – chạy cp .env.example .env trước}
+  DB_NAME_TEST: ${DB_NAME_TEST:-smartcrm_test}
+  DASH_DB_USER: ${DASH_DB_USER:-dash_reader}
+  DASH_DB_PASSWORD: ${DASH_DB_PASSWORD:?Thiếu DASH_DB_PASSWORD – chạy cp .env.example .env trước}
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-smartcrm}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Thiếu DB_PASSWORD – chạy cp .env.example .env trước}
+      POSTGRES_DB: ${DB_NAME:-smartcrm}
+      DB_NAME_TEST: ${DB_NAME_TEST:-smartcrm_test}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  pipeline:
+    build: .
+    image: smartcrm-l7:local
+    environment: *bien_ung_dung
+    command: ["python", "-m", "src.pipeline", "--tep", "data/mau/customers_mau.csv"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  dashboard:
+    image: smartcrm-l7:local
+    environment: *bien_ung_dung
+    command: ["python", "-m", "streamlit", "run", "dashboard/report.py", "--server.address=0.0.0.0"]
+    ports:
+      - "8501:8501"
+    depends_on:
+      pipeline:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8501/_stcore/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  pgdata:

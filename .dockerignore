@@ -1,0 +1,20 @@
+# Không đưa vào ảnh Docker (BT3, TD-35): bí mật, môi trường ảo, dữ liệu thật / dữ liệu cá nhân, tệp sinh ra khi chạy,
+# tài liệu và báo cáo PDF (không cần lúc chạy).
+.env
+.git
+.github
+.venv
+venv
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/nhan/*.xlsx
+reports/*
+!reports/.gitkeep
+docs
+*.pdf
+.DS_Store
