@@ -26,6 +26,7 @@ Quyết định thiết kế:
   4. Mã thoát: 0 thành công · 1 lỗi kỹ thuật (không đọc được tệp, mất kết nối) · 2 dữ liệu bị từ chối.
 """
 import argparse
+import os
 import pathlib
 import sys
 import time
@@ -236,9 +237,19 @@ def mo_ket_noi():
     except Exception as e:                        # noqa: BLE001 – không in chuỗi kết nối (NFR-07)
         raise LoiKetNoiCSDL(
             f"Không kết nối được PostgreSQL ở {engine.url.host}:{engine.url.port}, CSDL {engine.url.database} "
-            f"({type(e).__name__}). Kiểm tra PostgreSQL đang chạy (macOS: brew services start postgresql@14), "
-            "CSDL đã tạo (createdb smartcrm) và DB_USER/DB_PASSWORD trong .env.") from None
+            f"({type(e).__name__}). {cach_sua_ket_noi()}") from None
     return engine
+
+
+def cach_sua_ket_noi() -> str:
+    """Cách sửa đúng với nơi đang chạy (BUG-18): ảnh Docker đặt SMARTCRM_TRONG_DOCKER=1 (Dockerfile) – ở đó lời khuyên
+    "brew services / createdb" của máy cá nhân chỉ sai hướng, vì CSDL là dịch vụ db của docker compose."""
+    if os.getenv('SMARTCRM_TRONG_DOCKER') == '1':
+        return ('Đang chạy trong Docker: kiểm tra dịch vụ db bằng `docker compose ps -a` (phải là healthy), bật lại bằng '
+                '`docker compose up -d db`; nếu đã đổi DB_PASSWORD trong .env sau lần dựng đầu thì chạy '
+                '`docker compose down -v` rồi `docker compose up -d` (docs/deployment-guide.md mục 5).')
+    return ('Kiểm tra PostgreSQL đang chạy (macOS: brew services start postgresql@14), CSDL đã tạo '
+            '(createdb smartcrm) và DB_USER/DB_PASSWORD trong .env.')
 
 
 def _tep_da_nap(bc: dict, trung: list[tuple], engine, cau_hinh: dict, in_ra, dem_truoc: dict) -> dict:

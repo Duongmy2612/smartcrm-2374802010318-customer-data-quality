@@ -50,7 +50,21 @@ def test_mat_ket_noi_csdl_bao_ro_va_khong_lo_mat_khau(tmp_path, monkeypatch, cap
     for k, v in {'DB_HOST': '127.0.0.1', 'DB_PORT': '1', 'DB_NAME': 'smartcrm', 'DB_USER': 'u',
                  'DB_PASSWORD': 'MatKhauBiMat123'}.items():
         monkeypatch.setenv(k, v)
+    monkeypatch.delenv('SMARTCRM_TRONG_DOCKER', raising=False)      # chạy được cả trong container (BUG-18)
     assert pipeline.main(['--tep', str(_tep(tmp_path))]) == pipeline.MA_LOI_KY_THUAT
     loi = capsys.readouterr().err
     assert 'Không kết nối được PostgreSQL' in loi and 'brew services start' in loi
     assert 'MatKhauBiMat123' not in loi and 'postgresql+psycopg2://' not in loi
+
+
+@pytest.mark.du_lieu_sai
+def test_mat_ket_noi_trong_docker_chi_cach_sua_cua_docker(tmp_path, monkeypatch, capsys):
+    """BUG-18: trong container (SMARTCRM_TRONG_DOCKER=1) câu báo chỉ lệnh docker compose, không khuyên brew/createdb.
+    [dữ liệu sai]"""
+    for k, v in {'DB_HOST': '127.0.0.1', 'DB_PORT': '1', 'DB_NAME': 'smartcrm', 'DB_USER': 'u',
+                 'DB_PASSWORD': 'MatKhauBiMat123', 'SMARTCRM_TRONG_DOCKER': '1'}.items():
+        monkeypatch.setenv(k, v)
+    assert pipeline.main(['--tep', str(_tep(tmp_path))]) == pipeline.MA_LOI_KY_THUAT
+    loi = capsys.readouterr().err
+    assert 'docker compose ps -a' in loi and 'docker compose up -d db' in loi
+    assert 'brew' not in loi and 'createdb' not in loi and 'MatKhauBiMat123' not in loi

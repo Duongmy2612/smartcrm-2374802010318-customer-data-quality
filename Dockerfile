@@ -9,7 +9,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    LANG=C.UTF-8
+    LANG=C.UTF-8 \
+    SMARTCRM_TRONG_DOCKER=1
 
 # Chạy bằng tài khoản thường (không phải root) – checklist bảo mật mục 3.
 RUN useradd --create-home --uid 10001 app
