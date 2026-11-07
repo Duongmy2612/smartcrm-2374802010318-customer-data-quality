@@ -76,6 +76,25 @@ Result: sample 414 = 343 clean + 40 held + 31 rejected, index 88.41 → 95.79; r
 index 87.20 → 94.76. Every rejected row is listed with a sentence explaining why in `ops.v_reject` and in
 `data/processed/ho_so_loi_dot_N.csv`.
 
+**Quality measured on three dimensions.** The six rules of `ops.dq_rule` (seeded from `src/etl/dq_evaluate.py`) cover
+completeness, validity and uniqueness; each is measured BEFORE and AFTER cleaning and stored in `ops.dq_result` /
+`dwh.fact_dq_check`. Pass rate = records passing / records in the rule's scope (sample file, values printed by the
+pipeline and stored in the database):
+
+| Rule | Dimension | Weight | Threshold | Sample BEFORE → AFTER |
+|---|---|---:|---:|---|
+| DQ-01 phone not empty | Completeness | 0.25 | 98 % | 94.20 % → 94.20 % (cleaning cannot invent a missing number) |
+| DQ-02 phone matches `^0[0-9]{9}$` | Validity | 0.25 | 95 % | 69.23 % → 98.72 % (QT-02) |
+| DQ-03 name not empty | Completeness | 0.15 | 99 % | 99.52 % → 99.52 % |
+| DQ-04 name 2 – 120 characters, no digits | Validity | 0.10 | 97 % | 100 % → 100 % |
+| DQ-05 phone not repeated | Uniqueness | 0.20 | 98 % | 89.61 % → 89.61 % (needs UC5 decisions) |
+| DQ-06 e-mail well-formed | Validity | 0.05 | 95 % | 94.12 % → 94.12 % |
+
+Completeness is also measured **for every column against its own threshold** (`nguong_day_du` in
+`configs/config.yaml`, TD-38), printed at step [1/5] of every run. Sample file: `record_id` 100.00 % (≥ 100 %) ·
+`ho_ten` 99.52 % (≥ 99 %) · `so_dien_thoai` 94.20 % (< 98 %, NOT MET) · `email` 45.17 % (< 50 %, NOT MET) ·
+`dia_chi` 91.79 % (≥ 90 %) · `ngay_tao` 100.00 % (≥ 99 %). TC-10 checks that a deliberate violation is reported.
+
 ## 5. Schedule and back-fill
 
 - **Trigger:** on demand, one run per received file (a store or channel sends a file). There is no scheduler in the

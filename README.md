@@ -246,7 +246,7 @@ không tồn tại).
 | C4 · CỐT LÕI – Bug Log ≥ 3 bug, ≥ 1 Critical/Major, link commit | ✔ | `docs/bug-log.md`: BUG-15 Major, BUG-16 Critical, BUG-17 Major, BUG-18 Minor – mỗi bug một commit `fix(…)` |
 | C5 – Deployment Guide đủ năm mục, có mục cách kiểm tra | ✔ | `docs/deployment-guide.md` (tiếng Anh) |
 | C6 – checklist bảo mật bảy mục có minh chứng | ✔ | `docs/checklist-bao-mat.md`: 6 mục DONE, mục 4 NOT DONE (ghi trung thực, có lý do) |
-| C7 – không có secret trong repo, `.env` chưa từng chứa khóa thật | ✔ | checklist mục 1 (quét repo và lịch sử): `.env` từng bị commit một lần (`39020f3`, 25/09) và đã gỡ (`ef28fe3`, 19/10) – dòng `DB_PASSWORD` khi đó để trống nên không có khóa nào phải đổi; hiện chỉ có hai mật khẩu mẫu trong `.env.example` |
+| C7 – không có secret trong repo, `.env` chưa từng bị commit | ◐ một phần | Không có secret: checklist mục 1 (quét repo và lịch sử). Nhưng `.env` từng bị commit một lần (`39020f3`, 25/09) và đã gỡ (`ef28fe3`, 19/10) – tệp chỉ có `localhost`, tên CSDL, tên tài khoản macOS, cổng và dòng `DB_PASSWORD` trống, nên không có khóa nào phải đổi. Không viết lại lịch sử vì sẽ đổi mọi mã commit, làm hỏng link commit của Bug Log và tag `v0.2` |
 | C8 – chạy lại nạp dữ liệu không lỗi, không nhân đôi | ✔ | TC-11; `docker compose up -d` lần hai → "mọi bảng +0" |
 | C9 – tài liệu theo track mô tả đúng hệ thống | ✔ | `tests/test_tai_lieu.py` đối chiếu từ điển dữ liệu với CSDL thật |
 | D1 – Pipeline doc đủ sáu mục, có hạn chế đã biết nêu ảnh hưởng nghiệp vụ | ✔ | `docs/pipeline-doc.md` – mục 1 sơ đồ các pha; mục 6 bảng tám hạn chế, mỗi hạn chế có ảnh hưởng nghiệp vụ và cách xử lý |

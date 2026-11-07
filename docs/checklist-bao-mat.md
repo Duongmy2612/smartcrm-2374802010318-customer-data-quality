@@ -19,7 +19,10 @@ Docker system of `docs/deployment-guide.md` and on the Git repository. Values: *
 containers get values as environment variables at run time. History scan:
 `git log --all -p -- . ':(exclude).venv' | grep -E "^\+[A-Z_]*(PASSWORD|SECRET|TOKEN)=[^ ]+"` → only the two sample
 values of `.env.example`. A `.env` file was committed once (commit `39020f3`, 25/09/2026) and removed (`ef28fe3`,
-19/10/2026); its `DB_PASSWORD` line was empty, so there was no credential to rotate. The two values in `.env.example`
+19/10/2026); it held only `DB_HOST=localhost`, `DB_NAME`, `DB_USER` (the macOS account name), `APP_PORT` and an empty
+`DB_PASSWORD`, so there was no credential to rotate. The history was not rewritten to erase it: rewriting would change
+every commit hash and break the commit links of the Bug Log and the tag `v0.2`. This is why the self-check marks C7
+("`.env` never committed") as only partly met. The two values in `.env.example`
 (`smartcrm_mau_doi_khi_trien_khai`, `dash_reader_mau_doi_khi_trien_khai`) are samples for a local machine; the
 Deployment Guide (section 3) says to change both for any shared deployment.
 
