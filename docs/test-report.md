@@ -14,9 +14,9 @@ trước test case – viết tắt **[CSDL sạch]** trong bảng.
 
 | Lần | Ngày · phiên bản | Môi trường | Kết quả |
 |---|---|---|---|
-| 1 | 07/11/2026 · commit `574bfd0` (vừa viết 12 test case) | môi trường thử Linux của Claude: `.venv` Python 3.11, PostgreSQL 16; làm lại trong Docker (mã nguồn `574bfd0` gắn vào ảnh của lần 2) cho cùng kết quả | **10/12 PASS** – TC-09 FAIL (BUG-15), TC-12 FAIL (BUG-16) |
-| 2 | 07/11/2026 · sau commit `a3566b0` (BUG-15) và `aab583b` (BUG-16); lần cuối ở commit ghi trên nhãn ảnh `TC-xx.png` | môi trường thử như lần 1 và Docker (`docker compose run --rm pipeline …`) | **12/12 PASS** |
-| 3 | mỗi lần push · GitHub Actions | máy ảo Ubuntu mới, ảnh Docker thật từ Docker Hub | `pytest` 194 passed, 3 skipped (gồm 12 test case) – xanh ([lần chạy ở commit `49ea1ba`](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42379457800)) |
+| 1 | 07/11/2026 · commit `574bfd0` (vừa viết 12 test case) | môi trường thử Linux của Claude: `.venv` Python 3.11, PostgreSQL 16; làm lại trong Docker (mã nguồn `574bfd0` gắn vào ảnh của lần 2, test case bản đang kiểm) cho cùng kết quả | **10/12 PASS** – TC-09 FAIL (BUG-15), TC-12 FAIL (BUG-16) |
+| 2 | 07/11/2026 · sau commit `a3566b0` (BUG-15) và `aab583b` (BUG-16); lần cuối ở commit `7242ae4` – một lần chạy liền với phép thử máy trắng, ảnh `docs/screenshots/` | môi trường thử như lần 1 và Docker (`docker compose run --rm pipeline …`) | **12/12 PASS** |
+| 3 | mỗi lần push · GitHub Actions | máy ảo Ubuntu mới, ảnh Docker thật từ Docker Hub | `pytest` 194 passed, 3 skipped (gồm 12 test case) – xanh ([lần chạy ở commit `7242ae4`](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42406405548)) |
 
 Ba test case được làm chặt hơn sau lượt rà soát, khi đối chiếu với bảng quy tắc nghiệp vụ của SRS mục 5: **TC-08**
 nạp sẵn 414 dòng rồi mới đưa tệp thiếu cột (thấy được tệp hỏng không đụng tới dữ liệu đang có); **TC-02** kiểm thêm
@@ -25,7 +25,7 @@ tắc đã hiện thực ở `src/doc_kho.py` nhưng trước đó chỉ có tes
 TC-08 PASS; TC-12 vẫn FAIL ở bước 3 (BUG-16), bước QT-14 PASS – cột "Lần 1" không đổi.
 
 Ảnh kết quả từng test case: `docs/screenshots/TC-01.png` … `TC-12.png`; ảnh lần chạy FAIL: `TC-09-lan1-FAIL.png`,
-`TC-12-lan1-FAIL.png`; ảnh phép thử máy trắng: `PT-01-hai-lenh.png` … `PT-07-mat-csdl.png`. Nơi chạy và cách tạo
+`TC-12-lan1-FAIL.png`; ảnh phép thử máy trắng và checklist bảo mật: `PT-01-hai-lenh.png` … `PT-08-pip-audit.png`. Nơi chạy và cách tạo
 từng ảnh: `docs/screenshots/README.md`.
 
 ## 2. Tóm tắt và truy vết
@@ -217,5 +217,10 @@ này là ảnh thay thế dựng cục bộ. Cùng các bước chạy lại tr�
 push (`.github/workflows/ci.yml`) – lần chạy đầu ở commit `1a315f9`: mọi bước xanh, pytest 191 passed, 3 skipped,
 pip-audit 0 lỗ hổng ([run 42375421851](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42375421851));
 ở commit `e3c7a28` (đủ tài liệu và `tests/test_tai_lieu.py`): pytest **194 passed, 3 skipped**
-([run 42376678386](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42376678386)); ở commit `49ea1ba` (sau rà soát, cùng commit với ảnh `docs/screenshots/`): mọi
-bước xanh, pytest 194 passed, 3 skipped ([run 42379457800](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42379457800)).
+([run 42376678386](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42376678386)); ở commit `7242ae4` (sau rà soát, cùng commit với ảnh `docs/screenshots/`): mọi
+bước xanh, pytest 194 passed, 3 skipped ([run 42406405548](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42406405548)).
+
+**Lần chạy cuối của PT-01** (commit `7242ae4`, cùng một lần chạy với 12 test case – ảnh `PT-01-hai-lenh.png` …
+`PT-08-pip-audit.png`): hai lệnh mã thoát 0; `db`, `dashboard` Up (healthy), `pipeline` Exited (0); `ok`; 414 = 343 +
+40 + 31, chỉ số 88,41 → 95,79; pytest 194 passed, 3 skipped; 12/12 test case PASS; chạy lại `up -d` mọi bảng +0;
+dừng `db`: câu báo chỉ lệnh `docker compose`, không lộ mật khẩu; `pip-audit`: "No known vulnerabilities found".
