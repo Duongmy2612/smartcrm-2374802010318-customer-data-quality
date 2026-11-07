@@ -1,7 +1,11 @@
 # Thư viện của prototype L7 (Python 3.11 trở lên – pandas 3 yêu cầu ≥ 3.11).
-# Chỉ ghi thư viện dùng trực tiếp. pandas, rapidfuzz, SQLAlchemy, psycopg2-binary, python-dotenv, PyYAML: cùng
-# phiên bản với .venv của máy phát triển (pip freeze 25/09). openpyxl, pytest: thêm ở buổi 8.
-# streamlit, plotly: thêm ở buổi 10 (dashboard K1 – K3).
+# TỆP KHÓA ĐẦY ĐỦ từ BT3 (BUG-17, TD-40): MỌI gói – dùng trực tiếp lẫn gián tiếp – ghim bằng ==, lấy từ `pip freeze`
+# của một môi trường ảo sạch, rồi kiểm lỗ hổng: `pip-audit -r requirements.txt` → "No known vulnerabilities found"
+# (checklist bảo mật mục 7). Đổi phiên bản một gói: sửa ở phần 1, cài vào môi trường ảo MỚI, chép lại phần 2 từ
+# `pip freeze`, chạy lại pip-audit và `python -m pytest -q`.
+
+# 1. Dùng trực tiếp. pandas, rapidfuzz, SQLAlchemy, psycopg2-binary, python-dotenv, PyYAML: cùng phiên bản với .venv
+# của máy phát triển (pip freeze 25/09). openpyxl, pytest: thêm ở buổi 8. streamlit, plotly: thêm ở buổi 10.
 pandas==3.0.6            # đọc, chuẩn hóa, đo chất lượng
 openpyxl==3.1.5          # đọc tệp .xlsx (FR-01 nhận CSV/Excel)
 rapidfuzz==3.14.6        # so khớp mờ (match.py), script profiling
@@ -10,5 +14,44 @@ psycopg2-binary==2.9.13  # driver PostgreSQL
 python-dotenv==1.2.3     # đọc .env (NFR-07: bí mật không nằm trong mã)
 PyYAML==6.0.3            # đọc configs/config.yaml
 pytest==9.1.1            # kiểm thử
-streamlit==1.64.0        # dashboard K1 – K3 (dashboard/report.py, UC8)
+streamlit==1.67.0        # dashboard K1 – K3 (UC8); 1.64.0 → 1.67.0 vì 1.64 chặn pillow < 13 (BUG-17)
 plotly==6.9.0            # biểu đồ của dashboard (đường, cột, mốc tham chiếu)
+
+# 2. Gián tiếp – do các gói ở phần 1 kéo theo; ghim để mọi lần dựng (máy em, máy giảng viên, Docker) ra cùng phiên bản.
+pillow==13.0.0           # 12.3.0 (streamlit 1.64 kéo theo) có 39 lỗ hổng đã công bố, sửa ở 13.0.0 – BUG-17
+altair==6.3.0
+anyio==4.16.0
+attrs==26.1.0
+certifi==2026.10.23
+charset-normalizer==3.5.2
+click==8.5.1
+et_xmlfile==2.0.0
+h11==0.16.0
+idna==3.20
+iniconfig==2.3.1
+itsdangerous==2.2.0
+Jinja2==3.1.6
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+MarkupSafe==3.0.4
+narwhals==2.28.0
+numpy==2.4.6
+packaging==26.3
+pluggy==1.7.0
+protobuf==7.36.2
+pyarrow==26.0.1
+pydeck==0.9.3
+Pygments==2.21.0
+python-dateutil==4.0.0
+python-multipart==0.0.33
+referencing==0.37.0
+requests==2.34.2
+rpds-py==2026.9.1
+starlette==1.10.0
+typing_extensions==4.16.0
+tzdata==2026.6
+urllib3==2.8.0
+uvicorn==0.54.0
+watchdog==7.1.0 ; platform_system != "Darwin"   # streamlit chỉ dùng trên Linux / Windows
+websockets==17.4
+colorama==0.4.6 ; platform_system == "Windows"     # click dùng trên Windows
