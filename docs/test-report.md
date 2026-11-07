@@ -16,7 +16,7 @@ trước test case – viết tắt **[CSDL sạch]** trong bảng.
 |---|---|---|---|
 | 1 | 07/11/2026 · commit `574bfd0` (vừa viết 12 test case) | môi trường thử Linux của Claude: `.venv` Python 3.11, PostgreSQL 16; làm lại trong Docker (mã nguồn `574bfd0` gắn vào ảnh của lần 2) cho cùng kết quả | **10/12 PASS** – TC-09 FAIL (BUG-15), TC-12 FAIL (BUG-16) |
 | 2 | 07/11/2026 · sau commit `a3566b0` (BUG-15) và `aab583b` (BUG-16); lần cuối ở commit ghi trên nhãn ảnh `TC-xx.png` | môi trường thử như lần 1 và Docker (`docker compose run --rm pipeline …`) | **12/12 PASS** |
-| 3 | mỗi lần push · GitHub Actions | máy ảo Ubuntu mới, ảnh Docker thật từ Docker Hub | `pytest` 194 passed, 3 skipped (gồm 12 test case) – xanh ([lần chạy ở commit `e3c7a28`](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42376678386)) |
+| 3 | mỗi lần push · GitHub Actions | máy ảo Ubuntu mới, ảnh Docker thật từ Docker Hub | `pytest` 194 passed, 3 skipped (gồm 12 test case) – xanh ([lần chạy ở commit `49ea1ba`](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42379457800)) |
 
 TC-08 được làm chặt hơn sau rà soát: nạp sẵn 414 dòng rồi mới đưa tệp thiếu cột, để thấy tệp hỏng không đụng tới dữ
 liệu đang có. Bản mới chạy trên mã nguồn `574bfd0` vẫn PASS, nên cột "Lần 1" không đổi.
@@ -214,4 +214,5 @@ này là ảnh thay thế dựng cục bộ. Cùng các bước chạy lại tr�
 push (`.github/workflows/ci.yml`) – lần chạy đầu ở commit `1a315f9`: mọi bước xanh, pytest 191 passed, 3 skipped,
 pip-audit 0 lỗ hổng ([run 42375421851](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42375421851));
 ở commit `e3c7a28` (đủ tài liệu và `tests/test_tai_lieu.py`): pytest **194 passed, 3 skipped**
-([run 42376678386](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42376678386)).
+([run 42376678386](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42376678386)); ở commit `49ea1ba` (sau rà soát, cùng commit với ảnh `docs/screenshots/`): mọi
+bước xanh, pytest 194 passed, 3 skipped ([run 42379457800](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42379457800)).
