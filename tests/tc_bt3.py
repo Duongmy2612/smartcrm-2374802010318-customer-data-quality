@@ -214,13 +214,19 @@ def tc07(mt):
 
 
 def tc08(mt):
+    nap = mt.pipeline('--tep', 'data/mau/customers_mau.csv')          # dữ liệu có sẵn – tệp hỏng không được đụng tới
+    if nap.ma_thoat != 0:
+        return [f'bước 1 (nạp sẵn dữ liệu mẫu) lỗi, mã thoát {nap.ma_thoat}'], False
     truoc = mt.dem()
     r = mt.pipeline('--tep', 'data/mau/customers_thieu_cot.csv')
     sau = mt.dem()
-    thuc_te = [f'mã thoát {r.ma_thoat}; ' + _doi(truoc, sau, 'ops.load_batch') + '; ' + _doi(truoc, sau, 'ops.stg_customer'),
+    khac = [b for b in truoc if truoc[b] != sau[b]]
+    thuc_te = [f'mã thoát {r.ma_thoat}; ' + _doi(truoc, sau, 'ops.load_batch') + '; ' + _doi(truoc, sau, 'ops.stg_customer')
+               + '; ' + _doi(truoc, sau, 'ops.customer_clean'),
+               '8 bảng đích: ' + ('không bảng nào đổi' if not khac else 'ĐỔI ' + ', '.join(khac)),
                f'thông báo: {r.loi.strip()}']
     dat = (r.ma_thoat == 2 and r.loi.startswith('TỪ CHỐI') and 'so_dien_thoai' in r.loi
-           and 'Traceback' not in r.loi + r.ra and sau == truoc)
+           and 'Traceback' not in r.loi + r.ra and sau == truoc and truoc['ops.stg_customer'] == 414)
     return thuc_te, dat
 
 
@@ -351,10 +357,14 @@ TCS = [
                                'SELECT count(*) FROM ops.dup_candidate'],
              '"Nguyễn Thanh Tâm" 0912345678 · "Nguyễn Văn Tuấn" 0912345670',
              '1 cặp ứng viên được so (cùng 5 số đầu) nhưng 0 cặp được tạo vì 84,97 < 85', tc07),
-    CaKiemThu('TC-08', 'Tệp thiếu cột bắt buộc bị từ chối cả tệp', 'du_lieu_sai', 'AC1.3, FR-01', 'Cao', DK_CHUNG,
-             ['python -m src.pipeline --tep data/mau/customers_thieu_cot.csv', 'đếm 8 bảng đích trước / sau'],
+    CaKiemThu('TC-08', 'Tệp thiếu cột bắt buộc bị từ chối cả tệp', 'du_lieu_sai', 'AC1.3, FR-01', 'Cao',
+             DK_CHUNG + ', rồi nạp sẵn dữ liệu mẫu 414 dòng (bước 1)',
+             ['python -m src.pipeline --tep data/mau/customers_mau.csv',
+              'python -m src.pipeline --tep data/mau/customers_thieu_cot.csv',
+              'đếm 8 bảng đích trước / sau bước 2'],
              'data/mau/customers_thieu_cot.csv – không có cột so_dien_thoai',
-             'mã thoát 2; "TỪ CHỐI: …" nêu tên cột thiếu, không có Traceback; 8 bảng đích không đổi', tc08),
+             'mã thoát 2; "TỪ CHỐI: …" nêu tên cột thiếu, không có Traceback; 8 bảng đích không đổi '
+             '(load_batch 1 → 1, stg_customer 414 → 414)', tc08),
     CaKiemThu('TC-09', 'Ngày tạo sai định dạng vào bảng reject kèm lý do', 'du_lieu_sai',
              'data-requirements mục 3 (ngay_tao: ngày hợp lệ yyyy-mm-dd), QL7-04', 'Trung bình', DK_CHUNG,
              ['python -m src.pipeline --tep tests/du_lieu_tc/tc09_ngay_sai.csv',

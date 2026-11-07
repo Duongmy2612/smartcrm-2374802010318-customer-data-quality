@@ -14,13 +14,16 @@ trước test case – viết tắt **[CSDL sạch]** trong bảng.
 
 | Lần | Ngày · phiên bản | Môi trường | Kết quả |
 |---|---|---|---|
-| 1 | 07/11/2026 · commit `574bfd0` (vừa viết 12 test case) | Linux, `.venv` Python 3.11, PostgreSQL 16 | **10/12 PASS** – TC-09 FAIL (BUG-15), TC-12 FAIL (BUG-16) |
-| 2 | 07/11/2026 · sau commit `a3566b0` (BUG-15) và `aab583b` (BUG-16) | như lần 1 và Docker (`docker compose run --rm pipeline …`) | **12/12 PASS** |
+| 1 | 07/11/2026 · commit `574bfd0` (vừa viết 12 test case) | môi trường thử Linux của Claude: `.venv` Python 3.11, PostgreSQL 16; làm lại trong Docker (mã nguồn `574bfd0` gắn vào ảnh của lần 2) cho cùng kết quả | **10/12 PASS** – TC-09 FAIL (BUG-15), TC-12 FAIL (BUG-16) |
+| 2 | 07/11/2026 · sau commit `a3566b0` (BUG-15) và `aab583b` (BUG-16); lần cuối ở commit ghi trên nhãn ảnh `TC-xx.png` | môi trường thử như lần 1 và Docker (`docker compose run --rm pipeline …`) | **12/12 PASS** |
 | 3 | mỗi lần push · GitHub Actions | máy ảo Ubuntu mới, ảnh Docker thật từ Docker Hub | `pytest` 194 passed, 3 skipped (gồm 12 test case) – xanh ([lần chạy ở commit `e3c7a28`](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42376678386)) |
 
-Ảnh chụp kết quả từng test case: `docs/screenshots/TC-01.png` … `TC-12.png`; ảnh lần chạy FAIL: `TC-09-lan1-FAIL.png`,
-`TC-12-lan1-FAIL.png`; ảnh phép thử máy trắng: `PT-01-hai-lenh.png` … `PT-07-mat-csdl.png`. Nơi chụp từng ảnh:
-`docs/screenshots/README.md`.
+TC-08 được làm chặt hơn sau rà soát: nạp sẵn 414 dòng rồi mới đưa tệp thiếu cột, để thấy tệp hỏng không đụng tới dữ
+liệu đang có. Bản mới chạy trên mã nguồn `574bfd0` vẫn PASS, nên cột "Lần 1" không đổi.
+
+Ảnh kết quả từng test case: `docs/screenshots/TC-01.png` … `TC-12.png`; ảnh lần chạy FAIL: `TC-09-lan1-FAIL.png`,
+`TC-12-lan1-FAIL.png`; ảnh phép thử máy trắng: `PT-01-hai-lenh.png` … `PT-07-mat-csdl.png`. Nơi chạy và cách tạo
+từng ảnh: `docs/screenshots/README.md`.
 
 ## 2. Tóm tắt và truy vết
 
@@ -129,12 +132,12 @@ trước test case – viết tắt **[CSDL sạch]** trong bảng.
 
 | Cột | Nội dung |
 |---|---|
-| Tiền điều kiện | [CSDL sạch] |
-| Các bước | 1. `python -m src.pipeline --tep data/mau/customers_thieu_cot.csv` · 2. đếm 8 bảng đích trước / sau |
+| Tiền điều kiện | [CSDL sạch], rồi nạp sẵn dữ liệu mẫu 414 dòng (bước 1) – để thấy tệp hỏng không đụng tới dữ liệu đang có |
+| Các bước | 1. `python -m src.pipeline --tep data/mau/customers_mau.csv` · 2. `python -m src.pipeline --tep data/mau/customers_thieu_cot.csv` · 3. đếm 8 bảng đích trước / sau bước 2 |
 | Dữ liệu thử | `data/mau/customers_thieu_cot.csv` – không có cột `so_dien_thoai` |
-| Kết quả mong đợi | mã thoát 2; câu "TỪ CHỐI: …" nêu tên cột thiếu, không có Traceback; 8 bảng đích không đổi |
+| Kết quả mong đợi | mã thoát 2; câu "TỪ CHỐI: …" nêu tên cột thiếu, không có Traceback; 8 bảng đích không đổi (`load_batch` 1 → 1, `stg_customer` 414 → 414) |
 | Ưu tiên | Cao |
-| Kết quả thực tế | mã thoát 2; `ops.load_batch` 0 → 0; `ops.stg_customer` 0 → 0; "TỪ CHỐI: Thiếu cột bắt buộc: so_dien_thoai – từ chối cả đợt, bảng tạm không thay đổi" |
+| Kết quả thực tế | mã thoát 2; `ops.load_batch` 1 → 1; `ops.stg_customer` 414 → 414; `ops.customer_clean` 343 → 343 – 8 bảng đích không bảng nào đổi; "TỪ CHỐI: Thiếu cột bắt buộc: so_dien_thoai – từ chối cả đợt, bảng tạm không thay đổi" |
 | PASS/FAIL | **PASS** · `docs/screenshots/TC-08.png` |
 
 ### TC-09 · Ngày tạo sai định dạng vào bảng reject kèm lý do (data-requirements mục 3)
@@ -187,16 +190,18 @@ trước test case – viết tắt **[CSDL sạch]** trong bảng.
 
 ## 4. PT-01 – phép thử máy trắng (kiểm thử đầu-cuối của gói đóng gói)
 
-Làm đúng các bước của đề BT3 mục 2.4: xóa sạch Docker (`docker system prune -af --volumes`), clone repo vào thư mục
-trống, `cp .env.example .env`, `docker compose up -d --build`, rồi tám bước kiểm tra ở Deployment Guide mục 5, cộng ba
-bước kiểm checklist bảo mật.
+Làm theo các bước của đề BT3 mục 2.4: xóa sạch Docker, clone repo vào thư mục trống, `cp .env.example .env`,
+`docker compose up -d --build`, rồi tám bước kiểm tra ở Deployment Guide mục 5, cộng ba bước kiểm checklist bảo mật.
+Khác biệt duy nhất ở môi trường của Claude: bước xóa dùng `docker builder prune -af` và xóa container, volume, ảnh của
+hệ thống này, thay cho `docker system prune -af --volumes` – lệnh đó xóa luôn hai ảnh gốc dựng cục bộ mà môi trường
+không tải lại được (registry bị chặn). GitHub Actions (máy ảo mới mỗi lần) và MacBook làm đúng lệnh của đề.
 
 | Bước | Mong đợi | Thực tế (07/11/2026, Linux của Claude, commit `4ba61ab`) |
 |---|---|---|
 | Hai lệnh dựng hệ thống | mã thoát 0 | mã thoát 0 |
-| `docker compose ps -a` | db, dashboard healthy; pipeline Exited (0) | đúng như mong đợi |
+| `docker compose ps -a` | db, dashboard healthy; pipeline Exited (0) | `db` Up (healthy) · `dashboard` Up (healthy) · `pipeline` Exited (0) |
 | `curl -s …/_stcore/health` | `ok` | `ok` |
-| Log pipeline · đếm `stg_customer` | 414 = 343 + 40 + 31; 88,41 → 95,79 | đúng như mong đợi |
+| Log pipeline · đếm `stg_customer` | 414 = 343 + 40 + 31; 88,41 → 95,79 | `Số dòng: tệp 414 → bảng tạm 414 = sạch 343 + chờ quyết định 40 + lỗi 31`; chỉ số 88,41 → 95,79; `CLEAN 343` · `ERROR 31` · `PENDING_DUP 40` |
 | `docker compose run --rm pipeline python -m pytest -q` | 0 failed | 190 passed, 3 skipped |
 | Một test case (TC-06) · chạy lại `up -d` | PASS · mọi bảng +0 | PASS · "mọi bảng +0 – không nhân đôi dữ liệu" |
 | Kiểm bảo mật: `pip-audit -r requirements.txt` | 0 lỗ hổng | **pillow 12.3.0: 39 lỗ hổng** → BUG-17 |
