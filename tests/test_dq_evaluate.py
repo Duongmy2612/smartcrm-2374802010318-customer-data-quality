@@ -105,3 +105,36 @@ def test_dq04_bien_2_va_120_ky_tu(ten, dat):
     """DQ-04: họ tên 2–120 ký tự là đạt – kiểm đúng hai đầu mút và ngay ngoài mút. [giá trị biên]"""
     k = dq.kiem_dq04_ho_ten_hop_le(_dot(['0901234567'], [ten]), 'TRUOC')
     assert (k.pass_count, k.so_loi) == (dat, 1 - dat)
+
+
+# ------------------------------------------------------------------ D3 (BT3, TD-38): độ đầy đủ theo từng cột
+def _nguon(n_dong, n_trong, cot='so_dien_thoai'):
+    return pd.DataFrame({'ho_ten': ['An'] * n_dong, cot: [''] * n_trong + ['0901234567'] * (n_dong - n_trong)})
+
+
+@pytest.mark.gia_tri_bien
+@pytest.mark.parametrize('n_dong, dat', [(50, True), (49, False)], ids=['98,00%-dat', '97,96%-chua-dat'])
+def test_day_du_theo_cot_bien_nguong_98(n_dong, dat):
+    """1 ô trống trên 50 dòng = 98,00% ≥ 98% là ĐẠT; trên 49 dòng = 97,96% là CHƯA ĐẠT. [giá trị biên]"""
+    d = {x.cot: x for x in dq.do_day_du_theo_cot(_nguon(n_dong, 1), {'so_dien_thoai': 98})}
+    assert d['so_dien_thoai'].dat is dat
+    assert d['ho_ten'].nguong is None and d['ho_ten'].dat is None      # cột không có ngưỡng: chỉ đo
+
+
+@pytest.mark.du_lieu_sai
+def test_day_du_cot_co_nguong_ma_tep_khong_co_la_chua_dat():
+    """Tệp bỏ mất cột có ngưỡng (email) → báo 0%, CHƯA ĐẠT, không im lặng bỏ qua. [dữ liệu sai]"""
+    d = {x.cot: x for x in dq.do_day_du_theo_cot(_nguon(4, 0), {'email': 50})}
+    assert (d['email'].co_cot, d['email'].so_co_gia_tri, d['email'].dat) == (False, 0, False)
+
+
+@pytest.mark.luong_dung
+def test_day_du_tren_du_lieu_mau_khop_o_trong_cua_extract():
+    """Dữ liệu mẫu: số ô có giá trị của từng cột = số dòng − số ô trống mà extract đếm. [luồng đúng]"""
+    from src import config
+    from src.etl.extract import ho_so_tep
+    df = doc_tep(GOC / 'data' / 'mau' / 'customers_mau.csv')
+    d = {x.cot: x for x in dq.do_day_du_theo_cot(df, config.doc_cau_hinh()['nguong_day_du'])}
+    assert {c: len(df) - k for c, (k, _) in ho_so_tep(df)['o_trong'].items()} == \
+           {c: x.so_co_gia_tri for c, x in d.items()}
+    assert [c for c, x in d.items() if x.dat is False] == ['so_dien_thoai', 'email']

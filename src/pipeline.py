@@ -93,7 +93,10 @@ def chay_uc1(tep, don_vi: str, nguoi_nap: str, nap_lai: bool = False, ghi_csdl: 
     bang_tam = extract.sang_bang_tam(df_nguon)
     bc.update(so_dong_tep=hs['so_dong'], so_cot_tep=hs['so_cot'], file_hash=file_hash)
     in_ra(f"[1/5] extract    {tep}: {so(hs['so_dong'])} dòng × {hs['so_cot']} cột · SHA-256 {file_hash[:12]}…")
-    in_ra('      Ô trống: ' + ' · '.join(f'{c} {so(k)} ({pt(r)})' for c, (k, r) in hs['o_trong'].items()))
+    bc['day_du'] = dq_evaluate.do_day_du_theo_cot(df_nguon, cau_hinh.get('nguong_day_du'))
+    in_ra('      Độ đầy đủ theo cột (D3 – ngưỡng riêng từng cột, configs/config.yaml):')
+    for d in bc['day_du']:
+        in_ra('        ' + _day_du(d))
     t_ex = time.perf_counter() - t0
 
     # Phần THUẦN của transform chạy trước khi mở giao dịch: tệp có giá trị không vừa customer_clean bị từ chối
@@ -355,6 +358,16 @@ def diem(x: float, dau: bool = False) -> str:
     return (f'{x:+.2f}' if dau else f'{x:.2f}').replace('.', ',')
 
 
+def _day_du(d) -> str:
+    """'so_dien_thoai    94,20%  <  98%  CHƯA ĐẠT' – chữ hoa khi chưa đạt để dễ thấy trên màn hình."""
+    if not d.co_cot:
+        return f'{d.cot:<15}  tệp không có cột này (ngưỡng ≥ {d.nguong:g}%)  CHƯA ĐẠT'
+    if d.nguong is None:
+        return f'{d.cot:<15}{pt(d.ti_le):>9}  (không đặt ngưỡng)'
+    return (f"{d.cot:<15}{pt(d.ti_le):>9}  {'≥' if d.dat else '<'} {d.nguong:>3g}%  "
+            f"{'đạt' if d.dat else 'CHƯA ĐẠT'}")
+
+
 def _bang_chat_luong(ket_qua, quy_tac) -> list[dict]:
     """Một dòng / quy tắc: tỉ lệ đạt TRƯỚC, SAU và đạt/chưa đạt so với ngưỡng (để in và ghi báo cáo)."""
     theo = {(k.rule_code, k.measure_stage): k for k in ket_qua}
@@ -380,8 +393,11 @@ def ghi_bao_cao(bc: dict, hs: dict, thu_muc: pathlib.Path) -> pathlib.Path:
          f"- Đơn vị nguồn: {bc['don_vi']} · Người nạp: {bc['nguoi_nap']} · Bắt đầu: {bc['bat_dau']}",
          f"- Ghi CSDL: {'có' if bc['ghi_csdl'] else 'không (--khong-ghi-csdl)'}", '',
          f"## 1. Extract – {so(hs['so_dong'])} dòng × {hs['so_cot']} cột", '',
-         '| Cột | Ô trống | Tỉ lệ |', '|---|---:|---:|']
-    d += [f'| {c} | {so(k)} | {pt(r)} |' for c, (k, r) in hs['o_trong'].items()]
+         '| Cột | Ô trống | Có giá trị (độ đầy đủ) | Ngưỡng riêng (D3) | Kết quả |', '|---|---:|---:|---:|---|']
+    d += [f"| {x.cot} | {so(x.tong - x.so_co_gia_tri)} | {pt(x.ti_le)} | "
+          f"{'—' if x.nguong is None else f'≥ {x.nguong:g}%'} | "
+          f"{'không có cột – chưa đạt' if not x.co_cot else '—' if x.dat is None else 'đạt' if x.dat else 'CHƯA ĐẠT'} |"
+          for x in bc['day_du']]
     d += ['', '## 2. Transform – số dòng trước → sau', '',
           '| Hạng mục | Số hồ sơ |', '|---|---:|',
           f"| Số điện thoại đúng dạng sẵn | {so(tk['so_dung_dang_san'])} |",

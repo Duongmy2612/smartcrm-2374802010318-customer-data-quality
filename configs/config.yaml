@@ -6,6 +6,18 @@ don_vi_nguon_mac_dinh: TONG_HOP  # customers_raw.csv hợp nhất từ nhiều c
 thu_muc_xuat: data/processed     # tệp CSV hồ sơ lỗi (có dữ liệu cá nhân → không commit)
 thu_muc_bao_cao: reports         # báo cáo số đếm sau mỗi lần chạy pipeline
 
+# D3 (BT3, TD-38): độ đầy đủ đo theo TỪNG CỘT của tệp nguồn, mỗi cột một ngưỡng (% ô có giá trị tối thiểu).
+# Số đo giám sát in ở bước [3/5] và báo cáo reports/*.md – KHÔNG cộng vào chỉ số mức độ sạch (QL7-06).
+# so_dien_thoai, ho_ten: trùng ngưỡng DQ-01, DQ-03. Các cột còn lại: ngưỡng giám sát em đặt theo số đo dữ liệu LMS
+# (SRS 4.1: email thiếu 44,99%, dia_chi thiếu 8,98%, ngay_tao 0%) – tụt dưới ngưỡng là nguồn dữ liệu đang xấu đi.
+nguong_day_du:
+  record_id: 100
+  ho_ten: 99
+  so_dien_thoai: 98
+  ngay_tao: 99
+  dia_chi: 90
+  email: 50                      # email là cột tùy chọn (SRS 4.1); dưới một nửa thì chiến dịch email khó chạy
+
 # Người dùng và vai trò của prototype (SRS mục 2.4). Tên đăng nhập được ghi vào
 # load_batch.loaded_by, dup_candidate.decided_by, dq_rule.updated_by.
 nguoi_dung:

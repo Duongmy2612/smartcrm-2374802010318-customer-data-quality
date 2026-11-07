@@ -155,6 +155,37 @@ def chi_so_muc_do_sach(ket_qua: list[KetQua], quy_tac: list[dict], giai_doan: st
     return sum(trong_so[k.rule_code] * k.ti_le for k in ket_qua if k.measure_stage == giai_doan) * 100
 
 
+# ------------------------------------------------------------------ độ đầy đủ theo TỪNG CỘT (D3 của BT3, TD-38)
+@dataclass
+class DoDayDu:
+    """Độ đầy đủ của MỘT cột của tệp nguồn, so với ngưỡng riêng của cột đó (configs/config.yaml, nguong_day_du).
+    Số đo GIÁM SÁT: không cộng vào chỉ số mức độ sạch – QL7-06 vẫn chỉ dùng DQ-01 … DQ-06."""
+    cot: str
+    tong: int               # số dòng của tệp
+    so_co_gia_tri: int      # số ô không trống (ô chỉ có khoảng trắng tính là trống)
+    nguong: float | None    # % tối thiểu; None = cột không có ngưỡng (chỉ đo)
+    co_cot: bool = True     # False = cột có ngưỡng nhưng tệp không có cột này
+
+    @property
+    def ti_le(self) -> float:
+        return self.so_co_gia_tri / self.tong if self.tong else 1.0
+
+    @property
+    def dat(self) -> bool | None:
+        """None khi cột không có ngưỡng. So trên tỉ lệ làm tròn 2 chữ số – đúng con số in ra (98,00% ≥ 98% là đạt)."""
+        return None if self.nguong is None else round(self.ti_le * 100, 2) >= self.nguong
+
+
+def do_day_du_theo_cot(df_nguon: pd.DataFrame, nguong: dict | None) -> list[DoDayDu]:
+    """Mọi cột của tệp nguồn theo thứ tự trong tệp, rồi các cột có ngưỡng mà tệp KHÔNG có (0%, chưa đạt) –
+    nguồn bỏ mất một cột là dấu hiệu chất lượng xấu đi, không được im lặng bỏ qua."""
+    nguong = {str(k): float(v) for k, v in (nguong or {}).items()}
+    n = len(df_nguon)
+    kq = [DoDayDu(c, n, int((~la_trong(df_nguon[c])).sum()), nguong.get(c)) for c in df_nguon.columns]
+    kq += [DoDayDu(c, n, 0, v, co_cot=False) for c, v in nguong.items() if c not in df_nguon.columns]
+    return kq
+
+
 def xep_loai(chi_so: float) -> str:
     """QL7-06: ≥ 90 Tốt; 75 – < 90 Chấp nhận được; < 75 Kém."""
     return 'Tốt' if chi_so >= 90 else 'Chấp nhận được' if chi_so >= 75 else 'Kém'
