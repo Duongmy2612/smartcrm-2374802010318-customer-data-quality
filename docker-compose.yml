@@ -4,7 +4,9 @@
 # Ba dịch vụ:
 #   db         PostgreSQL 16 – CSDL smartcrm (ops + dwh) và smartcrm_test (kiểm thử). Có healthcheck.
 #   pipeline   tác vụ chạy MỘT lần: nạp dữ liệu mẫu data/mau/customers_mau.csv (414 dòng) → làm sạch → kho.
-#              Trạng thái đúng sau khi chạy: Exited (0). Chạy lại (docker compose up -d lần hai) không nhân đôi dữ liệu.
+#              Trạng thái đúng sau khi chạy: Exited (0). Không có healthcheck vì không chạy liên tục: Compose kiểm nó
+#              bằng mã thoát (dashboard chờ service_completed_successfully). Chạy lại (docker compose up -d lần hai)
+#              không nhân đôi dữ liệu.
 #   dashboard  Streamlit K1 – K3 tại http://localhost:8501, chỉ mở khi pipeline xong thành công. Có healthcheck.
 # Kiểm tra và chạy bộ kiểm thử: docs/deployment-guide.md mục 5.
 name: smartcrm-l7

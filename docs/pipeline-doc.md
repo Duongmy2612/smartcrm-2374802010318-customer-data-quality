@@ -90,17 +90,15 @@ index 87.20 → 94.76. Every rejected row is listed with a sentence explaining w
 
 ## 6. Known limitations and data latency
 
-- **Latency:** the dashboard is as fresh as the last pipeline run plus its 60-second cache; each chart prints the time
-  of the last measurement. No streaming – data arrive file by file.
-- **UC5 Merge / Keep separate is not implemented** (TD-27, TD-41): every pair stays PENDING, so DQ-05 and the AFTER
-  index stop at the level before decisions (real data 94.76; the target +10 points needs UC5, estimated 98.46).
-- **FUZZY precision at threshold 85:** on 300 hand-labelled real pairs precision is 91.43 % and recall 96.97 % (NFR-03,
-  TD-32), but all 12 FUZZY false positives score 85 – 89.56; raising the threshold to 90 is a Phase 4 decision.
-- **Records without phone are never matched** (QL7-04), so a person present twice, once without phone, is missed
-  (4 pairs of tier T4 in the NFR-03 sample).
-- **No login:** the dashboard viewer is chosen from a list in `configs/config.yaml`; the database account
-  `dash_reader` still blocks all personal data, but unit scoping (QT-14) is not authenticated.
-- **Personal data in `ops` is not encrypted** (security checklist item 4).
-- **One error code per row:** a row with several problems shows only the first by priority
-  (MISSING_PHONE > INVALID_PHONE > MISSING_NAME > INVALID_DATE).
-- **Date of creation is validated but not loaded:** `customer_clean.created_at` is the load time, not `ngay_tao`.
+Each limitation is stated with what it means for the business user and what is done about it now.
+
+| Limitation | Business impact | Now / plan |
+|---|---|---|
+| **Latency:** the dashboard is as fresh as the last pipeline run plus a 60-second cache; data arrive file by file, no streaming | Store managers and Marketing see the state of the last loaded file, not of today's sales; fine for a weekly data-quality review, not for live operations | Every chart prints the time of the last measurement; run the pipeline as soon as a file arrives (section 5) |
+| **UC5 Merge / Keep separate is not implemented** (TD-27, TD-41): every pair stays PENDING | The 11,625 repeated-phone records of the real file stay held (PENDING_DUP): they create no duplicate customer (QT-01), but whatever newer name, email or address they carry is not merged into the existing customer. DQ-05 and the AFTER index stop at 94.76 on real data, short of the +10-point target (estimated 98.46 with UC5) | Dashboard K3 shows how many pairs wait and in which score band; deciding pair by pair needs UC5 (Phase 4) – until then the pairs stay in `ops.dup_candidate` |
+| **FUZZY false positives at threshold 85:** on 300 hand-labelled real pairs precision is 91.43 % and recall 96.97 % (NFR-03, TD-32); the 12 false positives are exactly the 12 FUZZY pairs of the real file, scores 85 – 89.56 | Every FUZZY pair proposed on the real file joins two different customers: reviewers would spend time on them, and merging any of them would join two real people | No automatic merge (QL7-01, tested by TC-02); raising the threshold to 90 (precision 100 %, same recall on the sample) is a Phase 4 decision |
+| **Records without a phone are never matched** (QL7-04) | 4,133 real records (6.2 %) cannot be called, texted or de-duplicated; a person present twice, once without phone, is missed (4 pairs of tier T4 in the NFR-03 sample) | Each run writes the rejected rows with a reason sentence to a CSV in `data/processed/` (`ops.v_reject` in the database), so the store knows which rows to complete and send again |
+| **No login:** the dashboard viewer is chosen from a list in `configs/config.yaml` | Unit scoping (QT-14) is applied but not authenticated – anyone who can open the page can pick another viewer and see another store's counts | Counts only: the account `dash_reader` cannot read any personal data (TC-12); run the dashboard on the internal network only; SSO is out of scope (BT1) |
+| **Personal data in `ops` is not encrypted** (security checklist item 4) | Whoever holds the pipeline database account or the disk can read names and phone numbers | Only the pipeline account can read `ops`; passwords stay in `.env`; `pgcrypto` for `email`, `address` and an encrypted disk in Phase 4 |
+| **One error code per row:** only the first problem by priority is shown (MISSING_PHONE > INVALID_PHONE > MISSING_NAME > INVALID_DATE) | A store fixes the reported problem and the row can be rejected again for the next one | The reason sentence in `v_reject` names the field; the next load shows the next problem |
+| **Date of creation is validated but not loaded:** `customer_clean.created_at` is the load time, not `ngay_tao` | A report of "new customers by creation date" would count by load date | No chart uses it today (K1 – K3 count by batch); load `ngay_tao` when a chart needs it |

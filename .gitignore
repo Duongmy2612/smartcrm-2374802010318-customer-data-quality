@@ -1,5 +1,7 @@
-# Bí mật – KHÔNG BAO GIỜ commit (NFR-07)
+# Bí mật – KHÔNG BAO GIỜ commit (NFR-07); chỉ .env.example (giá trị mẫu) được commit
 .env
+.env.*
+!.env.example
 
 # Môi trường ảo, bộ đệm Python
 .venv/
@@ -28,3 +30,9 @@ reports/*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Tệp mô hình – track DA không huấn luyện mô hình, chặn sẵn để không lỡ commit tệp lớn
+*.pkl
+*.joblib
+*.onnx
+*.h5

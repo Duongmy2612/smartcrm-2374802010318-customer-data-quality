@@ -204,7 +204,8 @@ tạm không) · dữ liệu có bị sai hay bị lộ không.
    `created_raw` (TD-37). 13 test mới, gồm biên 29/02 năm nhuận / năm thường.
 7. **Link commit và xác nhận:** [a3566b0](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/a3566b009a9a6673d6754bad0ce52e0189b41583) · TC-09 PASS (`v_reject` 2 dòng
    INVALID_DATE, `customer_clean` 0 → 1); dữ liệu mẫu và dữ liệu thật không có ngày sai nên mọi con số cũ giữ nguyên
-   (88,41 → 95,79; 87,20 → 94,76); `python -m pytest -q` 0 failed.
+   (88,41 → 95,79; 87,20 → 94,76); `python -m pytest -q` 0 failed. Ảnh: `docs/screenshots/TC-09-lan1-FAIL.png` →
+   `TC-09.png`.
 
 ### BUG-16  Kết nối của dashboard đọc được dữ liệu cá nhân ở schema ops
 
@@ -226,7 +227,7 @@ tạm không) · dữ liệu có bị sai hay bị lộ không.
    truyền dạng tham số. Thiếu cấu hình thì dashboard báo đúng tên biến cần điền (TD-36). 6 test mới.
 7. **Link commit và xác nhận:** [aab583b](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/aab583b96b6b289a722af6e0722611f6d983c391) · TC-12 PASS: tài khoản
    `dash_reader` đọc được `dwh.v_batch_score`, đọc `ops.stg_customer` bị từ chối "permission denied for schema ops";
-   dashboard K1 – K3 vẫn hiển thị đủ (ảnh Docker).
+   dashboard K1 – K3 vẫn hiển thị đủ. Ảnh: `docs/screenshots/TC-12-lan1-FAIL.png` → `TC-12.png`, `PT-06-dashboard.png`.
 
 ### BUG-17  Ảnh Docker cài pillow 12.3.0 có 39 lỗ hổng đã công bố
 
@@ -248,7 +249,7 @@ tạm không) · dữ liệu có bị sai hay bị lộ không.
    ([1a315f9](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/1a315f938c779df7ea7b5f1de8d4fc72ee1e9f03)), để lỗi này không quay lại.
 7. **Link commit và xác nhận:** [43be2fa](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/43be2fa849e139b0ca9e280607c72545fbdda6f7) · `pip-audit`: "No known
    vulnerabilities found"; pytest 192 passed (.venv), 190 passed, 3 skipped (Docker); dashboard K1 – K3 hiển thị đúng
-   với streamlit 1.67.0.
+   với streamlit 1.67.0. Ảnh: `docs/screenshots/PT-08-pip-audit.png`.
 
 ### BUG-18  Mất CSDL trong Docker nhưng câu báo khuyên lệnh Homebrew
 
@@ -268,5 +269,5 @@ tạm không) · dữ liệu có bị sai hay bị lộ không.
    bỏ biến này để chạy được cả trong container.
 7. **Link commit và xác nhận:** [e91fdc1](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/commit/e91fdc1788fac83a8e24154d1b3f1130f2aae0a0) · làm lại bước gây lỗi: câu báo
    chỉ lệnh `docker compose`, không còn `brew`, `createdb`, không có mật khẩu; pytest 193 passed (.venv), 191 passed,
-   3 skipped (Docker).
+   3 skipped (Docker). Ảnh: `docs/screenshots/PT-07-mat-csdl.png`.
 

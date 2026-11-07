@@ -241,7 +241,7 @@ không tồn tại).
 | Mục | Đạt | Minh chứng |
 |---|---|---|
 | C1 · CỐT LÕI – dựng lại từ thư mục trống bằng ≤ 2 lệnh theo Guide | ✔ | `cp .env.example .env` · `docker compose up -d --build`; phép thử máy trắng: `docs/test-report.md` mục 4; GitHub Actions làm lại ở mỗi lần push |
-| C2 · CỐT LÕI – Test Report 10 – 12 test case đủ tám cột, đủ năm loại | ✔ | `docs/test-report.md` (12 test case); `docs/test-plan.md` mục 2 |
+| C2 · CỐT LÕI – Test Report 10 – 12 test case đủ tám cột, đủ năm loại | ✔ | `docs/test-report.md` (12 test case); `docs/test-plan.md` mục 1 (đối chiếu 12 quy tắc của SRS: 8 đã hiện thực đều có test) và mục 2 |
 | C3 · CỐT LÕI – PASS bằng một lệnh; một test case chạy lại tại chỗ | ✔ | `python -m pytest -q` → 194 passed, 3 skipped; `python -m tests.tc_bt3 TC-xx` |
 | C4 · CỐT LÕI – Bug Log ≥ 3 bug, ≥ 1 Critical/Major, link commit | ✔ | `docs/bug-log.md`: BUG-15 Major, BUG-16 Critical, BUG-17 Major, BUG-18 Minor – mỗi bug một commit `fix(…)` |
 | C5 – Deployment Guide đủ năm mục, có mục cách kiểm tra | ✔ | `docs/deployment-guide.md` (tiếng Anh) |
@@ -249,7 +249,7 @@ không tồn tại).
 | C7 – không có secret trong repo, `.env` chưa từng chứa khóa thật | ✔ | checklist mục 1 (quét repo và lịch sử): `.env` từng bị commit một lần (`39020f3`, 25/09) và đã gỡ (`ef28fe3`, 19/10) – dòng `DB_PASSWORD` khi đó để trống nên không có khóa nào phải đổi; hiện chỉ có hai mật khẩu mẫu trong `.env.example` |
 | C8 – chạy lại nạp dữ liệu không lỗi, không nhân đôi | ✔ | TC-11; `docker compose up -d` lần hai → "mọi bảng +0" |
 | C9 – tài liệu theo track mô tả đúng hệ thống | ✔ | `tests/test_tai_lieu.py` đối chiếu từ điển dữ liệu với CSDL thật |
-| D1 – Pipeline doc đủ sáu mục, có hạn chế đã biết | ✔ | `docs/pipeline-doc.md` |
+| D1 – Pipeline doc đủ sáu mục, có hạn chế đã biết nêu ảnh hưởng nghiệp vụ | ✔ | `docs/pipeline-doc.md` – mục 1 sơ đồ các pha; mục 6 bảng tám hạn chế, mỗi hạn chế có ảnh hưởng nghiệp vụ và cách xử lý |
 | D2 – Data dictionary mọi cột của mọi bảng đích, đủ sáu trường | ✔ | `docs/data-dictionary.md` – 11 bảng (8 bảng đích nhận dòng mỗi lần nạp + 3 bảng cấu hình/lịch) + 3 view, 147 cột |
 | D3 – đo đủ ba chiều chất lượng; độ đầy đủ theo từng cột với ngưỡng riêng | ✔ | DQ-01 – DQ-06 (COMPLETENESS, VALIDITY, UNIQUENESS); `nguong_day_du` (TD-38), TC-10 |
 | D4 – cột định danh cá nhân bị loại khỏi view phân tích | ✔ | Kho `dwh` và view `v_rule_rate`, `v_batch_score` không có họ tên, số điện thoại; dashboard chỉ đọc được `dwh` (TC-12) |

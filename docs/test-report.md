@@ -18,8 +18,11 @@ trước test case – viết tắt **[CSDL sạch]** trong bảng.
 | 2 | 07/11/2026 · sau commit `a3566b0` (BUG-15) và `aab583b` (BUG-16); lần cuối ở commit ghi trên nhãn ảnh `TC-xx.png` | môi trường thử như lần 1 và Docker (`docker compose run --rm pipeline …`) | **12/12 PASS** |
 | 3 | mỗi lần push · GitHub Actions | máy ảo Ubuntu mới, ảnh Docker thật từ Docker Hub | `pytest` 194 passed, 3 skipped (gồm 12 test case) – xanh ([lần chạy ở commit `49ea1ba`](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42379457800)) |
 
-TC-08 được làm chặt hơn sau rà soát: nạp sẵn 414 dòng rồi mới đưa tệp thiếu cột, để thấy tệp hỏng không đụng tới dữ
-liệu đang có. Bản mới chạy trên mã nguồn `574bfd0` vẫn PASS, nên cột "Lần 1" không đổi.
+Ba test case được làm chặt hơn sau lượt rà soát, khi đối chiếu với bảng quy tắc nghiệp vụ của SRS mục 5: **TC-08**
+nạp sẵn 414 dòng rồi mới đưa tệp thiếu cột (thấy được tệp hỏng không đụng tới dữ liệu đang có); **TC-02** kiểm thêm
+QL7-01 (cặp điểm 100 vẫn chờ người xác nhận, không tự gộp); **TC-12** kiểm thêm QT-14 (phạm vi xem theo đơn vị) – quy
+tắc đã hiện thực ở `src/doc_kho.py` nhưng trước đó chỉ có test đơn vị. Chạy bản mới trên mã nguồn `574bfd0`: TC-02,
+TC-08 PASS; TC-12 vẫn FAIL ở bước 3 (BUG-16), bước QT-14 PASS – cột "Lần 1" không đổi.
 
 Ảnh kết quả từng test case: `docs/screenshots/TC-01.png` … `TC-12.png`; ảnh lần chạy FAIL: `TC-09-lan1-FAIL.png`,
 `TC-12-lan1-FAIL.png`; ảnh phép thử máy trắng: `PT-01-hai-lenh.png` … `PT-07-mat-csdl.png`. Nơi chạy và cách tạo
@@ -30,7 +33,7 @@ từng ảnh: `docs/screenshots/README.md`.
 | Mã | Test case | Loại | Truy vết | Ưu tiên | Lần 1 | Lần cuối |
 |---|---|---|---|---|---|---|
 | TC-01 | Chuẩn hóa số điện thoại về 0xxxxxxxxx | Luồng đúng | QT-02, FR-02 | Cao | PASS | PASS |
-| TC-02 | Hồ sơ lặp số không tạo khách hàng mới | Luồng đúng | QT-01, QL7-02 | Cao | PASS | PASS |
+| TC-02 | Hồ sơ lặp số không tạo khách hàng mới, không tự gộp | Luồng đúng | QT-01, QL7-01, QL7-02 | Cao | PASS | PASS |
 | TC-03 | Điểm tương đồng của cặp FUZZY | Luồng đúng | QL7-03 | Trung bình | PASS | PASS |
 | TC-04 | Hồ sơ lỗi ở lại bảng tạm kèm lý do | Luồng đúng | QL7-04, FR-10 | Cao | PASS | PASS |
 | TC-05 | Tệp 10 dòng khớp tính tay | Luồng đúng | QL7-06, QL7-04, QT-01 | Cao | PASS | PASS |
@@ -40,7 +43,7 @@ từng ảnh: `docs/screenshots/README.md`.
 | TC-09 | Ngày tạo sai vào bảng reject kèm lý do | Dữ liệu sai | data-requirements mục 3, QL7-04 | Trung bình | **FAIL** → BUG-15 | PASS |
 | TC-10 | Cố ý vi phạm ngưỡng – hệ thống phát hiện, báo | Chất lượng dữ liệu | D3, QL7-06 (DQ-01) | Cao | PASS | PASS |
 | TC-11 | Chạy lại cùng tệp không nhân đôi | Tái lập | AC1.4, NFR-05 | Cao | PASS | PASS |
-| TC-12 | Tài khoản dashboard không đọc được dữ liệu cá nhân | Bảo mật | NFR-07, TD-19 | Cao | **FAIL** → BUG-16 | PASS |
+| TC-12 | Dashboard chỉ đọc được phần dữ liệu được phép | Bảo mật | NFR-07, QT-14, TD-19 | Cao | **FAIL** → BUG-16 | PASS |
 
 ## 3. Chi tiết 12 test case (tám cột)
 
@@ -56,16 +59,16 @@ từng ảnh: `docs/screenshots/README.md`.
 | Kết quả thực tế | mã thoát 0; `ops.customer_clean` 0 → 4; "+84 912 345 678" → 0912345678 (CLEAN) · "0987.654.321" → 0987654321 (CLEAN) · "84903111222" → 0903111222 (CLEAN) · "0933-444-555" → 0933444555 (CLEAN) |
 | PASS/FAIL | **PASS** · `docs/screenshots/TC-01.png` |
 
-### TC-02 · Hồ sơ lặp số không tạo khách hàng mới (QT-01)
+### TC-02 · Hồ sơ lặp số không tạo khách hàng mới, không tự gộp (QT-01, QL7-01)
 
 | Cột | Nội dung |
 |---|---|
 | Tiền điều kiện | [CSDL sạch] |
-| Các bước | 1. `python -m src.pipeline --tep tests/du_lieu_tc/tc02_ho_so_lap.csv` · 2. đếm `customer_clean`, trạng thái `stg_customer`, cặp `dup_candidate` |
+| Các bước | 1. `python -m src.pipeline --tep tests/du_lieu_tc/tc02_ho_so_lap.csv` · 2. đếm `customer_clean`, trạng thái `stg_customer`, cặp `dup_candidate` và trạng thái cặp |
 | Dữ liệu thử | 3 hồ sơ; dòng 1 `0912345678` và dòng 2 `0912 345 678` là cùng một số |
-| Kết quả mong đợi | `customer_clean` 0 → 2 (không phải 3); CLEAN 2 · PENDING_DUP 1; 1 cặp EXACT_PHONE dòng 1 ↔ dòng 2 |
+| Kết quả mong đợi | `customer_clean` 0 → 2 (không phải 3); CLEAN 2 · PENDING_DUP 1; 1 cặp EXACT_PHONE dòng 1 ↔ dòng 2 ở trạng thái PENDING dù điểm 100, không hồ sơ nào MERGED (QL7-01: không tự động gộp) |
 | Ưu tiên | Cao |
-| Kết quả thực tế | mã thoát 0; `ops.customer_clean` 0 → 2 (tệp 3 dòng); trạng thái CLEAN 2 · PENDING_DUP 1; cặp dòng 1 ↔ dòng 2 EXACT_PHONE 100,00 |
+| Kết quả thực tế | mã thoát 0; `ops.customer_clean` 0 → 2 (tệp 3 dòng); trạng thái CLEAN 2 · PENDING_DUP 1; cặp dòng 1 ↔ dòng 2 EXACT_PHONE 100,00, trạng thái cặp PENDING; hồ sơ MERGED: 0 |
 | PASS/FAIL | **PASS** · `docs/screenshots/TC-02.png` |
 
 ### TC-03 · Điểm tương đồng của cặp FUZZY (QL7-03)
@@ -176,16 +179,16 @@ từng ảnh: `docs/screenshots/README.md`.
 | Kết quả thực tế | lần 1: mã thoát 0; lần 2: mã thoát 0; "CẢNH BÁO (AC1.4): tệp này đã nạp ở đợt 1 (customers_mau.csv, …) → không tạo đợt mới"; sau lần 1 → sau lần 2: load_batch 1→1 · stg_customer 414→414 · customer_clean 343→343 · dq_result 12→12 · dup_candidate 43→43 · dim_batch 1→1 · fact_dq_check 12→12 · fact_dup_pair 43→43 |
 | PASS/FAIL | **PASS** · `docs/screenshots/TC-11.png` |
 
-### TC-12 · Tài khoản dashboard không đọc được dữ liệu cá nhân (NFR-07)
+### TC-12 · Dashboard chỉ đọc được phần dữ liệu được phép (NFR-07, QT-14)
 
 | Cột | Nội dung |
 |---|---|
-| Tiền điều kiện | [CSDL sạch]; đã chạy luồng chính trên `tc01_chuan_hoa_so.csv`; `.env` theo `.env.example` |
-| Các bước | 1. mở kết nối đúng như dashboard: `db.tao_engine_chi_doc()` · 2. `SELECT count(*) FROM dwh.v_batch_score` · 3. `SELECT full_name_raw, phone_raw FROM ops.stg_customer` |
-| Dữ liệu thử | kho sau khi nạp 4 hồ sơ của TC-01 |
-| Kết quả mong đợi | đọc được kho `dwh`; bị PostgreSQL từ chối khi đọc `ops.stg_customer` (permission denied) |
+| Tiền điều kiện | [CSDL sạch]; `.env` theo `.env.example`; nạp `tc01_chuan_hoa_so.csv` cho đơn vị MM001 và `tc02_ho_so_lap.csv` cho đơn vị MM002 (`--don-vi`) |
+| Các bước | 1. mở kết nối đúng như dashboard: `db.tao_engine_chi_doc()` · 2. `SELECT batch_key, measure_stage, clean_index FROM dwh.v_batch_score` · 3. `SELECT full_name_raw, phone_raw FROM ops.stg_customer` · 4. `doc_kho.doc_dot()` – hàm dashboard dùng – cho người xem `my.marketing`, `ql.mm001`, và `ql.mm001` tự chọn đơn vị MM002 |
+| Dữ liệu thử | kho có 2 đợt: tc01 (MM001), tc02 (MM002); người xem và đơn vị trong `configs/config.yaml` |
+| Kết quả mong đợi | đọc được kho `dwh` (2 đợt × 2 lần đo = 4 dòng); bị PostgreSQL từ chối khi đọc `ops.stg_customer` (permission denied); QT-14: `my.marketing` (văn phòng) thấy MM001, MM002 · `ql.mm001` chỉ thấy MM001 · `ql.mm001` chọn MM002 → không đợt nào |
 | Ưu tiên | Cao |
-| Kết quả thực tế | **Lần 1 (commit `574bfd0`):** kết nối dùng tài khoản `postgres` (tài khoản của pipeline); kho: ĐỌC ĐƯỢC 1 dòng; `ops.stg_customer` (họ tên, số điện thoại): **ĐỌC ĐƯỢC** → ghi BUG-16. **Lần 2 (sau `aab583b`):** tài khoản `dash_reader`; kho: ĐỌC ĐƯỢC 1 dòng; `ops.stg_customer`: bị từ chối – "permission denied for schema ops" |
+| Kết quả thực tế | **Lần 1 (mã nguồn `574bfd0`):** kết nối dùng tài khoản của pipeline (`postgres` ở `.venv`, `smartcrm` trong Docker); kho ĐỌC ĐƯỢC; `ops.stg_customer` (họ tên, số điện thoại): **ĐỌC ĐƯỢC** → ghi BUG-16. **Lần cuối (sau `aab583b`):** tài khoản `dash_reader`; kho: ĐỌC ĐƯỢC 4 dòng; `ops.stg_customer`: bị từ chối – "permission denied for schema ops"; QT-14: `my.marketing` thấy MM001, MM002 · `ql.mm001` thấy MM001 · `ql.mm001` chọn MM002 → không đợt nào |
 | PASS/FAIL | **FAIL → PASS** · `docs/screenshots/TC-12-lan1-FAIL.png`, `TC-12.png` |
 
 ## 4. PT-01 – phép thử máy trắng (kiểm thử đầu-cuối của gói đóng gói)

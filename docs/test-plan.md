@@ -7,20 +7,35 @@ Kết quả chạy: `docs/test-report.md` · lỗi đã sửa: `docs/bug-log.md`
 
 **Kiểm** – mọi thứ hệ thống đang làm khi chạy lệnh `python -m src.pipeline` (README mục 3, Docker: dịch vụ `pipeline`):
 
-- năm quy tắc nghiệp vụ đã hiện thực: **QT-02** chuẩn hóa số điện thoại · **QT-01** hồ sơ lặp số không tạo khách hàng
-  mới · **QL7-03** điểm tương đồng (cùng ngưỡng **QL7-02** = 85) · **QL7-04** hồ sơ lỗi ở lại bảng tạm kèm lý do ·
-  **QL7-06** chỉ số mức độ sạch;
+- **tám quy tắc nghiệp vụ đã hiện thực** trong bảng quy tắc của SRS mục 5 (bảng dưới; bốn quy tắc còn lại thuộc UC5 Gộp /
+  Giữ riêng hoặc màn hình hiển thị số điện thoại – chưa hiện thực nên không kiểm);
 - kiểm tra tệp đầu vào: thiếu cột (AC1.3), nạp lại cùng tệp (AC1.4), ngày tạo phải hợp lệ (data-requirements mục 3);
-- chất lượng dữ liệu theo từng cột có ngưỡng riêng (D3) và bảo mật của kết nối dashboard (NFR-07);
+- chất lượng dữ liệu theo từng cột có ngưỡng riêng (D3) và bảo mật của dashboard: tài khoản chỉ đọc (NFR-07) và phạm vi xem theo đơn vị (QT-14);
 - đóng gói: phép thử máy trắng **PT-01** theo `docs/deployment-guide.md` (dựng bằng hai lệnh, mục 5 có tám bước kiểm
   tra) cộng ba bước kiểm checklist bảo mật: quét secret, quét lỗ hổng phụ thuộc (`pip-audit`), gây lỗi mất CSDL.
+
+Đối chiếu 12 quy tắc của SRS mục 5 với test case:
+
+| Quy tắc | Đã hiện thực? | Test case |
+|---|---|---|
+| QT-02 chuẩn hóa số về 0 + 9 chữ số | Có – `transform.py` | TC-01 (luồng đúng), TC-05 |
+| QT-01 số đã có thì không tạo khách hàng mới | Có – `transform.py`, `load_ops.py` | TC-02 (luồng đúng), TC-05 |
+| QT-14 chỉ xem dữ liệu đơn vị mình | Có – `src/doc_kho.py` (dashboard) | TC-12 (văn phòng thấy mọi đơn vị, quản lý chỉ thấy đơn vị mình, chọn đơn vị khác không vượt quyền) |
+| QL7-01 không tự động gộp, kể cả điểm 100 | Có – hệ thống không có thao tác gộp nào | TC-02 (cặp điểm 100 vẫn PENDING, 0 hồ sơ MERGED) |
+| QL7-02 tạo cặp khi cùng số hoặc điểm ≥ 85 | Có – `match.py` | TC-02, TC-03 (luồng đúng); TC-06, TC-07 (giá trị biên) |
+| QL7-03 điểm = 0,6 × số + 0,4 × họ tên | Có – `match.py` | TC-03 (luồng đúng), TC-06, TC-07 |
+| QL7-04 hồ sơ không có số hợp lệ ở lại bảng tạm | Có – `transform.py`, `v_reject` | TC-04 (luồng đúng), TC-09 |
+| QL7-06 chỉ số mức độ sạch | Có – `dq_evaluate.py`, `dwh.v_batch_score` | TC-05 (luồng đúng, tính tay), TC-10 |
+| QL7-05 cặp đã Giữ riêng không đề xuất lại | Một phần: cặp đã có không tạo lại; "Giữ riêng" thuộc UC5 | phần đã có: TC-11 (`dup_candidate` 43 → 43); phần UC5: không kiểm |
+| QT-13 không xóa vật lý · QL7-07 gộp phải chọn số chính | Không – thuộc UC5 Gộp (TD-27, TD-41) | không kiểm |
+| QT-15 che số điện thoại khi hiển thị | Không áp dụng – không màn hình nào hiển thị số điện thoại (kho `dwh` không có cột này, TC-12) | không kiểm |
 
 **Chủ ý KHÔNG kiểm**, kèm lý do:
 
 | Phần | Lý do |
 |---|---|
-| UC5 Gộp / Giữ riêng, K4, sửa quy tắc trên giao diện (UC6) | Chưa hiện thực (TD-27, TD-41) – không kiểm thứ hệ thống chưa làm |
-| Bố cục, màu sắc của dashboard | Chỉ hiển thị, không có quy tắc nghiệp vụ. Số liệu dashboard đọc được kiểm ở kho (TC-05, TC-10) và 31 test của `src/doc_kho.py`; ba trạng thái đã chụp ở BT2 |
+| UC5 Gộp / Giữ riêng (kèm QT-13, QL7-05 phần Giữ riêng, QL7-07), K4, sửa quy tắc trên giao diện (UC6) | Chưa hiện thực (TD-27, TD-41) – không kiểm thứ hệ thống chưa làm |
+| Bố cục, màu sắc của dashboard | Chỉ hiển thị, không có quy tắc nghiệp vụ. Quy tắc duy nhất của dashboard (QT-14) kiểm ở TC-12; số liệu dashboard đọc được kiểm ở kho (TC-05, TC-10) và 31 test của `src/doc_kho.py`; ba trạng thái đã chụp ở BT2 |
 | Hiệu năng NFR-01, NFR-02 | Đề BT3 không yêu cầu; NFR-01 đã đo ở BT1 – BT2, pipeline vẫn in thời gian mỗi lần chạy |
 | Kiểm thử xâm nhập, độ phủ cao, CI/CD đầy đủ | Đề BT3 mục 1 ghi "KHÔNG yêu cầu" |
 | `notebooks/profiling_customers.py` | Công cụ phân tích dùng một lần ở BT1, không thuộc luồng chạy |
@@ -38,10 +53,10 @@ Tổng 197 test trong một lệnh `python -m pytest -q`. Phân bổ 12 test cas
 
 | Loại | Số | Test case | Yêu cầu tối thiểu |
 |---|---:|---|---|
-| Luồng đúng | 5 | TC-01 (QT-02) · TC-02 (QT-01) · TC-03 (QL7-03) · TC-04 (QL7-04) · TC-05 (QL7-06) | 1 test cho mỗi quy tắc |
+| Luồng đúng | 5 | TC-01 (QT-02) · TC-02 (QT-01, QL7-01) · TC-03 (QL7-03, QL7-02) · TC-04 (QL7-04) · TC-05 (QL7-06) – QT-14 có luồng đúng trong TC-12 | 1 test cho mỗi quy tắc |
 | Giá trị biên | 2 | TC-06 điểm 85,43 · TC-07 điểm 84,97 – hai bên ngưỡng 85 | 2, hai bên một ranh giới |
 | Dữ liệu sai | 2 | TC-08 tệp thiếu cột · TC-09 ngày tạo sai | 2 |
-| Chất lượng dữ liệu / bảo mật | 2 | TC-10 cố ý vi phạm ngưỡng · TC-12 tài khoản dashboard không đọc được dữ liệu cá nhân | 1 |
+| Chất lượng dữ liệu / bảo mật | 2 | TC-10 cố ý vi phạm ngưỡng (đo độ đầy đủ – một trong ba chiều) · TC-12 dashboard chỉ đọc được phần được phép (NFR-07, QT-14) | 1 |
 | Tái lập | 1 | TC-11 chạy lại cùng tệp | 1 |
 
 ## 3. Tiêu chí thành công ĐO ĐƯỢC
@@ -53,11 +68,12 @@ Tổng 197 test trong một lệnh `python -m pytest -q`. Phân bổ 12 test cas
 5. PT-01: mọi bước đúng kết quả mong đợi ở Guide mục 5; chạy lại lần hai +0 ở cả 8 bảng đích.
 6. `pip-audit -r requirements.txt`: 0 lỗ hổng đã biết; quét repo và lịch sử commit: 0 secret.
 
-**"Làm sao biết đã kiểm thử ĐỦ?"** – L7 có năm quy tắc nghiệp vụ đã hiện thực; mỗi quy tắc có một test luồng đúng
-(TC-01 – TC-05), ngưỡng 85 – ranh giới quan trọng nhất của phát hiện trùng – có hai test ở hai phía (TC-06, TC-07).
-Thêm hai test dữ liệu sai (TC-08, TC-09), một test chất lượng (TC-10), một test bảo mật (TC-12) và một test tái lập
-(TC-11). Em cố ý không kiểm UC5, K4 vì chưa hiện thực, và không kiểm bố cục dashboard vì nó không có quy tắc nghiệp
-vụ – đã ghi ở mục 1.
+**"Làm sao biết đã kiểm thử ĐỦ?"** – Em đối chiếu cả 12 quy tắc của SRS mục 5 (bảng ở mục 1): tám quy tắc đã hiện
+thực, quy tắc nào cũng có ít nhất một test luồng đúng (TC-01 – TC-05, phần QT-14 của TC-12); ngưỡng 85 – ranh giới
+quan trọng nhất của phát hiện trùng – có hai test ở hai phía (TC-06, TC-07). Thêm hai test dữ liệu sai (TC-08,
+TC-09), một test chất lượng (TC-10), một test bảo mật (TC-12) và một test tái lập (TC-11). Bốn quy tắc còn lại thuộc
+UC5 hoặc màn hình hiển thị số – chưa hiện thực nên em cố ý không kiểm; bố cục dashboard cũng không kiểm vì không có
+quy tắc nghiệp vụ – đã ghi lý do ở mục 1.
 
 ## 4. Môi trường và dữ liệu thử
 

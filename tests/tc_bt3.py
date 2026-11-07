@@ -147,11 +147,13 @@ def tc02(mt):
     r = mt.pipeline('--tep', _tep('tc02_ho_so_lap.csv'))
     sau = mt.dem()
     tt, cap = (_trang_thai(mt), _cap(mt)) if r.ma_thoat == 0 else ({}, [])
+    tt_cap = [s for (s,) in mt.sql('SELECT status FROM ops.dup_candidate ORDER BY 1')] if r.ma_thoat == 0 else []
     thuc_te = [f'mã thoát {r.ma_thoat}; ' + _doi(truoc, sau, 'ops.customer_clean') + ' (tệp 3 dòng)',
                'trạng thái: ' + ' · '.join(f'{k} {v}' for k, v in sorted(tt.items())),
-               'cặp: ' + _mo_ta_cap(cap)]
+               'cặp: ' + _mo_ta_cap(cap) + '; trạng thái cặp: ' + (', '.join(tt_cap) or '–')
+               + f"; hồ sơ MERGED: {tt.get('MERGED', 0)}"]
     dat = (r.ma_thoat == 0 and sau['ops.customer_clean'] == 2 and tt == {'CLEAN': 2, 'PENDING_DUP': 1}
-           and [(a, b, t) for a, b, t, _ in cap] == [(1, 2, 'EXACT_PHONE')])
+           and [(a, b, t) for a, b, t, _ in cap] == [(1, 2, 'EXACT_PHONE')] and tt_cap == ['PENDING'])
     return thuc_te, dat
 
 
@@ -281,10 +283,12 @@ def tc11(mt):
 
 def tc12(mt):
     from sqlalchemy import text
-    r = mt.pipeline('--tep', _tep('tc01_chuan_hoa_so.csv'))
-    if r.ma_thoat != 0:
-        return [f'mã thoát {r.ma_thoat}: {r.loi.strip()[:200]}'], False
-    from src import db
+    for tep, don_vi in (('tc01_chuan_hoa_so.csv', 'MM001'), ('tc02_ho_so_lap.csv', 'MM002')):
+        r = mt.pipeline('--tep', _tep(tep), '--don-vi', don_vi)
+        if r.ma_thoat != 0:
+            return [f'nạp {tep} cho {don_vi}: mã thoát {r.ma_thoat}: {r.loi.strip()[:200]}'], False
+    from src import db, doc_kho
+    from src.config import doc_cau_hinh
     cu = os.environ.get('DB_NAME')
     os.environ['DB_NAME'] = mt.ten_csdl
     try:
@@ -294,7 +298,7 @@ def tc12(mt):
             return [f'không mở được kết nối của dashboard: {type(loi).__name__}: {loi}'], False
         tai_khoan = e.url.username or '(tài khoản hệ điều hành)'
         ket_qua = {}
-        for nhan, cau in (('kho dwh.v_batch_score', 'SELECT count(*) FROM dwh.v_batch_score'),
+        for nhan, cau in (('kho dwh.v_batch_score', 'SELECT batch_key, measure_stage, clean_index FROM dwh.v_batch_score'),
                           ('ops.stg_customer (họ tên, số điện thoại)',
                            'SELECT full_name_raw, phone_raw FROM ops.stg_customer LIMIT 1')):
             try:
@@ -303,6 +307,14 @@ def tc12(mt):
                 ket_qua[nhan] = (True, f'ĐỌC ĐƯỢC {len(dong)} dòng')
             except Exception as loi:                   # noqa: BLE001
                 ket_qua[nhan] = (False, 'bị từ chối: ' + str(getattr(loi, 'orig', loi)).splitlines()[0])
+        cau_hinh = doc_cau_hinh()                      # QT-14: người xem → đơn vị được xem (configs/config.yaml)
+        thay = {}
+        for nguoi, chon in (('my.marketing', []), ('ql.mm001', []), ('ql.mm001', ['MM002'])):
+            pham_vi = doc_kho.don_vi_duoc_xem(cau_hinh, nguoi)
+            with e.connect() as conn:
+                dot = doc_kho.doc_dot(conn, pham_vi, chon, None, None)
+            don_vi_thay = sorted(dot['source_unit']) if 'source_unit' in dot else []
+            thay[(nguoi, tuple(chon))] = don_vi_thay
         e.dispose()
     finally:
         if cu is None:
@@ -311,7 +323,13 @@ def tc12(mt):
             os.environ['DB_NAME'] = cu
     thuc_te = [f'kết nối của dashboard dùng tài khoản: {tai_khoan}']
     thuc_te += [f'{k}: {v}' for k, (_, v) in ket_qua.items()]
-    dat = ket_qua['kho dwh.v_batch_score'][0] and not ket_qua['ops.stg_customer (họ tên, số điện thoại)'][0]
+    mo_ta = lambda ds: ', '.join(ds) or 'không đợt nào'          # noqa: E731
+    thuc_te += [f"QT-14 my.marketing (văn phòng) thấy đợt của: {mo_ta(thay[('my.marketing', ())])}",
+                f"QT-14 ql.mm001 thấy đợt của: {mo_ta(thay[('ql.mm001', ())])}; "
+                f"tự chọn MM002: {mo_ta(thay[('ql.mm001', ('MM002',))])}"]
+    dat = (ket_qua['kho dwh.v_batch_score'][0] and not ket_qua['ops.stg_customer (họ tên, số điện thoại)'][0]
+           and thay[('my.marketing', ())] == ['MM001', 'MM002'] and thay[('ql.mm001', ())] == ['MM001']
+           and thay[('ql.mm001', ('MM002',))] == [])
     return thuc_te, dat
 
 
@@ -323,11 +341,13 @@ TCS = [
              '4 hồ sơ, 4 cách viết số: "+84 912 345 678" · "0987.654.321" · "84903111222" · "0933-444-555"',
              'mã thoát 0; phone_norm 0912345678 · 0987654321 · 0903111222 · 0933444555; 4 CLEAN; '
              'customer_clean 0 → 4', tc01),
-    CaKiemThu('TC-02', 'Hồ sơ lặp số điện thoại không tạo khách hàng mới', 'luong_dung', 'QT-01, QL7-02', 'Cao',
+    CaKiemThu('TC-02', 'Hồ sơ lặp số điện thoại không tạo khách hàng mới, không tự gộp', 'luong_dung',
+             'QT-01, QL7-01, QL7-02', 'Cao',
              DK_CHUNG, ['python -m src.pipeline --tep tests/du_lieu_tc/tc02_ho_so_lap.csv',
-                        'đếm customer_clean, trạng thái stg_customer, cặp dup_candidate'],
+                        'đếm customer_clean, trạng thái stg_customer, cặp dup_candidate và trạng thái cặp'],
              '3 hồ sơ; dòng 1 "0912345678" và dòng 2 "0912 345 678" là cùng một số',
-             'customer_clean 0 → 2 (không phải 3); CLEAN 2 · PENDING_DUP 1; 1 cặp EXACT_PHONE dòng 1 ↔ dòng 2', tc02),
+             'customer_clean 0 → 2 (không phải 3); CLEAN 2 · PENDING_DUP 1; 1 cặp EXACT_PHONE dòng 1 ↔ dòng 2 '
+             'ở trạng thái PENDING dù điểm 100, không hồ sơ nào MERGED (QL7-01: không tự động gộp)', tc02),
     CaKiemThu('TC-03', 'Điểm tương đồng của cặp FUZZY', 'luong_dung', 'QL7-03', 'Trung bình', DK_CHUNG,
              ['python -m src.pipeline --tep tests/du_lieu_tc/tc03_diem_tuong_dong.csv',
               'SELECT match_type, score FROM ops.dup_candidate'],
@@ -385,13 +405,16 @@ TCS = [
              'data/mau/customers_mau.csv (414 dòng, dữ liệu mẫu giả)',
              'cả hai lần mã thoát 0; lần 2 có "CẢNH BÁO (AC1.4)"; 8 bảng đích giống hệt lần 1 '
              '(stg_customer 414, dup_candidate 43)', tc11),
-    CaKiemThu('TC-12', 'Tài khoản dashboard không đọc được dữ liệu cá nhân', 'chat_luong_bao_mat',
-             'NFR-07, TD-19, checklist bảo mật mục 3', 'Cao',
-             DK_CHUNG + '; đã chạy luồng chính trên tc01_chuan_hoa_so.csv; .env theo .env.example',
+    CaKiemThu('TC-12', 'Dashboard chỉ đọc được phần dữ liệu được phép', 'chat_luong_bao_mat',
+             'NFR-07, QT-14, TD-19, checklist bảo mật mục 3', 'Cao',
+             DK_CHUNG + '; .env theo .env.example; nạp tc01 cho đơn vị MM001, tc02 cho đơn vị MM002',
              ['mở kết nối đúng như dashboard: db.tao_engine_chi_doc()',
-              'SELECT count(*) FROM dwh.v_batch_score', 'SELECT full_name_raw, phone_raw FROM ops.stg_customer'],
-             'kho sau khi nạp 4 hồ sơ của TC-01',
-             'đọc được kho dwh; bị PostgreSQL từ chối khi đọc ops.stg_customer (permission denied)', tc12),
+              'SELECT batch_key, measure_stage, clean_index FROM dwh.v_batch_score',
+              'SELECT full_name_raw, phone_raw FROM ops.stg_customer',
+              'doc_kho.doc_dot() cho người xem my.marketing, ql.mm001, và ql.mm001 tự chọn MM002'],
+             'kho có 2 đợt: tc01 (MM001), tc02 (MM002); người xem trong configs/config.yaml',
+             'đọc được kho dwh (2 đợt × 2 lần đo = 4 dòng); bị PostgreSQL từ chối khi đọc ops.stg_customer (permission denied); QT-14: '
+             'my.marketing thấy MM001, MM002 · ql.mm001 chỉ thấy MM001 · ql.mm001 chọn MM002 → không đợt nào', tc12),
 ]
 THEO_MA = {t.ma: t for t in TCS}
 

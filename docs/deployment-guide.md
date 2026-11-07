@@ -42,7 +42,7 @@ few seconds. Command 4 starts:
 | Service | What it is | Correct state |
 |---|---|---|
 | `db` | PostgreSQL 16 with database `smartcrm` (schemas `ops`, `dwh`) and a separate test database `smartcrm_test`, created on the first start by `docker/initdb/01-tao-csdl-kiem-thu.sh` | `Up (healthy)` – healthcheck `pg_isready` |
-| `pipeline` | One-shot batch job: loads the sample file, cleans it, measures quality, loads the warehouse, detects duplicate pairs (`python -m src.pipeline --tep data/mau/customers_mau.csv`) | `Exited (0)` – a finished batch job |
+| `pipeline` | One-shot batch job: loads the sample file, cleans it, measures quality, loads the warehouse, detects duplicate pairs (`python -m src.pipeline --tep data/mau/customers_mau.csv`) | `Exited (0)` – a finished batch job. It has no healthcheck because it does not keep running: Compose checks it by its exit code (`depends_on: condition: service_completed_successfully`), and `dashboard` starts only if it exited with 0 |
 | `dashboard` | Streamlit dashboard K1 – K3 at http://localhost:8501; starts only after `pipeline` finished successfully | `Up (healthy)` – healthcheck `/_stcore/health` |
 
 Stop the system: `docker compose down` (keeps the data) · remove everything including data: `docker compose down -v`.
@@ -98,7 +98,7 @@ Run these commands in the project folder after step 4. Each line gives the exact
 
 | # | Command | Expected result |
 |---|---|---|
-| 1 | `docker compose ps -a` | `db` and `dashboard`: `Up … (healthy)`; `pipeline`: `Exited (0)` |
+| 1 | `docker compose ps` (running services) · `docker compose ps -a` (also the finished job) | `ps`: `db` and `dashboard` both `Up … (healthy)` · `ps -a` adds `pipeline`: `Exited (0)` |
 | 2 | `curl -s http://localhost:8501/_stcore/health` (PowerShell: `curl.exe -s …`) | `ok` |
 | 3 | Open http://localhost:8501 in a browser | Title "Mức độ sạch dữ liệu khách hàng"; tab K1 shows **95,79** (after) and **88,41** (before), 414 records; tabs K2, K3 show the 6 rules and 43 pairs |
 | 4 | `docker compose logs pipeline` | Line `Số dòng: tệp 414 → bảng tạm 414 = sạch 343 + chờ quyết định 40 + lỗi 31` and the table of row counts of section 4 |
