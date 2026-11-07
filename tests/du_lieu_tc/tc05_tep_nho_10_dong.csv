@@ -1,0 +1,11 @@
+record_id,ho_ten,so_dien_thoai,email,dia_chi,ngay_tao
+1,Nguyễn Văn An,0901234567,an.nguyen@example.com,,2026-01-05
+2,Trần Thị Bình,0932111222,,,2026-01-06
+3,Lê Hoàng Cường,+84 945 333 444,,,2026-01-07
+4,Phạm Thu Dung,0976.555.666,dung@example,,2026-01-08
+5,Hoàng Minh Hà,,,,2026-01-09
+6,Nguyễn Văn An,0901234567,,,2026-02-10
+7,Vũ Ngọc Hùng,12345,,,2026-01-11
+8,Đặng Thu Lan,0918777888,lan.dang@example.com,,2026-01-12
+9,Bùi Quốc Long,0967888999,,,2026-01-13
+10,Đỗ Thị Mai,0388999000,,,2026-01-14

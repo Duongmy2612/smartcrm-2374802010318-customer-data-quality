@@ -27,6 +27,7 @@ def test_du_lieu_mau_ra_dung_so_lieu_readme(tmp_path):
     assert (bc['so_khop']['exact'], bc['so_khop']['fuzzy']) == (40, 3)
 
 
+@pytest.mark.tai_lap
 def test_tep_mau_sinh_lai_dung_tung_byte(tmp_path, monkeypatch):
     """NFR-05: chạy lại script sinh mẫu (seed 42) cho đúng tệp đã commit."""
     import importlib.util
@@ -59,6 +60,7 @@ def test_tep_mau_hong_bi_tu_choi_ma_thoat_2(ten_tep, cau, capsys):
     assert loi.startswith('TỪ CHỐI:') and cau in loi and 'Error' not in loi
 
 
+@pytest.mark.tai_lap
 def test_tep_mau_hong_sinh_lai_dung_tung_byte(tmp_path, monkeypatch):
     """NFR-05: ba tệp SAI và tệp nhãn đúng NFR-03 (TD-32) của data/mau cũng sinh lại đúng từng byte bằng script."""
     import importlib.util

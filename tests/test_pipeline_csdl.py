@@ -39,6 +39,7 @@ def test_nap_tep_ghi_dung_bang(csdl_test):
     assert _dem(engine, "SELECT clean_index FROM dwh.v_batch_score WHERE measure_stage = 'SAU'") > 0
 
 
+@pytest.mark.tai_lap
 def test_ac14_chay_lai_cung_tep_canh_bao_va_khong_nhan_doi(csdl_test):
     """AC1.4 + C5 (TD-25): chạy lại cùng tệp không có --nap-lai → cảnh báo đợt đã nạp, KHÔNG tạo đợt mới,
     mọi bảng đích +0; có --nap-lai (người dùng xác nhận) → đợt 2. [luồng đúng – chạy lại]"""
@@ -99,6 +100,7 @@ def test_nfr04_so_dang_hieu_luc_dung_mau_va_khong_trung(csdl_test):
     assert _dem(engine, "SELECT count(*) FROM ops.customer_clean WHERE phone !~ '^0[0-9]{9}$'") == 0
 
 
+@pytest.mark.tai_lap
 def test_ddl_chay_lai_khong_loi(csdl_test):
     engine, _, _ = csdl_test
     with engine.begin() as conn:
@@ -113,7 +115,7 @@ def test_ddl_chay_lai_khong_loi(csdl_test):
         assert conn.execute(text("SELECT count(*) FROM pg_trigger WHERE tgname = 'trg_dq_rule_updated_at'")).scalar_one() == 1
 
 
-@pytest.mark.luong_dung
+@pytest.mark.tai_lap
 def test_chay_lai_bang_lenh_tra_ma_0_va_khong_nhan_doi(csdl_test, capsys):
     """C5: gõ đúng lệnh của README hai lần → cả hai lần mã thoát 0; lần hai in +0 cho mọi bảng đích.
     [luồng đúng – chạy lại]"""

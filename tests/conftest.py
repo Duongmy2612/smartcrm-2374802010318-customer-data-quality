@@ -29,8 +29,9 @@ def csdl_test(monkeypatch, tmp_path):
     engine.dispose()
 
 
-# ------------------------------------------------------------------ tóm tắt theo ba loại kiểm thử của BT2
-LOAI = {'luong_dung': '1. luồng đúng', 'gia_tri_bien': '2. giá trị biên', 'du_lieu_sai': '3. dữ liệu sai'}
+# ------------------------------------------------------------------ tóm tắt theo năm loại kiểm thử của BT3
+LOAI = {'luong_dung': '1. luồng đúng', 'gia_tri_bien': '2. giá trị biên', 'du_lieu_sai': '3. dữ liệu sai',
+        'chat_luong_bao_mat': '4. chất lượng / bảo mật', 'tai_lap': '5. tái lập'}
 _dem_loai = {k: {'passed': 0, 'failed': 0, 'skipped': 0} for k in LOAI}
 
 
@@ -44,11 +45,11 @@ def pytest_runtest_makereport(item, call):
 
 
 def pytest_terminal_summary(terminalreporter):
-    """In cuối mỗi lần chạy: số test PASS theo ba loại (pytest.ini) – minh chứng C4 trong một lệnh."""
+    """In cuối mỗi lần chạy: số test PASS theo năm loại (pytest.ini) – minh chứng C3 của BT3 trong một lệnh."""
     if not any(sum(v.values()) for v in _dem_loai.values()):
         return
-    terminalreporter.section('Ba loại kiểm thử của BT2 (đánh dấu trong pytest.ini)')
+    terminalreporter.section('Năm loại kiểm thử của BT3 (đánh dấu trong pytest.ini)')
     for m, ten in LOAI.items():
         d = _dem_loai[m]
         them = ''.join(f' · {d[k]} {k}' for k in ('failed', 'skipped') if d[k])
-        terminalreporter.write_line(f'  {ten:<17} {d["passed"]:>3} passed{them}')
+        terminalreporter.write_line(f'  {ten:<25} {d["passed"]:>3} passed{them}')
