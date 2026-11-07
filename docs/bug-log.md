@@ -192,7 +192,9 @@ tạm không) · dữ liệu có bị sai hay bị lộ không.
 3. **Triệu chứng:** tệp 3 hồ sơ có ngày `31/02/2026` và `2026-02-30` → mã thoát 0, `customer_clean` 0 → 3,
    `ops.v_reject` 0 dòng; cả ba hồ sơ CLEAN.
 4. **Cách tái lập:** `git checkout 574bfd0` → `python -m tests.tc_bt3 TC-09` (hoặc nạp
-   `tests/du_lieu_tc/tc09_ngay_sai.csv` rồi `SELECT row_no, created_raw, status FROM ops.stg_customer`).
+   `tests/du_lieu_tc/tc09_ngay_sai.csv` rồi `SELECT row_no, created_raw, status FROM ops.stg_customer`). Không cần
+   Python – trong thư mục đã chạy Deployment Guide: `mkdir ../cu && git archive 574bfd0 | tar -x -C ../cu` →
+   `docker compose run --rm -v "$(pwd)/../cu:/app" pipeline python -m tests.tc_bt3 TC-09` (mã nguồn cũ, ảnh mới).
 5. **Nguyên nhân:** `transform.gan_ma_loi` chỉ xét số điện thoại và họ tên; cột `created_raw` được chép vào bảng tạm
    nhưng không hàm nào kiểm, dù `docs/data-requirements.md` mục 3 ghi `ngay_tao` phải là ngày hợp lệ dạng yyyy-mm-dd.
    Miền giá trị `error_code` (CHECK ở `sql/001`) cũng chỉ có ba mã, nên không có chỗ ghi lỗi này.
@@ -211,9 +213,10 @@ tạm không) · dữ liệu có bị sai hay bị lộ không.
 2. **Phát hiện bởi:** TC-12 (bảo mật), lần chạy 1 ngày 07/11/2026 ở commit `574bfd0` – kết quả FAIL.
 3. **Triệu chứng:** `db.tao_engine_chi_doc()` – đúng kết nối dashboard dùng – chạy được
    `SELECT full_name_raw, phone_raw FROM ops.stg_customer` và trả về dữ liệu; tài khoản kết nối là tài khoản của
-   pipeline (`postgres` trên máy thử).
+   pipeline (`postgres` trên máy thử `.venv`; `smartcrm` khi làm lại trong Docker).
 4. **Cách tái lập:** `git checkout 574bfd0`, `.env` theo `.env.example` (khi đó `DASH_DB_USER` trống) →
-   `python -m tests.tc_bt3 TC-12`.
+   `python -m tests.tc_bt3 TC-12`. Trong Docker như BUG-15:
+   `docker compose run --rm -e DASH_DB_USER= -e DASH_DB_PASSWORD= -v "$(pwd)/../cu:/app" pipeline python -m tests.tc_bt3 TC-12`.
 5. **Nguyên nhân:** khi `DASH_DB_USER` trống, `tao_engine_chi_doc` dùng lại `DB_USER` – tài khoản có mọi quyền trên
    `ops` – và chỉ đặt `default_transaction_read_only=on`. Tùy chọn này chặn GHI chứ không chặn ĐỌC, nên phần quyền
    đọc vẫn là của pipeline. Tài khoản riêng `dash_reader` được thiết kế ở TD-19 nhưng hoãn sang Giai đoạn 3 (TD-27).
