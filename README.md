@@ -240,9 +240,9 @@ không tồn tại).
 
 | Mục | Đạt | Minh chứng |
 |---|---|---|
-| C1 · CỐT LÕI – dựng lại từ thư mục trống bằng ≤ 2 lệnh theo Guide | ✔ | `cp .env.example .env` · `docker compose up -d --build`; phép thử máy trắng: `docs/test-report.md` mục 4; GitHub Actions làm lại ở mỗi lần push |
+| C1 · CỐT LÕI – dựng lại từ thư mục trống bằng ≤ 2 lệnh theo Guide | ✔ | `cp .env.example .env` · `docker compose up -d --build`; phép thử máy trắng trên MacBook ngày 08/11/2026 (ảnh `docs/screenshots/PT-01` … `PT-08`), `docs/test-report.md` mục 4; GitHub Actions làm lại ở mỗi lần push |
 | C2 · CỐT LÕI – Test Report 10 – 12 test case đủ tám cột, đủ năm loại | ✔ | `docs/test-report.md` (12 test case); `docs/test-plan.md` mục 1 (đối chiếu 12 quy tắc của SRS: 8 đã hiện thực đều có test) và mục 2 |
-| C3 · CỐT LÕI – PASS bằng một lệnh; một test case chạy lại tại chỗ | ✔ | `python -m pytest -q` → 194 passed, 3 skipped; `python -m tests.tc_bt3 TC-xx` |
+| C3 · CỐT LÕI – PASS bằng một lệnh; một test case chạy lại tại chỗ | ✔ | `docker compose run --rm pipeline python -m pytest -q` → 194 passed, 3 skipped; `docker compose run --rm pipeline python -m tests.tc_bt3 TC-xx` (ảnh `docs/screenshots/TC-01` … `TC-12`, chụp trên MacBook) |
 | C4 · CỐT LÕI – Bug Log ≥ 3 bug, ≥ 1 Critical/Major, link commit | ✔ | `docs/bug-log.md`: BUG-15 Major, BUG-16 Critical, BUG-17 Major, BUG-18 Minor – mỗi bug một commit `fix(…)` |
 | C5 – Deployment Guide đủ năm mục, có mục cách kiểm tra | ✔ | `docs/deployment-guide.md` (tiếng Anh) |
 | C6 – checklist bảo mật bảy mục có minh chứng | ✔ | `docs/checklist-bao-mat.md`: 6 mục DONE, mục 4 NOT DONE (ghi trung thực, có lý do) |

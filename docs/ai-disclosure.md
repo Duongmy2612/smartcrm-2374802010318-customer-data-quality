@@ -95,9 +95,9 @@ Họ tên: Dương Diễm My · MSSV: 2374802010318 · Ngày: 31/10/2026
 Em dùng Claude (Anthropic) trong một phiên làm việc ngày 07 – 08/11/2026. Claude đọc đề BT3, slide buổi 14 và repo; viết
 test case, chạy chúng lần đầu trên môi trường thử Linux của Claude, gỡ và sửa bốn bug tìm thấy, viết phần đóng gói,
 tài liệu và khung báo cáo PDF, commit và đẩy lên GitHub (các commit từ `af63f50` có dòng `Co-Authored-By: Claude`).
-Phần em tự làm: chạy lại 12 test case và phép thử máy trắng trên MacBook bằng script `chup-anh-bt3.sh` (Claude viết), chụp ảnh
+Phần em tự làm: chạy phép thử máy trắng và 12 test case trên MacBook theo danh sách lệnh Claude soạn, chụp 22 ảnh
 `docs/screenshots/`, đọc lại và xác nhận các mục dưới.
-Như BT2, cột cuối có phần kiểm chứng bằng máy và các ô em xác nhận ([x]); tag `v1.0` gắn sau khi có ảnh chụp trên MacBook.
+Như BT2, cột cuối có phần kiểm chứng bằng máy và các ô em xác nhận ([x]); tag `v1.0` gắn sau khi có ảnh chụp trên MacBook (08/11/2026).
 
 | Công cụ | Dùng vào việc gì | Áp dụng ở tệp / hàm nào | Em đã kiểm chứng thế nào |
 |---|---|---|---|
@@ -106,9 +106,9 @@ Như BT2, cột cuối có phần kiểm chứng bằng máy và các ô em xác
 | Claude (Anthropic) | Đo độ đầy đủ theo từng cột với ngưỡng riêng (D3) | `src/etl/dq_evaluate.py`: `DoDayDu`, `do_day_du_theo_cot`; `configs/config.yaml`: `nguong_day_du`; `src/pipeline.py`: `_day_du` – TD-38 | Máy: 3 test mới, TC-10 PASS; số trên dữ liệu thật khớp SRS 4.1 (`so_dien_thoai` 93,83%, `email` 55,01%, `dia_chi` 91,02%). [x] Em đồng ý với bốn ngưỡng giám sát em chưa có yêu cầu của khách hàng (TD-38) |
 | Claude (Anthropic) | Đóng gói Docker, CI, phép thử máy trắng lần 1; gỡ và sửa BUG-17 (pillow có lỗ hổng), BUG-18 (câu báo lỗi sai môi trường) | `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `.gitattributes`, `docker/initdb/`, `.github/workflows/ci.yml`; `requirements.txt` (khóa đủ 47 gói); `src/pipeline.py`: `cach_sua_ket_noi` – TD-35, TD-40 | Máy: phép thử máy trắng trên Linux của Claude (ảnh gốc dựng lại cục bộ vì registry bị chặn) và trên GitHub Actions với ảnh thật – mọi bước xanh; `pip-audit` 0 lỗ hổng. [x] Em làm phép thử máy trắng trên MacBook đúng các bước của đề mục 2.4 và ra đúng kết quả của Guide mục 5 |
 | Claude (Anthropic) | Tài liệu BT3 | `docs/test-plan.md`, `docs/test-report.md`, `docs/bug-log.md` (BUG-15 – BUG-18), `docs/deployment-guide.md`, `docs/checklist-bao-mat.md`, `docs/pipeline-doc.md`, `docs/data-dictionary.md` (sinh từ `information_schema`, 147 cột), `docs/thay-doi-thiet-ke.md` TD-34 – TD-41, `README.md` | Máy: `tests/test_tai_lieu.py` – từ điển dữ liệu khớp mọi cột trong CSDL, Guide có đủ mọi biến của `.env.example`; mọi con số trong tài liệu lấy từ lần chạy thật. [x] Em đọc lại năm tài liệu tiếng Anh và hiểu từng dòng của Deployment Guide |
-| Claude (Anthropic) | Ảnh kết quả hiện có trong repo và PDF; script làm phép thử máy trắng và chụp ảnh trên MacBook | `docs/screenshots/*.png`: lệnh chạy thật trên môi trường thử Linux của Claude, đầu ra dòng lệnh **vẽ thành ảnh** (không phải ảnh chụp màn hình), nhãn vàng ghi nơi chạy và commit; `PT-06-dashboard.png` chụp trình duyệt Chromium. `chup-anh-bt3.sh` (không nằm trong repo) | Ghi ở `docs/screenshots/README.md` và chú thích trong PDF; lần chạy FAIL tái lập được ở commit `574bfd0` (Bug Log dòng 4, có cách làm trong Docker) |
+| Claude (Anthropic) | Danh sách lệnh và script chụp ảnh; cắt gọn 22 ảnh em chụp (bỏ dòng nhắc, con trỏ, dòng cắt dở; tách ảnh lần 1 làm hai) và đặt vào repo, PDF; gắn tag `v1.0` theo yêu cầu của em | `docs/screenshots/*.png`, `docs/screenshots/README.md`; tag `v1.0` | Ảnh giữ độ phân giải gốc, nội dung không đổi; kết quả trong ảnh khớp Test Report |
 | Claude (Anthropic) | Khung và nội dung báo cáo PDF BT3, xuất bằng LibreOffice (giữ cách trình bày của BT2) | `BT3_2374802010318_DuongDiemMy.pdf` | Mọi con số đối chiếu với repo và lần chạy. [x] Em đọc lại cả bài PDF trước khi nộp |
-| — không dùng — | Chạy lại 12 test case và phép thử máy trắng trên MacBook (bằng script `chup-anh-bt3.sh` ở dòng trên), chụp ảnh thay vào `docs/screenshots/`, gắn và đẩy tag `v1.0` | `docs/screenshots/`; tag `v1.0` | Không áp dụng |
+| — không dùng — | Chạy phép thử máy trắng và 12 test case trên MacBook (Docker Desktop, 08/11/2026) theo danh sách lệnh, chụp 22 ảnh | `docs/screenshots/` | Không áp dụng |
 
 **Em xác nhận đã đọc, hiểu và chịu trách nhiệm về toàn bộ nội dung nộp, kể cả mỗi test case và mỗi dòng của Deployment
 Guide** (ký sau khi đã đánh dấu các ô ở trên).
