@@ -249,8 +249,8 @@ mục 4 trùng với báo cáo lần chạy (`docs/run-report-sample.md`, mục 
 
 ### 4.2. Phép thử máy trắng theo đúng các lệnh trên slide buổi 16
 
-15/11/2026, môi trường thử Linux của Claude (Docker 29), commit `e5139d4` – nội dung mã nguồn của tag `v1.0` (commit sau
-chỉ thêm mục này vào Test Report). Tag do em gắn và đẩy (môi trường của Claude không đẩy được tag), nên bước clone dùng
+15/11/2026, môi trường thử Linux của Claude (Docker 29), commit `e5139d4` – nội dung mã nguồn của tag `v1.0` (các commit
+sau chỉ sửa tài liệu: mục này của Test Report và khai báo AI; GitHub Actions xanh ở từng commit). Tag do em gắn và đẩy (môi trường của Claude không đẩy được tag), nên bước clone dùng
 nhánh `main` đúng như slide cho phép khi tag chưa có; khi đã có tag, bước 2 dùng `--branch v1.0` (Deployment Guide mục 2).
 
 | Bước trên slide | Lệnh | Thực tế |
