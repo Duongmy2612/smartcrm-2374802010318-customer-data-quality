@@ -5,8 +5,14 @@ pipeline – 11 tables in schemas `ops` (operational) and `dwh` (star-schema war
 reject list and the dashboard read: 147 columns. Eight of the 11 tables receive rows on every load (the pipeline
 prints their row counts before → after, and a re-run must leave all eight at +0); the other three hold the rule
 configuration (`ops.dq_rule`, `dwh.dim_rule`) and the calendar (`dwh.dim_date`, pre-filled for 2024 – 2027).
-Types and nullability are copied from `information_schema` of a database built by the pipeline;
-`tests/test_tai_lieu.py` fails if a column exists in the database but not here.
+Types and nullability are those that `\d <table>` prints in psql for a database built by the pipeline. Check any
+table yourself after the Docker start (Deployment Guide section 5):
+`docker compose exec db psql -U smartcrm -d smartcrm -c '\d ops.stg_customer'`. All 147 columns were compared with
+`\d` on 15/11/2026 – names and types match for every column, nullability for every table column. PostgreSQL reports
+every column of a **view** as nullable (a view carries no NOT NULL), so for the 3 views the Null column says whether
+the value can actually be NULL given the view definition (NOT NULL source column, or `COALESCE`).
+`tests/test_tai_lieu.py` repeats this comparison on every test run (CI included): it fails if a column exists in the
+database but not here, or the reverse, or if a type or a table's nullability differs from `\d`.
 DDL: `sql/001` – `sql/005`. How the tables are loaded: `docs/pipeline-doc.md`.
 
 Classification used below:

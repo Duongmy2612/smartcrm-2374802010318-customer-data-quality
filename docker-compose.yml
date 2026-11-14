@@ -8,6 +8,7 @@
 #              bằng mã thoát (dashboard chờ service_completed_successfully). Chạy lại (docker compose up -d lần hai)
 #              không nhân đôi dữ liệu.
 #   dashboard  Streamlit K1 – K3 tại http://localhost:8501, chỉ mở khi pipeline xong thành công. Có healthcheck.
+#              Cổng trên máy lấy từ APP_PORT trong .env (mặc định 8501); trong container luôn là 8501.
 # Kiểm tra và chạy bộ kiểm thử: docs/deployment-guide.md mục 5.
 name: smartcrm-l7
 
@@ -54,7 +55,7 @@ services:
     environment: *bien_ung_dung
     command: ["python", "-m", "streamlit", "run", "dashboard/report.py", "--server.address=0.0.0.0"]
     ports:
-      - "8501:8501"
+      - "${APP_PORT:-8501}:8501"   # 8501 bị chiếm → đặt APP_PORT=8502 trong .env (Guide mục 3)
     depends_on:
       pipeline:
         condition: service_completed_successfully

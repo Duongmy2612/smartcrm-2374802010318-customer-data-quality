@@ -47,7 +47,7 @@ Kết quả chạy: `docs/test-report.md` · lỗi đã sửa: `docs/bug-log.md`
 | Đơn vị (hàm thuần, không cần CSDL) | 171 | extract, transform, dq_evaluate, match, danh_gia_match, doc_kho, ranh giới lớp, khóa / mật khẩu | `python -m pytest -q` |
 | Tích hợp (PostgreSQL thật, CSDL `smartcrm_test`) | 14 | ghi `ops` → `dwh`, chạy lại DDL, cấp quyền `dash_reader`, từ điển dữ liệu khớp CSDL | `python -m pytest -q` |
 | Hệ thống – **12 test case BT3** | 12 | gọi lệnh thật như người dùng, đếm bảng trước / sau | `python -m tests.tc_bt3 TC-xx` (cũng nằm trong pytest) |
-| Đầu-cuối đóng gói – PT-01 | 1 | máy trắng → hai lệnh → tám bước kiểm tra của Guide | Deployment Guide mục 5; GitHub Actions mỗi lần push |
+| Đầu-cuối đóng gói – PT-01 | 1 | máy trắng → hai lệnh → các bước kiểm tra của Guide mục 5 | Deployment Guide mục 5; GitHub Actions mỗi lần push |
 
 Tổng 197 test trong một lệnh `python -m pytest -q`. Phân bổ 12 test case theo năm loại của đề BT3 mục 2.2:
 

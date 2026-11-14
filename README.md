@@ -15,13 +15,15 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Dashboard: http://localhost:8501 · kiểm tra: `docker compose ps -a` (db, dashboard `healthy`; pipeline `Exited (0)`) ·
+Dashboard: http://localhost:8501 (cổng 8501 bận thì đặt `APP_PORT` khác trong `.env`) · kiểm tra: `docker compose ps -a`
+(db, dashboard `healthy`; pipeline `Exited (0)`) ·
 bộ kiểm thử: `docker compose run --rm pipeline python -m pytest -q`. Hướng dẫn đầy đủ bằng tiếng Anh (yêu cầu môi
 trường, biến môi trường, dữ liệu mẫu, cách kiểm tra): **`docs/deployment-guide.md`**. Mục 3 dưới đây là cách chạy
 không dùng Docker (môi trường phát triển của BT2).
 
 Tài liệu BT3: `docs/test-plan.md` · `docs/test-report.md` · `docs/bug-log.md` · `docs/deployment-guide.md` ·
-`docs/checklist-bao-mat.md` · `docs/pipeline-doc.md` · `docs/data-dictionary.md`.
+`docs/checklist-bao-mat.md` · `docs/pipeline-doc.md` · `docs/data-dictionary.md` · `docs/run-report-sample.md` (báo cáo
+một lần chạy pipeline trong Docker).
 
 ## 1. Hệ thống làm gì
 
@@ -34,7 +36,7 @@ Chất lượng phát hiện trùng được kiểm chứng bằng precision/rec
 trên dữ liệu mẫu với nhãn đúng của script sinh, và trên 300 cặp dữ liệu thật có nhãn của người (Claude gợi ý nhãn,
 em rà lại từng cặp – `docs/ai-disclosure.md`).
 
-Phạm vi và lý do: `docs/srs.md` (đặc tả), `docs/thay-doi-thiet-ke.md` (TD-01 – TD-41, mọi sai lệch so với BT1).
+Phạm vi và lý do: `docs/srs.md` (đặc tả), `docs/thay-doi-thiet-ke.md` (TD-01 – TD-42, mọi sai lệch so với BT1).
 
 ## 2. Yêu cầu môi trường
 
@@ -244,17 +246,23 @@ không tồn tại).
 | C2 · CỐT LÕI – Test Report 10 – 12 test case đủ tám cột, đủ năm loại | ✔ | `docs/test-report.md` (12 test case); `docs/test-plan.md` mục 1 (đối chiếu 12 quy tắc của SRS: 8 đã hiện thực đều có test) và mục 2 |
 | C3 · CỐT LÕI – PASS bằng một lệnh; một test case chạy lại tại chỗ | ✔ | `docker compose run --rm pipeline python -m pytest -q` → 194 passed, 3 skipped; `docker compose run --rm pipeline python -m tests.tc_bt3 TC-xx` (ảnh `docs/screenshots/TC-01` … `TC-12`, chụp trên MacBook) |
 | C4 · CỐT LÕI – Bug Log ≥ 3 bug, ≥ 1 Critical/Major, link commit | ✔ | `docs/bug-log.md`: BUG-15 Major, BUG-16 Critical, BUG-17 Major, BUG-18 Minor – mỗi bug một commit `fix(…)` |
-| C5 – Deployment Guide đủ năm mục, có mục cách kiểm tra | ✔ | `docs/deployment-guide.md` (tiếng Anh) |
+| C5 – Deployment Guide đủ năm mục, có mục cách kiểm tra | ✔ | `docs/deployment-guide.md` (tiếng Anh) – mục 5 có chín lệnh kiểm tra, mỗi lệnh một kết quả mong đợi, và bảng lỗi thường gặp |
 | C6 – checklist bảo mật bảy mục có minh chứng | ✔ | `docs/checklist-bao-mat.md`: 6 mục DONE, mục 4 NOT DONE (ghi trung thực, có lý do) |
 | C7 – không có secret trong repo, `.env` chưa từng bị commit | ◐ một phần | Không có secret: checklist mục 1 (quét repo và lịch sử). Nhưng `.env` từng bị commit một lần (`39020f3`, 25/09) và đã gỡ (`ef28fe3`, 19/10) – tệp chỉ có `localhost`, tên CSDL, tên tài khoản macOS, cổng và dòng `DB_PASSWORD` trống, nên không có khóa nào phải đổi. Không viết lại lịch sử vì sẽ đổi mọi mã commit, làm hỏng link commit của Bug Log và tag `v0.2` |
-| C8 – chạy lại nạp dữ liệu không lỗi, không nhân đôi | ✔ | TC-11; `docker compose up -d` lần hai → "mọi bảng +0" |
-| C9 – tài liệu theo track mô tả đúng hệ thống | ✔ | `tests/test_tai_lieu.py` đối chiếu từ điển dữ liệu với CSDL thật |
-| D1 – Pipeline doc đủ sáu mục, có hạn chế đã biết nêu ảnh hưởng nghiệp vụ | ✔ | `docs/pipeline-doc.md` – mục 1 sơ đồ các pha; mục 6 bảng tám hạn chế, mỗi hạn chế có ảnh hưởng nghiệp vụ và cách xử lý |
+| C8 – chạy lại nạp dữ liệu không lỗi, không nhân đôi | ✔ | TC-11; `docker compose run --rm pipeline` (Guide mục 5 bước 8) hoặc `docker compose up -d` lần hai → "mọi bảng +0" |
+| C9 – tài liệu theo track mô tả đúng hệ thống | ✔ | `tests/test_tai_lieu.py` đối chiếu từ điển dữ liệu với CSDL thật (tên, kiểu, NULL như `\d`), Guide và compose với `.env.example`; số dòng bị loại trong pipeline doc = báo cáo lần chạy (`docs/run-report-sample.md`) |
+| D1 – Pipeline doc đủ sáu mục, có hạn chế đã biết nêu ảnh hưởng nghiệp vụ | ✔ | `docs/pipeline-doc.md` – mục 1 sơ đồ các pha; mục 6 bảng chín hạn chế, mỗi hạn chế có ảnh hưởng nghiệp vụ và cách xử lý (kể cả quy mô × 10, đo thật) |
 | D2 – Data dictionary mọi cột của mọi bảng đích, đủ sáu trường | ✔ | `docs/data-dictionary.md` – 11 bảng (8 bảng đích nhận dòng mỗi lần nạp + 3 bảng cấu hình/lịch) + 3 view, 147 cột |
 | D3 – đo đủ ba chiều chất lượng; độ đầy đủ theo từng cột với ngưỡng riêng | ✔ | DQ-01 – DQ-06 (COMPLETENESS, VALIDITY, UNIQUENESS); `nguong_day_du` (TD-38), TC-10 |
 | D4 – cột định danh cá nhân bị loại khỏi view phân tích | ✔ | Kho `dwh` và view `v_rule_rate`, `v_batch_score` không có họ tên, số điện thoại; dashboard chỉ đọc được `dwh` (TC-12) |
 
-Quyết định xử lý nhận xét BT2 và mọi thay đổi của BT3: `docs/thay-doi-thiet-ke.md` TD-34 – TD-41.
+**Đối chiếu workshop buổi 16 (15/11/2026, TD-42):** sáu lỗi hay gặp khi gói chạy trên máy sinh viên mà không chạy trên
+máy khác đều đã kiểm (`docs/test-report.md` mục 4.1); phép thử máy trắng làm đúng các lệnh trên slide (clone mới,
+`docker compose ps`, `curl`, pytest, `docker compose run --rm pipeline` +0) – mục 4.2; cổng dashboard lấy từ `APP_PORT`;
+từ điển dữ liệu so kiểu và NULL với `\d` trong mỗi lần chạy test; câu hỏi "dữ liệu tăng gấp mười thì chỗ nào hỏng
+trước?" có số đo thật (`docs/pipeline-doc.md` mục 6, dòng "Scale").
+
+Quyết định xử lý nhận xét BT2 và mọi thay đổi của BT3: `docs/thay-doi-thiet-ke.md` TD-34 – TD-42.
 
 ### 8.2. Bài tập 2 – tự kiểm theo bảng tiêu chí (đề BT2 mục 4.2, tag `v0.2`)
 
@@ -288,11 +296,12 @@ Theo từng phần, có cột "đã kiểm chứng thế nào": `docs/ai-disclos
 |---|---|
 | `docs/srs.md` | SRS 1.2: User Story, tiêu chí chấp nhận, đặc tả UC5, FR, NFR, quy tắc, truy vết |
 | `docs/data-requirements.md` | Nguồn dữ liệu, profiling, từ điển dữ liệu, quy tắc DQ, thuật toán so khớp |
-| `docs/thay-doi-thiet-ke.md` | TD-01 – TD-41: mọi thay đổi so với BT1 (BT2: TD-22 – TD-33; BT3: TD-34 – TD-41) |
+| `docs/thay-doi-thiet-ke.md` | TD-01 – TD-42: mọi thay đổi so với BT1 (BT2: TD-22 – TD-33; BT3: TD-34 – TD-42) |
 | `docs/bug-log.md` | 18 lỗi đã gỡ, mỗi lỗi 7 dòng, kèm commit (BT3: BUG-15 – BUG-18) |
 | `docs/test-plan.md`, `docs/test-report.md` | BT3: kế hoạch kiểm thử bốn mục; 12 test case tám cột, kết quả chạy thật |
 | `docs/deployment-guide.md`, `docs/checklist-bao-mat.md` | BT3 (tiếng Anh): dựng bằng Docker, biến môi trường, cách kiểm tra; checklist bảo mật bảy mục |
 | `docs/pipeline-doc.md`, `docs/data-dictionary.md` | BT3 (tiếng Anh): tài liệu pipeline sáu mục; từ điển dữ liệu 147 cột |
+| `docs/run-report-sample.md` | Báo cáo của một lần chạy pipeline trên dữ liệu mẫu trong Docker (số dòng bị loại theo từng quy tắc) |
 | `docs/ai-disclosure.md` | Khai báo AI theo từng phần |
 | `docs/architecture-thuc-te.html`, `docs/export/` | Sơ đồ kiến trúc đã hiện thực và sơ đồ BT1 |
 | `docs/bt2/`, `docs/sprint1/`, `docs/sprint2/` | Ảnh kết quả chạy từng giai đoạn |

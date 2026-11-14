@@ -17,7 +17,7 @@ them exactly and gives the meaning in English.
 | Git | 2.30 or later | `git --version` |
 | Disk space | at least 3 GB free: images about 1.1 GB (application image about 0.8 GB, `postgres:16-alpine` about 0.3 GB) plus build cache | – |
 | Memory | 2 GB available to Docker | Docker Desktop → Settings → Resources |
-| Network port | **8501** must be free on the host (dashboard). PostgreSQL is not published, so a local PostgreSQL on 5432 does not conflict | macOS / Linux: `lsof -i :8501` (no output = free) |
+| Network port | **8501** must be free on the host (dashboard), or choose another port with `APP_PORT` in `.env` (section 3). PostgreSQL is not published, so a local PostgreSQL on 5432 does not conflict | macOS / Linux: `lsof -i :8501` (no output = free) · Windows: `netstat -ano \| findstr :8501` |
 | Internet | needed on the first build only: pull two base images from Docker Hub, install pinned Python packages from PyPI | – |
 
 Runtime inside the containers: Python 3.11 (`python:3.11-slim`), PostgreSQL 16 (`postgres:16-alpine`), libraries
@@ -63,6 +63,7 @@ a **sample** – keep it for a local run, change both passwords for any shared o
 | `DB_NAME_TEST` | Separate database for `pytest` and the 12 test cases; every test drops and recreates schemas there, never in `DB_NAME` | `smartcrm_test` | No – default `smartcrm_test` |
 | `DASH_DB_USER` | Read-only account of the dashboard. The pipeline creates it and grants **SELECT on schema `dwh` only** (counts, no personal data); it has no privileges on schema `ops` (names, phone numbers) | `dash_reader` | **Yes** |
 | `DASH_DB_PASSWORD` | Password of `DASH_DB_USER` | `dash_reader_mau_doi_khi_trien_khai` | **Yes** |
+| `APP_PORT` | Port of the dashboard **on the host** (Docker). The container always listens on 8501; Compose publishes `APP_PORT` → 8501. Change it only if 8501 is taken, then use the new port in the browser and in the `curl` check of section 5. Without Docker the port is in `.streamlit/config.toml` | `8501` | No – default `8501` |
 
 Changing `DB_PASSWORD` after the first start: PostgreSQL keeps the first password in the data volume, so run
 `docker compose down -v` before `docker compose up -d` (this deletes the loaded data; the pipeline loads it again).
@@ -86,8 +87,9 @@ The `pipeline` service loads the sample data automatically during step 4 – not
 | `dwh.dim_batch` · `dwh.fact_dq_check` · `dwh.fact_dup_pair` | 1 · 12 · 43 | warehouse matches `ops` |
 
   Cleanliness index: before **88.41** → after **95.79** (grade "Tốt" = Good).
-- Loading again is safe: `docker compose up -d` runs the pipeline again on the same file; it prints the warning
-  `CẢNH BÁO (AC1.4): tệp này đã nạp …` ("this file was already loaded") and every table stays the same (+0).
+- Loading again is safe: `docker compose run --rm pipeline` (or `docker compose up -d`) runs the pipeline again on the
+  same file; it prints the warning `CẢNH BÁO (AC1.4): tệp này đã nạp …` ("this file was already loaded") and every
+  table stays the same (+0).
 - Real data (optional, not in the repository): put the LMS file `customers_raw.csv` in `data/raw/`, then run
   `docker compose run --rm -v "$(pwd)/data/raw:/app/data/raw:ro" pipeline python -m src.pipeline --tep data/raw/customers_raw.csv`
   → 67,037 rows, cleanliness index 87.20 → 94.76, 11,637 duplicate pairs.
@@ -99,20 +101,21 @@ Run these commands in the project folder after step 4. Each line gives the exact
 | # | Command | Expected result |
 |---|---|---|
 | 1 | `docker compose ps` (running services) · `docker compose ps -a` (also the finished job) | `ps`: `db` and `dashboard` both `Up … (healthy)` · `ps -a` adds `pipeline`: `Exited (0)` |
-| 2 | `curl -s http://localhost:8501/_stcore/health` (PowerShell: `curl.exe -s …`) | `ok` |
+| 2 | `curl -s http://localhost:8501/_stcore/health` (PowerShell: `curl.exe -s …`; another `APP_PORT` → use that port) | `ok` |
 | 3 | Open http://localhost:8501 in a browser | Title "Mức độ sạch dữ liệu khách hàng"; tab K1 shows **95,79** (after) and **88,41** (before), 414 records; tabs K2, K3 show the 6 rules and 43 pairs |
 | 4 | `docker compose logs pipeline` | Line `Số dòng: tệp 414 → bảng tạm 414 = sạch 343 + chờ quyết định 40 + lỗi 31` and the table of row counts of section 4 |
 | 5 | `docker compose exec db psql -U smartcrm -d smartcrm -c "SELECT status, count(*) FROM ops.stg_customer GROUP BY status ORDER BY status"` | `CLEAN 343` · `ERROR 31` · `PENDING_DUP 40` |
-| 6 | `docker compose run --rm pipeline python -m pytest -q` (**test suite, one command**) | `194 passed, 3 skipped` and a table of the five test types. The 3 skipped tests need real data that is not in the repository (the LMS file and an 8,000-row sample of it) |
+| 6 | `docker compose run --rm pipeline python -m pytest -q` (**test suite, one command**; the same suite also runs inside the running dashboard container: `docker compose exec dashboard python -m pytest -q`) | `194 passed, 3 skipped` and a table of the five test types. The 3 skipped tests need real data that is not in the repository (the LMS file and an 8,000-row sample of it). Tests use the separate database `smartcrm_test`, so the loaded data stay untouched |
 | 7 | `docker compose run --rm pipeline python -m tests.tc_bt3 TC-06` (any of TC-01 … TC-12; no argument = all 12) | The eight columns of the test case and `Kết quả : PASS` ("Result: PASS") |
-| 8 | `docker compose up -d` then `docker compose logs pipeline` | Last line `Kết quả lần chạy lại: mọi bảng +0 – không nhân đôi dữ liệu.` ("re-run: every table +0 – no duplicated data") |
+| 8 | `docker compose run --rm pipeline` (**second run** of the pipeline on the same file; `docker compose up -d` followed by `docker compose logs pipeline` does the same) | Warning `CẢNH BÁO (AC1.4): tệp này đã nạp …`, the table of row counts with **+0** on all eight target tables and the last line `Kết quả lần chạy lại: mọi bảng +0 – không nhân đôi dữ liệu.` ("re-run: every table +0 – no duplicated data") |
+| 9 | `docker compose cp pipeline:/app/reports/. reports/` then open the newest `reports/uc1-dot-1-*.md` | Run report of the first load – written by the run that loaded the file and kept inside the finished `pipeline` container (a re-run that loads nothing writes none; if the folder stays empty, the image was rebuilt after the load: `docker compose down -v`, `docker compose up -d`, copy again): rows per status and per error code (section 2 of the report: MISSING_PHONE 24 · INVALID_PHONE 5 · MISSING_NAME 2 · INVALID_DATE 0), the 6 rules BEFORE / AFTER, 43 pairs, row counts – the same numbers as `docs/pipeline-doc.md` section 4. A copy of this report from a fresh run is committed as `docs/run-report-sample.md` |
 
 Common problems:
 
 | Message or symptom | Cause | Fix |
 |---|---|---|
 | `required variable DB_PASSWORD is missing a value` | `.env` was not created | Run step 3, then step 4 again |
-| `Bind for 0.0.0.0:8501 failed: port is already allocated` | Another program (often a dashboard started with `streamlit run`) uses port 8501 | Stop that program, then `docker compose up -d` |
+| `Bind for 0.0.0.0:8501 failed: port is already allocated` | Another program (often a dashboard started with `streamlit run`) uses port 8501 | Stop that program, or set `APP_PORT=8502` in `.env`; then `docker compose up -d` and open http://localhost:8502 |
 | `pipeline` shows `Exited (1)`; log has `password authentication failed` | `DB_PASSWORD` was changed after the first start | `docker compose down -v`, then `docker compose up -d` |
 | `required variable DASH_DB_PASSWORD is missing a value` | `.env` was created from an older `.env.example` (before `v1.0`) that has no dashboard account | Copy the `DASH_DB_USER` and `DASH_DB_PASSWORD` lines from `.env.example` into `.env`, then step 4 again |
 | Run without Docker: the dashboard shows "Chưa cấu hình tài khoản chỉ đọc của dashboard" ("the dashboard's read-only account is not configured") | `DASH_DB_USER` or `DASH_DB_PASSWORD` is empty in `.env` | Copy both lines from `.env.example`, run the pipeline once (it creates the account), restart the dashboard |

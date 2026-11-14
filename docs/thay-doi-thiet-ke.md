@@ -601,6 +601,7 @@ tìm thấy ghi ở `docs/bug-log.md` (BUG-15 – BUG-18).
 | TD-39 | 12 test case hệ thống chạy lệnh thật trên CSDL kiểm thử; năm loại marker; kiểm tài liệu bằng test | TP1, TP2, C2, C3, C9 |
 | TD-40 | `requirements.txt` thành tệp khóa đầy đủ 47 gói; kiểm lỗ hổng bằng `pip-audit`; streamlit 1.64 → 1.67 | C6 mục 7 – BUG-17 |
 | TD-41 | Phạm vi BT3: không làm UC5, K4, UC6, NFR-02 và không deploy lên free tier | Đề mục 1, 3.3 |
+| TD-42 | Đối chiếu workshop buổi 16: cổng dashboard lấy từ `APP_PORT`; Guide kiểm chạy lại bằng `docker compose run --rm pipeline` và đọc báo cáo lần chạy; từ điển dữ liệu so kiểu và NULL với `\d`; đo quy mô × 10 | C1, C5, C8, C9, D1 – D2 |
 
 ### TD-34  Nộp một tệp PDF duy nhất (nhận xét BT2)
 
@@ -687,3 +688,24 @@ tìm thấy ghi ở `docs/bug-log.md` (BUG-15 – BUG-18).
   tự chọn và đề dặn "ĐỪNG làm nếu sáu thành phần bắt buộc chưa xong". Thời gian dành cho bốn mục CỐT LÕI (C1 – C4).
 - **Ảnh hưởng:** Test Plan mục 1 ghi các phần này là "chủ ý không kiểm"; hạn chế đã biết ghi ở `docs/pipeline-doc.md`
   mục 6. Chuyển sang Giai đoạn 4 (Chuyên đề tốt nghiệp 2).
+
+### TD-42  Đối chiếu workshop buổi 16 (15/11/2026)
+
+- **Thay đổi gì:** (1) `docker-compose.yml` mở dashboard ở cổng `${APP_PORT:-8501}` thay cho 8501 cố định; `.env.example`
+  thêm `APP_PORT=8501`. (2) Deployment Guide mục 5: bước 8 chạy lại bằng `docker compose run --rm pipeline` (đúng bước
+  5 của phép thử máy trắng trên slide), bước 6 ghi thêm cách chạy pytest trong container dashboard đang chạy
+  (`docker compose exec dashboard python -m pytest -q`), bước 9 mới chép báo cáo lần chạy ra khỏi container
+  (`docker compose cp pipeline:/app/reports/. reports/`); bản sao báo cáo của một lần chạy mới là
+  `docs/run-report-sample.md`. (3) `tests/test_tai_lieu.py` so thêm kiểu của mọi cột và NULL của mọi cột bảng với
+  `format_type` / `attnotnull` – đúng những gì `\d tên_bảng` in ra; từ điển dữ liệu ghi cách tự kiểm bằng `\d`.
+  (4) `scripts/do_quy_mo_match.py` đo bước so khớp khi dữ liệu tăng k lần; `docs/pipeline-doc.md` mục 6 thêm dòng
+  "Scale".
+- **Vì sao:** slide buổi 16 – lỗi thứ sáu "cổng bị chiếm: cổng lấy từ APP_PORT trong .env"; bước 5 của phép thử dùng
+  `docker compose run --rm pipeline`; tài liệu DA phải "đối chiếu Data dictionary với \d tên_bảng – mọi cột" và "số
+  dòng bị loại mỗi quy tắc = số trong báo cáo lần chạy gần nhất" (báo cáo nằm trong container, `reports/` không
+  commit nên trước đây người chấm không đọc được); câu hỏi chuẩn "dữ liệu tăng gấp mười thì chỗ nào hỏng trước?" cần
+  câu trả lời đo được. So `\d` lần đầu: tên và kiểu khớp cả 147 cột, NULL khớp mọi cột bảng; riêng 41 cột của 3 view
+  `\d` luôn báo "có thể NULL" (view không mang NOT NULL) nên từ điển giải thích cột Null của view.
+- **Ảnh hưởng:** Guide mục 1, 3, 5 và bảng lỗi thường gặp; số kiểm thử không đổi (mở rộng test có sẵn, vẫn 194 passed,
+  3 skipped); `docs/test-report.md` mục 4 ghi sáu lỗi hay gặp của buổi 16 và kết quả kiểm; README mục 8. Đo quy mô:
+  × 10 bị hệ điều hành dừng vì hết bộ nhớ trong container 2 GB – hạn chế mới, chưa sửa (Giai đoạn 4).

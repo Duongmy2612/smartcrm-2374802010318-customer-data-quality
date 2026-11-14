@@ -195,7 +195,8 @@ từng ảnh: `docs/screenshots/README.md`.
 ## 4. PT-01 – phép thử máy trắng (kiểm thử đầu-cuối của gói đóng gói)
 
 Làm theo các bước của đề BT3 mục 2.4: xóa sạch Docker, clone repo vào thư mục trống, `cp .env.example .env`,
-`docker compose up -d --build`, rồi tám bước kiểm tra ở Deployment Guide mục 5, cộng ba bước kiểm checklist bảo mật.
+`docker compose up -d --build`, rồi các bước kiểm tra ở Deployment Guide mục 5 (lúc đó tám bước; bước 9 thêm ngày 15/11 –
+mục 4.2), cộng ba bước kiểm checklist bảo mật.
 Khác biệt duy nhất ở môi trường của Claude: bước xóa dùng `docker builder prune -af` và xóa container, volume, ảnh của
 hệ thống này, thay cho `docker system prune -af --volumes` – lệnh đó xóa luôn hai ảnh gốc dựng cục bộ mà môi trường
 không tải lại được (registry bị chặn). GitHub Actions (máy ảo mới mỗi lần) và MacBook làm đúng lệnh của đề.
@@ -225,3 +226,22 @@ pytest 194 passed, 3 skipped, pip-audit 0 lỗ hổng, đủ bản dựng sẵn 
 `PT-01-hai-lenh.png` … `PT-08-pip-audit.png`): hai lệnh dựng xong, `smartcrm-l7:local` Built; `db`, `dashboard` Up (healthy), `pipeline` Exited (0); `ok`; 414 = 343 +
 40 + 31, chỉ số 88,41 → 95,79; pytest 194 passed, 3 skipped; 12/12 test case PASS; chạy lại `up -d` mọi bảng +0;
 dừng `db`: câu báo chỉ lệnh `docker compose`, không lộ mật khẩu; `pip-audit`: "No known vulnerabilities found".
+
+### 4.1. Sáu lỗi hay gặp khi gói chạy trên máy sinh viên mà không chạy trên máy khác (slide buổi 16)
+
+Kiểm ngày 15/11/2026 trên repo (môi trường Linux của Claude), mỗi lỗi một lệnh kiểm như slide:
+
+| Lỗi hay gặp | Lệnh kiểm | Kết quả |
+|---|---|---|
+| Quên commit tệp cần thiết, `.gitignore` chặn nhầm | `git status --ignored` | Chỉ bị bỏ qua: `.env`, `.venv/`, `.pytest_cache/`, `__pycache__/`, `data/raw/customers_raw.csv` (dữ liệu thật), `data/processed/ho_so_loi_dot_*.csv` (có dữ liệu cá nhân), `reports/*.md` (sinh ra khi chạy) – không tệp nào hệ thống cần để dựng; clone mới dựng được (mục 4, 4.2) |
+| Đường dẫn tuyệt đối trong mã | `grep -rnF -e 'C:\' -e '/home/' -e '/Users/' src/ dashboard/ tests/ scripts/ configs/ sql/ docker/` | Không có dòng nào: mọi đường dẫn tính từ thư mục gốc repo (`db.GOC`) hoặc lấy từ `--tep`, `.env` |
+| Tên tệp sai hoa/thường | `git ls-files` lọc tên có chữ hoa | Mọi tệp mã, cấu hình, SQL, dữ liệu mẫu viết thường (chỉ `Dockerfile`, `README.md` viết hoa theo quy ước); import khớp tên tệp – CI chạy trên Linux (phân biệt hoa/thường) ở mỗi lần push |
+| Script `.sh` xuống dòng kiểu Windows (CRLF) | `git ls-files --eol` · `.gitattributes` | 100 tệp văn bản đều lưu LF (`i/lf`), 66 tệp ảnh / PDF nhị phân, 0 tệp CRLF; `.gitattributes` buộc `*.sh`, `*.sql`, `*.yml`, `Dockerfile`, `.env.example` giữ LF kể cả khi clone trên Windows |
+| Thiếu bước khởi tạo CSDL hoặc dữ liệu mẫu | `docker compose down -v` rồi `docker compose up -d --build` | `docker/initdb/01-tao-csdl-kiem-thu.sh` tạo `smartcrm_test` khi volume còn trống; pipeline tự tạo schema `ops`, `dwh` (`sql/001` – `005`) rồi nạp `data/mau/customers_mau.csv`: 414 dòng, 8 bảng đích có dữ liệu |
+| Thứ tự khởi động, cổng bị chiếm | healthcheck · `APP_PORT=8502` trong `.env` | `db` healthy → `pipeline` chạy (`service_healthy`) → `dashboard` mở khi `pipeline` thoát 0 (`service_completed_successfully`). Với `APP_PORT=8502`: `docker compose ps` hiện `0.0.0.0:8502->8501/tcp`, `curl -s http://localhost:8502/_stcore/health` → `ok`, cổng 8501 để trống |
+
+Cùng ngày, đối chiếu tài liệu track với hệ thống thật như slide chặng 4: từ điển dữ liệu so với `\d <bảng>` trong psql
+– tên và kiểu khớp cả 147 cột, NULL khớp mọi cột của 11 bảng (cột của view thì `\d` luôn báo có thể NULL, từ điển ghi
+rõ cách hiểu); `tests/test_tai_lieu.py` nay lặp lại phép so này ở mỗi lần chạy test và đã được thử cố ý sửa sai một
+kiểu, một NULL trong từ điển → test FAIL đúng dòng đó. Số dòng bị loại theo từng quy tắc ở `docs/pipeline-doc.md`
+mục 4 trùng với báo cáo lần chạy (`docs/run-report-sample.md`, mục 2 của báo cáo).
