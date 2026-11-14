@@ -17,7 +17,8 @@ trước test case – viết tắt **[CSDL sạch]** trong bảng.
 | 1 | 07/11/2026 · commit `574bfd0` (vừa viết 12 test case) | môi trường thử Linux của Claude: `.venv` Python 3.11, PostgreSQL 16; làm lại trong Docker (mã nguồn `574bfd0` gắn vào ảnh của lần 2, test case bản đang kiểm) cho cùng kết quả | **10/12 PASS** – TC-09 FAIL (BUG-15), TC-12 FAIL (BUG-16) |
 | 2 | 07/11/2026 · sau commit `a3566b0` (BUG-15) và `aab583b` (BUG-16); lần cuối ở commit `7242ae4` | môi trường thử như lần 1 và Docker (`docker compose run --rm pipeline …`) | **12/12 PASS** |
 | 3 | 08/11/2026 · commit `c58cd79` (nhánh `main`) | **MacBook của em**, Docker Desktop – phép thử máy trắng từ thư mục trống, ảnh `docs/screenshots/` | lần 1 trên mã nguồn `574bfd0`: TC-09, TC-12 FAIL · lần cuối **12/12 PASS**; pytest 194 passed, 3 skipped |
-| 4 | mỗi lần push · GitHub Actions | máy ảo Ubuntu mới, ảnh Docker thật từ Docker Hub | `pytest` 194 passed, 3 skipped (gồm 12 test case) – xanh ([lần chạy ở commit `c58cd79`](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42408809600)) |
+| 4 | mỗi lần push · GitHub Actions | máy ảo Ubuntu mới, ảnh Docker thật từ Docker Hub | `pytest` 194 passed, 3 skipped (gồm 12 test case) – xanh ([lần chạy ở commit `c58cd79`](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/42408809600); [ở commit `e5139d4`](https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality/actions/runs/43636228453)) |
+| 5 | 15/11/2026 · commit `e5139d4` (nhánh `main`, sau đối chiếu buổi 16) | môi trường thử Linux của Claude: phép thử máy trắng theo đúng lệnh của slide buổi 16 (mục 4.2) | 12 test case 12/12 PASS; pytest 194 passed, 3 skipped (cả `exec` vào dashboard lẫn `run --rm`) |
 
 Ba test case được làm chặt hơn sau lượt rà soát, khi đối chiếu với bảng quy tắc nghiệp vụ của SRS mục 5: **TC-08**
 nạp sẵn 414 dòng rồi mới đưa tệp thiếu cột (thấy được tệp hỏng không đụng tới dữ liệu đang có); **TC-02** kiểm thêm
@@ -245,3 +246,26 @@ Cùng ngày, đối chiếu tài liệu track với hệ thống thật như sli
 rõ cách hiểu); `tests/test_tai_lieu.py` nay lặp lại phép so này ở mỗi lần chạy test và đã được thử cố ý sửa sai một
 kiểu, một NULL trong từ điển → test FAIL đúng dòng đó. Số dòng bị loại theo từng quy tắc ở `docs/pipeline-doc.md`
 mục 4 trùng với báo cáo lần chạy (`docs/run-report-sample.md`, mục 2 của báo cáo).
+
+### 4.2. Phép thử máy trắng theo đúng các lệnh trên slide buổi 16
+
+15/11/2026, môi trường thử Linux của Claude (Docker 29), commit `e5139d4` – nội dung mã nguồn của tag `v1.0` (commit sau
+chỉ thêm mục này vào Test Report). Tag do em gắn và đẩy (môi trường của Claude không đẩy được tag), nên bước clone dùng
+nhánh `main` đúng như slide cho phép khi tag chưa có; khi đã có tag, bước 2 dùng `--branch v1.0` (Deployment Guide mục 2).
+
+| Bước trên slide | Lệnh | Thực tế |
+|---|---|---|
+| 1 – xóa dấu vết lần trước | `docker compose down -v` (trong thư mục làm việc cũ) | container và volume `smartcrm-l7_pgdata` đã xóa |
+| 2 – clone vào thư mục hoàn toàn mới | `cd /tmp && rm -rf kiem-tra && mkdir kiem-tra && cd kiem-tra` · `git clone --branch main https://github.com/Duongmy2612/smartcrm-2374802010318-customer-data-quality.git .` | mã thoát 0; `git log -1` = `e5139d4` |
+| 3 – làm đúng Guide | `cp .env.example .env` · `docker compose up -d --build` | mã thoát 0; `pipeline` Exited, `dashboard` Started |
+| 4 – Verify it works | `docker compose ps` | `dashboard` Up (healthy) `0.0.0.0:8501->8501/tcp` · `db` Up (healthy) `5432/tcp` (`ps -a`: `pipeline` Exited (0)) |
+| | `curl -s http://localhost:8501/_stcore/health` | `ok` |
+| | `docker compose exec dashboard python -m pytest -q` · `docker compose run --rm pipeline python -m pytest -q` | cả hai: `194 passed, 3 skipped`, bảng năm loại 23 · 35 · 42 · 3 · 7 |
+| | test case chọn ngẫu nhiên: `docker compose run --rm pipeline python -m tests.tc_bt3 TC-07` | `Kết quả : PASS` |
+| 5 – chạy lại lần hai (C8) | `docker compose run --rm pipeline` | tám bảng đích +0; `Kết quả lần chạy lại: mọi bảng +0 – không nhân đôi dữ liệu.` |
+| Guide bước 9 – báo cáo lần chạy | `docker compose cp pipeline:/app/reports/. reports/` | `reports/uc1-dot-1-…md`: mọi con số trùng `docs/run-report-sample.md` (chỉ khác giờ bắt đầu và số giây ở mục 7; SHA-256 của tệp giống nhau) |
+| Chặng 4 bước 6 – kiểm nội dung | `git ls-tree -r HEAD --name-only docs/` | đủ `test-plan`, `test-report`, `bug-log`, `deployment-guide`, `checklist-bao-mat`, `pipeline-doc`, `data-dictionary`, `ai-disclosure`, `run-report-sample`, `thay-doi-thiet-ke` và 22 ảnh `screenshots/` |
+
+Ảnh chụp của phép thử máy trắng vẫn là 22 ảnh trên MacBook của em ngày 08/11/2026 (mục 4, `docs/screenshots/`):
+các bước 4 – 5 ở trên trùng các ảnh `PT-02`, `PT-04`, `TC-xx`, `PT-05` (ảnh `PT-05` chạy lại bằng `docker compose up -d`,
+Guide bước 8 ghi cả hai cách). Lần này cũng chạy trên GitHub Actions (lần 4).
