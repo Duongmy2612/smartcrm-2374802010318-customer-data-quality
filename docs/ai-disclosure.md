@@ -98,7 +98,8 @@ test case, chạy chúng lần đầu trên môi trường thử Linux của Cla
 tài liệu và khung báo cáo PDF, commit và đẩy lên GitHub (các commit từ `af63f50` có dòng `Co-Authored-By: Claude`).
 Phần em tự làm: chạy phép thử máy trắng và 12 test case trên MacBook theo danh sách lệnh Claude soạn, chụp 22 ảnh
 `docs/screenshots/`, đọc lại và xác nhận các mục dưới.
-Như BT2, cột cuối có phần kiểm chứng bằng máy và các ô em xác nhận ([x]); tag `v1.0` gắn sau khi có ảnh chụp trên MacBook (08/11/2026).
+Như BT2, cột cuối có phần kiểm chứng bằng máy và các ô em xác nhận ([x]); tag `v1.0` gắn lần đầu sau khi có ảnh chụp trên
+MacBook (08/11/2026), gắn lại ở commit cuối sau phần đối chiếu buổi 16 (15/11/2026).
 
 | Công cụ | Dùng vào việc gì | Áp dụng ở tệp / hàm nào | Em đã kiểm chứng thế nào |
 |---|---|---|---|

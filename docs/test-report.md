@@ -262,6 +262,7 @@ nhánh `main` đúng như slide cho phép khi tag chưa có; khi đã có tag, b
 | | `curl -s http://localhost:8501/_stcore/health` | `ok` |
 | | `docker compose exec dashboard python -m pytest -q` · `docker compose run --rm pipeline python -m pytest -q` | cả hai: `194 passed, 3 skipped`, bảng năm loại 23 · 35 · 42 · 3 · 7 |
 | | test case chọn ngẫu nhiên: `docker compose run --rm pipeline python -m tests.tc_bt3 TC-07` | `Kết quả : PASS` |
+| | cả 12 test case: `docker compose run --rm pipeline python -m tests.tc_bt3` | `Tổng: TC-01 PASS · … · TC-12 PASS → 12/12 PASS` |
 | 5 – chạy lại lần hai (C8) | `docker compose run --rm pipeline` | tám bảng đích +0; `Kết quả lần chạy lại: mọi bảng +0 – không nhân đôi dữ liệu.` |
 | Guide bước 9 – báo cáo lần chạy | `docker compose cp pipeline:/app/reports/. reports/` | `reports/uc1-dot-1-…md`: mọi con số trùng `docs/run-report-sample.md` (chỉ khác giờ bắt đầu và số giây ở mục 7; SHA-256 của tệp giống nhau) |
 | Chặng 4 bước 6 – kiểm nội dung | `git ls-tree -r HEAD --name-only docs/` | đủ `test-plan`, `test-report`, `bug-log`, `deployment-guide`, `checklist-bao-mat`, `pipeline-doc`, `data-dictionary`, `ai-disclosure`, `run-report-sample`, `thay-doi-thiet-ke` và 22 ảnh `screenshots/` |
